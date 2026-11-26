@@ -117,35 +117,35 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   }, [save]);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#0d0b14]">
-      {/* Live 8-bit Pixel-Art Attract Canvas */}
+    <div className="relative w-full h-[100dvh] overflow-hidden bg-[#0d0b14]">
+      {/* Live 8-bit Pixel-Art Attract Canvas (anchored so cars & tree stay visible on mobile) */}
       <canvas
         ref={canvasRef}
-        className="pixel-canvas w-full h-full object-cover block"
+        className="pixel-canvas w-full h-full object-cover object-[11%_bottom] sm:object-[18%_bottom] lg:object-center block"
       />
 
       {/* Measured contrast scrim over upper sky negative space for crisp legibility */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#0d0b14]/75 via-[#0d0b14]/20 to-[#0d0b14]/85" />
 
       {/* Top-right mute affordance */}
-      <div className="absolute top-5 right-6 z-20 flex items-center gap-3">
+      <div className="absolute top-3 right-3 sm:top-5 sm:right-6 z-20 flex items-center gap-3">
         <button
           type="button"
           onClick={onToggleMute}
           aria-label={muted ? 'Unmute audio' : 'Mute audio'}
-          className="arcade-btn h-10 w-10 flex items-center justify-center bg-[#151221]/90 border-2 border-[#3a3154] text-[#f4f1e6] hover:border-[#f5b82e] focus-visible:outline-2 focus-visible:outline-[#f5b82e]"
+          className="arcade-btn h-11 w-11 sm:h-10 sm:w-10 flex items-center justify-center bg-[#151221]/90 border-2 border-[#3a3154] text-[#f4f1e6] hover:border-[#f5b82e] focus-visible:outline-2 focus-visible:outline-[#f5b82e] cursor-pointer"
         >
           {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
         </button>
       </div>
 
       {/* Centered Title Lockup over Upper Calm Sky Negative Space */}
-      <div className="absolute inset-0 z-10 flex flex-col items-center justify-between py-10 px-6 pointer-events-none">
-        <div className="flex flex-col items-center text-center mt-2">
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-between py-8 sm:py-10 px-4 sm:px-6 pointer-events-none">
+        <div className="flex flex-col items-center text-center mt-4 sm:mt-2 w-full">
           {/* Bespoke Inline SVG Pixel-Chrome Arcade Lockup */}
           <svg
             viewBox="0 0 540 124"
-            className="w-[340px] sm:w-[490px] md:w-[540px] h-auto drop-shadow-[0_6px_0_rgba(9,7,15,0.95)]"
+            className="w-full max-w-[320px] sm:max-w-[490px] md:max-w-[540px] h-auto drop-shadow-[0_6px_0_rgba(9,7,15,0.95)]"
             role="img"
             aria-label="REDLINE '88"
           >
@@ -213,17 +213,20 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         </div>
 
         {/* Bottom Primary CTA & Single Flat Control Hint Line */}
-        <div className="flex flex-col items-center gap-4 mb-2 pointer-events-auto">
+        <div className="flex flex-col items-center gap-3 sm:gap-4 mb-2 pointer-events-auto">
           <button
             type="button"
             onClick={onStart}
-            className="arcade-btn px-10 py-4 bg-[#ff4d2e] hover:bg-[#ff6247] text-white font-pixel text-sm sm:text-base tracking-wider border-2 border-[#fff3b0] shadow-[0_5px_0_#7f1d1d] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f5b82e] whitespace-nowrap cursor-pointer"
+            className="arcade-btn px-8 sm:px-10 py-4 bg-[#ff4d2e] hover:bg-[#ff6247] text-white font-pixel text-xs sm:text-base tracking-wider border-2 border-[#fff3b0] shadow-[0_5px_0_#7f1d1d] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f5b82e] whitespace-nowrap cursor-pointer"
           >
             ENTER GARAGE
           </button>
 
-          <p className="font-mono-num text-xs sm:text-sm text-[#e2dff0]/90 tracking-wide text-center">
-            W / Up Gas · Shift Clutch · Space Shift Up · N Nitrous · Esc Pause
+          <p className="font-mono-num text-[11px] sm:text-sm text-[#e2dff0]/90 tracking-wide text-center">
+            <span className="sm:hidden">Touch Pedals or Keyboard · Manual Launch &amp; Shifting</span>
+            <span className="hidden sm:inline">
+              W / Up Gas · Shift Clutch · Space Shift Up · N Nitrous · Esc Pause
+            </span>
           </p>
         </div>
       </div>

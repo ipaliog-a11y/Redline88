@@ -11,6 +11,7 @@
   body,
   #root {
     height: 100%;
+    height: 100dvh;
     width: 100%;
     margin: 0;
     padding: 0;
@@ -19,7 +20,17 @@
     color: #f4f1e6;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
   }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .font-pixel {

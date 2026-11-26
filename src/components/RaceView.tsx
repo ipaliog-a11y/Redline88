@@ -207,225 +207,286 @@ export const RaceView: React.FC<RaceViewProps> = ({
   const rivalPct = Math.min(100, (hud.rivalDistFt / stripFt) * 100);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-[#0d0b14] flex flex-col">
+    <div className="relative w-full h-[100dvh] overflow-hidden bg-[#0d0b14] flex flex-col select-none">
       {/* Isolated Full-Viewport Pixel Canvas */}
-      <div className="relative flex-1 w-full h-full overflow-hidden">
+      <div className="relative flex-1 min-h-0 w-full overflow-hidden">
         <canvas
           ref={canvasRef}
-          className="pixel-canvas w-full h-full object-cover block"
+          className="pixel-canvas w-full h-full object-cover object-[10%_bottom] sm:object-[18%_bottom] lg:object-center block"
         />
 
         {/* TOP SLIM HUD OVERLAY (pointer-events-none wrapper) */}
-        <div className="pointer-events-none absolute top-0 left-0 right-0 z-10 px-4 py-3 flex items-start justify-between gap-4">
-          {/* Left: Event Info */}
-          <div className="bg-[#0d0b14]/85 border-2 border-[#352d4d] px-3.5 py-2 flex items-center gap-3">
-            <div>
-              <div className="font-pixel text-[10px] text-[#f5b82e] leading-tight">
+        <div className="pointer-events-none absolute top-0 left-0 right-0 z-10 px-2.5 sm:px-4 pt-2 sm:pt-3 flex flex-col gap-1.5">
+          <div className="flex items-start justify-between gap-2 sm:gap-4">
+            {/* Left: Event Info */}
+            <div className="bg-[#0d0b14]/85 border-2 border-[#352d4d] px-2.5 sm:px-3.5 py-1.5 sm:py-2 min-w-0 max-w-[54%] sm:max-w-none">
+              <div className="font-pixel text-[9px] sm:text-[10px] text-[#f5b82e] leading-tight truncate">
                 {tierSpec.className} · {distSpec.shortLabel}
               </div>
-              <div className="text-xs font-semibold text-[#f4f1e6] mt-0.5 whitespace-nowrap">
-                {rival ? `vs ${rival.name}` : `${distSpec.label} Time Trial`}
+              <div className="text-[11px] sm:text-xs font-semibold text-[#f4f1e6] mt-0.5 truncate">
+                {rival ? `vs ${rival.name}` : `${distSpec.label} Trial`}
               </div>
             </div>
+
+            {/* Center: Dynamic Strip Progress Track & Live ET Timer (Desktop) */}
+            <div className="hidden md:flex flex-col items-center bg-[#0d0b14]/85 border-2 border-[#352d4d] px-4 py-2 min-w-[320px]">
+              <div className="w-full flex items-center justify-between text-[11px] font-mono-num text-[#cbd5e1] mb-1.5">
+                <span>START</span>
+                <span className="text-sm font-bold text-[#f4f1e6]">
+                  {hud.elapsedSec.toFixed(3)}s
+                </span>
+                <span>{distSpec.shortLabel}</span>
+              </div>
+              <div className="relative w-full h-3 bg-[#1d1830] border border-[#3a3154]">
+                {rival && (
+                  <div
+                    className="absolute top-0.5 h-1 w-2.5 bg-[#94a3b8]"
+                    style={{ left: `calc(${rivalPct}% - 5px)` }}
+                  />
+                )}
+                <div
+                  className="absolute bottom-0.5 h-1.5 w-3 bg-[#ff4d2e]"
+                  style={{ left: `calc(${playerPct}% - 6px)` }}
+                />
+              </div>
+            </div>
+
+            {/* Right: Live ET (mobile) + Audio & Pause controls */}
+            <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2 shrink-0">
+              <div className="md:hidden bg-[#0d0b14]/85 border-2 border-[#352d4d] px-2 py-2 font-mono-num text-xs font-bold text-[#f4f1e6]">
+                {hud.elapsedSec.toFixed(2)}s
+              </div>
+              <button
+                type="button"
+                onClick={onToggleMute}
+                aria-label={muted ? 'Unmute audio' : 'Mute audio'}
+                className="arcade-btn h-10 w-10 flex items-center justify-center bg-[#0d0b14]/85 border-2 border-[#352d4d] text-[#f4f1e6] hover:border-[#f5b82e] cursor-pointer"
+              >
+                {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </button>
+              <button
+                type="button"
+                onClick={togglePause}
+                aria-label="Pause race"
+                className="arcade-btn h-10 w-10 flex items-center justify-center bg-[#0d0b14]/85 border-2 border-[#352d4d] text-[#f4f1e6] hover:border-[#f5b82e] cursor-pointer"
+              >
+                <Pause className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
-          {/* Center: Dynamic Strip Progress Track & Live ET Timer */}
-          <div className="hidden md:flex flex-col items-center bg-[#0d0b14]/85 border-2 border-[#352d4d] px-4 py-2 min-w-[320px]">
-            <div className="w-full flex items-center justify-between text-[11px] font-mono-num text-[#cbd5e1] mb-1.5">
-              <span>START</span>
-              <span className="text-sm font-bold text-[#f4f1e6]">
-                {hud.elapsedSec.toFixed(3)}s
-              </span>
-              <span>{distSpec.shortLabel}</span>
-            </div>
-            <div className="relative w-full h-3 bg-[#1d1830] border border-[#3a3154]">
-              {/* Rival dot */}
+          {/* Mobile Compact Strip Progress Bar */}
+          <div className="md:hidden flex items-center gap-2 bg-[#0d0b14]/80 border border-[#352d4d] px-2.5 py-1 font-mono-num text-[10px] text-[#cbd5e1]">
+            <span className="shrink-0">GO</span>
+            <div className="relative flex-1 h-2.5 bg-[#1d1830] border border-[#3a3154]">
               {rival && (
                 <div
-                  className="absolute top-0.5 h-1 w-2.5 bg-[#94a3b8]"
-                  style={{ left: `calc(${rivalPct}% - 5px)` }}
+                  className="absolute top-0.5 h-1 w-2 bg-[#94a3b8]"
+                  style={{ left: `calc(${rivalPct}% - 4px)` }}
                 />
               )}
-              {/* Player marker */}
               <div
-                className="absolute bottom-0.5 h-1.5 w-3 bg-[#ff4d2e]"
-                style={{ left: `calc(${playerPct}% - 6px)` }}
+                className="absolute bottom-0.5 h-1 w-2.5 bg-[#ff4d2e]"
+                style={{ left: `calc(${playerPct}% - 5px)` }}
               />
             </div>
-          </div>
-
-          {/* Right: Live ET (mobile) + Audio & Pause controls */}
-          <div className="pointer-events-auto flex items-center gap-2">
-            <div className="md:hidden bg-[#0d0b14]/85 border-2 border-[#352d4d] px-2.5 py-2 font-mono-num text-xs font-bold">
-              {hud.elapsedSec.toFixed(3)}s
-            </div>
-            <button
-              type="button"
-              onClick={onToggleMute}
-              aria-label={muted ? 'Unmute audio' : 'Mute audio'}
-              className="arcade-btn h-10 w-10 flex items-center justify-center bg-[#0d0b14]/85 border-2 border-[#352d4d] text-[#f4f1e6] hover:border-[#f5b82e]"
-            >
-              {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-            </button>
-            <button
-              type="button"
-              onClick={togglePause}
-              aria-label="Pause race"
-              className="arcade-btn h-10 w-10 flex items-center justify-center bg-[#0d0b14]/85 border-2 border-[#352d4d] text-[#f4f1e6] hover:border-[#f5b82e]"
-            >
-              <Pause className="w-4 h-4" />
-            </button>
+            <span className="shrink-0">{distSpec.shortLabel}</span>
           </div>
         </div>
 
         {/* Subtle Staging Hint Banner (only before launch) */}
         {isStagingPhase && !hud.foul && (
-          <div className="pointer-events-none absolute top-16 left-1/2 -translate-x-1/2 z-10 bg-[#0d0b14]/88 border-2 border-[#f5b82e] px-4 py-1.5 text-center">
-            <p className="font-mono-num text-xs text-[#fef08a] font-bold tracking-wide whitespace-nowrap">
-              {hud.treeStep < 5
-                ? 'HOLD CLUTCH (SHIFT) + REV INTO GREEN ZONE · RELEASE CLUTCH ON GREEN!'
-                : 'GO! RELEASE CLUTCH & FLOOR THROTTLE!'}
+          <div className="pointer-events-none absolute top-[88px] md:top-16 left-1/2 -translate-x-1/2 z-10 max-w-[92%] bg-[#0d0b14]/88 border-2 border-[#f5b82e] px-3 sm:px-4 py-1 sm:py-1.5 text-center">
+            <p className="font-mono-num text-[10px] sm:text-xs text-[#fef08a] font-bold tracking-wide">
+              <span className="sm:hidden">
+                {hud.treeStep < 5
+                  ? 'HOLD CLUTCH + GAS INTO GREEN · RELEASE ON GO!'
+                  : 'GO! RELEASE CLUTCH & HOLD GAS!'}
+              </span>
+              <span className="hidden sm:inline whitespace-nowrap">
+                {hud.treeStep < 5
+                  ? 'HOLD CLUTCH (SHIFT) + REV INTO GREEN ZONE · RELEASE CLUTCH ON GREEN!'
+                  : 'GO! RELEASE CLUTCH & FLOOR THROTTLE!'}
+              </span>
             </p>
           </div>
         )}
       </div>
 
-      {/* BOTTOM COMPACT COCKPIT BAR (keeps >= 85% of drag strip unobstructed) */}
-      <div className="w-full bg-[#120f1c] border-t-2 border-[#352d4d] px-4 py-2.5 z-20">
-        <div className="max-w-6xl mx-auto flex flex-wrap lg:flex-nowrap items-center justify-between gap-3">
-          {/* Left: Gear + Speed Digital Readout */}
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="bg-[#09070f] border-2 border-[#352d4d] px-3 py-1.5 text-center min-w-[64px]">
-              <div className="text-[10px] text-[#94a3b8] font-semibold tracking-wider">GEAR</div>
-              <div className={`font-pixel text-xl leading-none mt-1 ${hud.inShiftZone ? 'text-[#22c55e]' : 'text-[#f5b82e]'}`}>
-                {hud.gear === 0 ? 'N' : hud.gear}
+      {/* BOTTOM COMPACT COCKPIT BAR (ergonomic thumb pedals on mobile, slim arcade dash on desktop) */}
+      <div className="shrink-0 w-full bg-[#120f1c] border-t-2 border-[#352d4d] px-2.5 sm:px-4 py-2 sm:py-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] z-20">
+        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-2 sm:gap-3">
+          {/* Top Row on Mobile (Left+Center on Desktop): Gear + Speed + Tachometer */}
+          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+            {/* Gear + Speed Digital Readout */}
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+              <div className="bg-[#09070f] border-2 border-[#352d4d] px-2 sm:px-3 py-1 sm:py-1.5 text-center min-w-[46px] sm:min-w-[64px]">
+                <div className="text-[9px] sm:text-[10px] text-[#94a3b8] font-semibold tracking-wider">
+                  GEAR
+                </div>
+                <div
+                  className={`font-pixel text-base sm:text-xl leading-none mt-0.5 sm:mt-1 ${
+                    hud.inShiftZone ? 'text-[#22c55e]' : 'text-[#f5b82e]'
+                  }`}
+                >
+                  {hud.gear === 0 ? 'N' : hud.gear}
+                </div>
+              </div>
+              <div className="bg-[#09070f] border-2 border-[#352d4d] px-2 sm:px-3 py-1 sm:py-1.5 text-right min-w-[68px] sm:min-w-[92px]">
+                <div className="text-[9px] sm:text-[10px] text-[#94a3b8] font-semibold tracking-wider">
+                  MPH
+                </div>
+                <div className="font-mono-num text-base sm:text-xl font-bold text-[#f4f1e6] leading-none mt-0.5 sm:mt-1">
+                  {hud.playerMph}
+                </div>
               </div>
             </div>
-            <div className="bg-[#09070f] border-2 border-[#352d4d] px-3 py-1.5 text-right min-w-[92px]">
-              <div className="text-[10px] text-[#94a3b8] font-semibold tracking-wider">SPEED</div>
-              <div className="font-mono-num text-xl font-bold text-[#f4f1e6] leading-none mt-1">
-                {hud.playerMph} <span className="text-xs text-[#94a3b8]">MPH</span>
+
+            {/* Retro Pixel Tachometer with Launch & Shift Sweet Spots */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between text-[10px] sm:text-xs font-mono-num mb-1 gap-1">
+                <div className="flex items-center gap-1 sm:gap-2 truncate">
+                  <span className="font-bold text-[#f4f1e6]">{hud.rpm}</span>
+                  <span className="text-[#94a3b8]">/</span>
+                  <span className="text-[#94a3b8]">{hud.redlineRpm}</span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {hud.inLaunchZone && isStagingPhase && (
+                    <span className="font-bold text-[#22c55e]">LAUNCH READY</span>
+                  )}
+                  {hud.inShiftZone && (
+                    <span className="font-bold text-[#facc15]">SHIFT NOW!</span>
+                  )}
+                  {!hud.inShiftZone && !isStagingPhase && hud.boostTimer > 0 && (
+                    <span className="font-bold text-[#38bdf8]">BOOST!</span>
+                  )}
+                  {!hud.inShiftZone && !isStagingPhase && hud.wheelspin > 0.2 && (
+                    <span className="font-bold text-[#f97316]">SPIN</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Segmented Tach Bar */}
+              <div className="relative h-5 sm:h-6 bg-[#09070f] border-2 border-[#352d4d] overflow-hidden">
+                {isStagingPhase && (
+                  <div
+                    className="absolute top-0 bottom-0 bg-[#22c55e]/30 border-x-2 border-[#22c55e]"
+                    style={{ left: `${launchStartPct}%`, width: `${launchWidthPct}%` }}
+                  />
+                )}
+                {!isStagingPhase && hud.gear < hud.maxGears && (
+                  <div
+                    className="absolute top-0 bottom-0 bg-[#facc15]/30 border-x-2 border-[#facc15]"
+                    style={{ left: `${shiftStartPct}%`, width: `${shiftWidthPct}%` }}
+                  />
+                )}
+                <div
+                  className="absolute top-0 bottom-0 right-0 bg-[#ef4444]/25 border-l border-[#ef4444]"
+                  style={{ width: '6%' }}
+                />
+                <div
+                  className={`h-full transition-none ${
+                    hud.rpm >= hud.redlineRpm
+                      ? 'bg-[#ef4444]'
+                      : hud.inShiftZone
+                      ? 'bg-[#facc15]'
+                      : hud.inLaunchZone && isStagingPhase
+                      ? 'bg-[#22c55e]'
+                      : 'bg-[#ff4d2e]'
+                  }`}
+                  style={{ width: `${rpmPct}%` }}
+                />
+                <div
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    backgroundImage:
+                      'repeating-linear-gradient(90deg, transparent 0px, transparent 14px, rgba(9,7,15,0.65) 14px, rgba(9,7,15,0.65) 16px)',
+                  }}
+                />
               </div>
             </div>
           </div>
 
-          {/* Center: Retro Pixel Tachometer with Launch & Shift Sweet Spots */}
-          <div className="flex-1 min-w-[240px]">
-            <div className="flex items-center justify-between text-xs font-mono-num mb-1">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-[#f4f1e6]">{hud.rpm} RPM</span>
-                <span className="text-[#94a3b8]">/</span>
-                <span className="text-[#94a3b8]">{hud.redlineRpm} MAX</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {hud.inLaunchZone && isStagingPhase && (
-                  <span className="font-bold text-[#22c55e]">LAUNCH ZONE READY</span>
-                )}
-                {hud.inShiftZone && (
-                  <span className="font-bold text-[#facc15]">SHIFT NOW! [SPACE]</span>
-                )}
-                {!hud.inShiftZone && !isStagingPhase && hud.boostTimer > 0 && (
-                  <span className="font-bold text-[#38bdf8]">BOOST SURGE</span>
-                )}
-                {!hud.inShiftZone && !isStagingPhase && hud.wheelspin > 0.2 && (
-                  <span className="font-bold text-[#f97316]">WHEELSPIN</span>
-                )}
-              </div>
-            </div>
-
-            {/* Segmented Tach Bar */}
-            <div className="relative h-6 bg-[#09070f] border-2 border-[#352d4d] overflow-hidden">
-              {/* Launch RPM Sweet Spot highlight (visible while staging) */}
-              {isStagingPhase && (
-                <div
-                  className="absolute top-0 bottom-0 bg-[#22c55e]/30 border-x-2 border-[#22c55e]"
-                  style={{ left: `${launchStartPct}%`, width: `${launchWidthPct}%` }}
-                />
-              )}
-              {/* Perfect Shift Sweet Spot highlight (visible while racing) */}
-              {!isStagingPhase && hud.gear < hud.maxGears && (
-                <div
-                  className="absolute top-0 bottom-0 bg-[#facc15]/30 border-x-2 border-[#facc15]"
-                  style={{ left: `${shiftStartPct}%`, width: `${shiftWidthPct}%` }}
-                />
-              )}
-              {/* Redline warning zone */}
-              <div
-                className="absolute top-0 bottom-0 right-0 bg-[#ef4444]/25 border-l border-[#ef4444]"
-                style={{ width: '6%' }}
-              />
-              {/* Active RPM fill */}
-              <div
-                className={`h-full transition-none ${
-                  hud.rpm >= hud.redlineRpm
-                    ? 'bg-[#ef4444]'
-                    : hud.inShiftZone
-                    ? 'bg-[#facc15]'
-                    : hud.inLaunchZone && isStagingPhase
-                    ? 'bg-[#22c55e]'
-                    : 'bg-[#ff4d2e]'
-                }`}
-                style={{ width: `${rpmPct}%` }}
-              />
-              {/* Pixel tick divisions */}
-              <div
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  backgroundImage:
-                    'repeating-linear-gradient(90deg, transparent 0px, transparent 14px, rgba(9,7,15,0.65) 14px, rgba(9,7,15,0.65) 16px)',
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Right: Tactile Interactive Arcade Pedals & Shifter (Mouse/Touch + Key Mirror) */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Multi-Touch Thumb Pedals & Shifter (Full-width touch grid on mobile, inline on desktop) */}
+          <div
+            className={`grid ${
+              hud.nitrousMax > 0 ? 'grid-cols-4' : 'grid-cols-3'
+            } lg:flex items-center gap-1.5 sm:gap-2 shrink-0 touch-none`}
+          >
             <button
               type="button"
-              onPointerDown={() => simRef.current?.setClutch(true)}
-              onPointerUp={() => simRef.current?.setClutch(false)}
-              onPointerLeave={() => simRef.current?.setClutch(false)}
-              className={`arcade-btn h-11 px-3.5 border-2 font-bold text-xs whitespace-nowrap cursor-pointer ${
+              onContextMenu={(e) => e.preventDefault()}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                simRef.current?.setClutch(true);
+              }}
+              onPointerUp={(e) => {
+                if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                  e.currentTarget.releasePointerCapture(e.pointerId);
+                }
+                simRef.current?.setClutch(false);
+              }}
+              onPointerCancel={() => simRef.current?.setClutch(false)}
+              className={`arcade-btn touch-none select-none min-h-[48px] lg:min-h-0 lg:h-11 px-2 sm:px-3.5 border-2 font-bold text-xs whitespace-nowrap cursor-pointer ${
                 hud.clutch
                   ? 'bg-[#eab308] text-[#09070f] border-[#fef08a]'
                   : 'bg-[#1c172e] text-[#f4f1e6] border-[#433863] hover:border-[#eab308]'
               }`}
             >
-              CLUTCH <span className="opacity-70 font-mono-num">[SHIFT]</span>
+              CLUTCH <span className="hidden lg:inline opacity-70 font-mono-num">[SHIFT]</span>
             </button>
 
             <button
               type="button"
-              onPointerDown={() => simRef.current?.setThrottle(true)}
-              onPointerUp={() => simRef.current?.setThrottle(false)}
-              onPointerLeave={() => simRef.current?.setThrottle(false)}
-              className={`arcade-btn h-11 px-4 border-2 font-bold text-xs whitespace-nowrap cursor-pointer ${
+              onContextMenu={(e) => e.preventDefault()}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                simRef.current?.setThrottle(true);
+              }}
+              onPointerUp={(e) => {
+                if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+                  e.currentTarget.releasePointerCapture(e.pointerId);
+                }
+                simRef.current?.setThrottle(false);
+              }}
+              onPointerCancel={() => simRef.current?.setThrottle(false)}
+              className={`arcade-btn touch-none select-none min-h-[48px] lg:min-h-0 lg:h-11 px-2 sm:px-4 border-2 font-bold text-xs whitespace-nowrap cursor-pointer ${
                 hud.throttle
                   ? 'bg-[#22c55e] text-[#09070f] border-[#bbf7d0]'
                   : 'bg-[#1c172e] text-[#f4f1e6] border-[#433863] hover:border-[#22c55e]'
               }`}
             >
-              GAS <span className="opacity-70 font-mono-num">[W]</span>
+              GAS <span className="hidden lg:inline opacity-70 font-mono-num">[W]</span>
             </button>
 
             <button
               type="button"
-              onPointerDown={() => simRef.current?.triggerShiftUp()}
-              className={`arcade-btn h-11 px-4 border-2 font-bold text-xs whitespace-nowrap cursor-pointer ${
+              onContextMenu={(e) => e.preventDefault()}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                simRef.current?.triggerShiftUp();
+              }}
+              className={`arcade-btn touch-none select-none min-h-[48px] lg:min-h-0 lg:h-11 px-2 sm:px-4 border-2 font-bold text-xs whitespace-nowrap cursor-pointer ${
                 hud.inShiftZone
                   ? 'bg-[#facc15] text-[#09070f] border-[#ffffff]'
                   : 'bg-[#ff4d2e] text-white border-[#fca5a5] hover:bg-[#ff6247]'
               }`}
             >
-              SHIFT+ <span className="opacity-80 font-mono-num">[SPACE]</span>
+              SHIFT+ <span className="hidden lg:inline opacity-80 font-mono-num">[SPACE]</span>
             </button>
 
             {hud.nitrousMax > 0 && (
               <button
                 type="button"
                 disabled={hud.nitrousLeft <= 0 || hud.nitrousActive}
-                onPointerDown={() => simRef.current?.triggerNitrous()}
-                className={`arcade-btn h-11 px-3 border-2 font-bold text-xs whitespace-nowrap cursor-pointer ${
+                onContextMenu={(e) => e.preventDefault()}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  simRef.current?.triggerNitrous();
+                }}
+                className={`arcade-btn touch-none select-none min-h-[48px] lg:min-h-0 lg:h-11 px-2 sm:px-3 border-2 font-bold text-xs whitespace-nowrap cursor-pointer ${
                   hud.nitrousActive
                     ? 'bg-[#38bdf8] text-[#09070f] border-[#e0f2fe]'
                     : hud.nitrousLeft > 0
@@ -433,7 +494,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
                     : 'bg-[#181426] text-[#64748b] border-[#2c2542] cursor-not-allowed'
                 }`}
               >
-                NOS ({hud.nitrousLeft}) <span className="opacity-75 font-mono-num">[N]</span>
+                NOS ({hud.nitrousLeft}) <span className="hidden lg:inline opacity-75 font-mono-num">[N]</span>
               </button>
             )}
           </div>
@@ -477,8 +538,8 @@ export const RaceView: React.FC<RaceViewProps> = ({
 
       {/* OFFICIAL DRAG STRIP TIME SLIP RESULTS MODAL */}
       {result && (
-        <div className="absolute inset-0 z-30 bg-[#09070f]/82 flex items-center justify-center p-4">
-          <div className="arcade-panel max-w-xl w-full p-6 space-y-5">
+        <div className="absolute inset-0 z-30 bg-[#09070f]/82 flex items-center justify-center p-3 sm:p-4">
+          <div className="arcade-panel max-w-xl w-full max-h-[92dvh] overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5">
             {/* Header */}
             <div className="flex items-start justify-between gap-4 border-b border-[#352d4d] pb-4">
               <div>

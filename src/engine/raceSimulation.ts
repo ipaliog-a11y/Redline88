@@ -1028,15 +1028,16 @@ export class RaceSimulation {
     }
     ctx.globalAlpha = 1;
 
-    // 6. On-Canvas crisp arcade shift/launch callout flash
+    // 6. On-Canvas crisp arcade shift/launch callout flash (anchored over player car for mobile + desktop)
     if (this.calloutTimer > 0 && this.calloutText) {
       const rise = (1.15 - this.calloutTimer) * 24;
-      ctx.font = 'bold 15px monospace';
+      const calloutX = Math.max(96, Math.min(LOGICAL_W - 96, playerScreenX + 36));
+      ctx.font = 'bold 14px monospace';
       ctx.textAlign = 'center';
       ctx.fillStyle = '#09070f';
-      ctx.fillText(this.calloutText, LOGICAL_W / 2 + 1.5, 108 - rise + 1.5);
+      ctx.fillText(this.calloutText, calloutX + 1.5, 168 - rise + 1.5);
       ctx.fillStyle = this.calloutColor;
-      ctx.fillText(this.calloutText, LOGICAL_W / 2, 108 - rise);
+      ctx.fillText(this.calloutText, calloutX, 168 - rise);
     }
 
     ctx.restore();
