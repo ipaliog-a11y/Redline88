@@ -3,6 +3,7 @@
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
+  private noiseBuffer: AudioBuffer | null = null;
   private muted = false;
 
   // Continuous engine synth nodes
@@ -10,6 +11,7 @@ class SoundEngine {
   private oscMain: OscillatorNode | null = null;
   private oscSub: OscillatorNode | null = null;
   private oscWhine: OscillatorNode | null = null;
+  private subGain: GainNode | null = null;
   private engineGain: GainNode | null = null;
   private whineGain: GainNode | null = null;
   private engineFilter: BiquadFilterNode | null = null;
@@ -26,7 +28,9 @@ class SoundEngine {
   private ensureContext(): AudioContext | null {
     if (typeof window === 'undefined') return null;
     if (!this.ctx) {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!AudioCtx) return null;
       this.ctx = new AudioCtx();
       this.masterGain = this.ctx.createGain();
@@ -37,6 +41,19 @@ class SoundEngine {
       void this.ctx.resume();
     }
     return this.ctx;
+  }
+
+  private getNoiseBuffer(ctx: AudioContext): AudioBuffer {
+    if (!this.noiseBuffer || this.noiseBuffer.sampleRate !== ctx.sampleRate) {
+      const length = Math.max(1, Math.floor(ctx.sampleRate * 1.0));
+      const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < length; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      this.noiseBuffer = buffer;
+    }
+    return this.noiseBuffer;
   }
 
   public isMuted(): boolean {
@@ -76,8 +93,8 @@ class SoundEngine {
     this.oscSub.type = 'sawtooth';
     this.oscSub.frequency.value = 28;
 
-    const subGain = ctx.createGain();
-    subGain.gain.value = tier >= 4 ? 0.85 : 0.55;
+    this.subGain = ctx.createGain();
+    this.subGain.gain.value = tier >= 4 ? 0.85 : 0.55;
 
     // Supercharger / Turbo whine
     this.oscWhine = ctx.createOscillator();
@@ -87,8 +104,8 @@ class SoundEngine {
     this.whineGain.gain.value = 0.001;
 
     this.oscMain.connect(this.engineFilter);
-    this.oscSub.connect(subGain);
-    subGain.connect(this.engineFilter);
+    this.oscSub.connect(this.subGain);
+    this.subGain.connect(this.engineFilter);
     this.engineFilter.connect(this.engineGain);
     this.engineGain.connect(this.masterGain);
 
@@ -110,7 +127,16 @@ class SoundEngine {
     boost: boolean;
     inductionLevel: number;
   }): void {
-    if (!this.engineActive || !this.ctx || !this.oscMain || !this.oscSub || !this.engineFilter || !this.engineGain || !this.oscWhine || !this.whineGain) {
+    if (
+      !this.engineActive ||
+      !this.ctx ||
+      !this.oscMain ||
+      !this.oscSub ||
+      !this.engineFilter ||
+      !this.engineGain ||
+      !this.oscWhine ||
+      !this.whineGain
+    ) {
       return;
     }
     const now = this.ctx.currentTime;
@@ -128,7 +154,8 @@ class SoundEngine {
     this.engineGain.gain.setTargetAtTime(vol, now, 0.03);
 
     const hasForcedInduction = params.inductionLevel >= 2 || params.tier >= 3;
-    const whineTarget = hasForcedInduction && params.throttle ? 0.02 + norm * (params.boost ? 0.1 : 0.055) : 0.001;
+    const whineTarget =
+      hasForcedInduction && params.throttle ? 0.02 + norm * (params.boost ? 0.1 : 0.055) : 0.001;
     this.oscWhine.frequency.setTargetAtTime(500 + norm * 1650 + (params.boost ? 350 : 0), now, 0.03);
     this.whineGain.gain.setTargetAtTime(whineTarget, now, 0.04);
   }
@@ -142,6 +169,7 @@ class SoundEngine {
       this.oscMain?.disconnect();
       this.oscSub?.disconnect();
       this.oscWhine?.disconnect();
+      this.subGain?.disconnect();
       this.engineFilter?.disconnect();
       this.engineGain?.disconnect();
       this.whineGain?.disconnect();
@@ -151,6 +179,7 @@ class SoundEngine {
     this.oscMain = null;
     this.oscSub = null;
     this.oscWhine = null;
+    this.subGain = null;
     this.engineFilter = null;
     this.engineGain = null;
     this.whineGain = null;
@@ -179,6 +208,10 @@ class SoundEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
     osc.connect(gain);
     gain.connect(this.masterGain);
+    osc.onended = () => {
+      osc.disconnect();
+      gain.disconnect();
+    };
     osc.start(now);
     osc.stop(now + duration + 0.02);
   }
@@ -187,14 +220,10 @@ class SoundEngine {
     const ctx = this.ensureContext();
     if (!ctx || !this.masterGain) return;
     const now = ctx.currentTime + delay;
-    const bufferSize = Math.floor(ctx.sampleRate * duration);
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
+    const buffer = this.getNoiseBuffer(ctx);
     const source = ctx.createBufferSource();
     source.buffer = buffer;
+    source.loop = duration > buffer.duration;
 
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
@@ -207,7 +236,12 @@ class SoundEngine {
     source.connect(filter);
     filter.connect(gain);
     gain.connect(this.masterGain);
-    source.start(now);
+    source.onended = () => {
+      source.disconnect();
+      filter.disconnect();
+      gain.disconnect();
+    };
+    source.start(now, 0, duration + 0.02);
   }
 
   public playTreeAmber(): void {

@@ -2081,6 +2081,68 @@ export const RIVALS: RivalSpec[] = [
   },
 ];
 
+const VALID_STRIPES: ReadonlySet<StripeStyle> = new Set([
+  'none',
+  'twin',
+  'flash',
+  'checkered',
+  'flames',
+]);
+
+const VALID_RIMS: ReadonlySet<RimStyle> = new Set([
+  'steel',
+  'gold',
+  'chrome',
+  'prostar',
+]);
+
+function clampUpgradeLevel(val: unknown): number {
+  const n = Number(val);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(5, Math.floor(n)));
+}
+
+export function sanitizeCarConfig(carId: string, raw: unknown): CarConfig {
+  const fallback = createDefaultCarConfig(carId);
+  if (!raw || typeof raw !== 'object') return fallback;
+  const obj = raw as Partial<CarConfig>;
+  const rawUpgrades = (obj.upgrades && typeof obj.upgrades === 'object' ? obj.upgrades : {}) as Record<
+    string,
+    unknown
+  >;
+  const rawVisuals = (obj.visuals && typeof obj.visuals === 'object' ? obj.visuals : {}) as Record<
+    string,
+    unknown
+  >;
+
+  const paintRaw = typeof rawVisuals.paintColor === 'string' ? rawVisuals.paintColor : '';
+  const paintColor = /^#[0-9a-fA-F]{6}$/.test(paintRaw) ? paintRaw : fallback.visuals.paintColor;
+  const stripe = VALID_STRIPES.has(rawVisuals.stripe as StripeStyle)
+    ? (rawVisuals.stripe as StripeStyle)
+    : fallback.visuals.stripe;
+  const rims = VALID_RIMS.has(rawVisuals.rims as RimStyle)
+    ? (rawVisuals.rims as RimStyle)
+    : fallback.visuals.rims;
+
+  const sanitized: CarConfig = {
+    upgrades: {
+      engine: clampUpgradeLevel(rawUpgrades.engine),
+      induction: clampUpgradeLevel(rawUpgrades.induction),
+      transmission: clampUpgradeLevel(rawUpgrades.transmission),
+      tires: clampUpgradeLevel(rawUpgrades.tires),
+      chassis: clampUpgradeLevel(rawUpgrades.chassis),
+      nitrous: clampUpgradeLevel(rawUpgrades.nitrous),
+    },
+    visuals: {
+      paintColor,
+      stripe,
+      rims,
+    },
+  };
+  sanitized.tuning = getEffectiveTuning(carId, { ...sanitized, tuning: obj.tuning });
+  return sanitized;
+}
+
 export function createInitialPlayerSave(): PlayerSave {
   return {
     callsign: 'ROOKIE_88',
@@ -2094,16 +2156,14 @@ export function createInitialPlayerSave(): PlayerSave {
     },
     totalWins: 0,
     totalRaces: 0,
+    updatedAtMs: 0,
   };
 }
 
 export function getCarConfig(save: PlayerSave, carId: string): CarConfig {
-  const existing = save.carConfigs[carId];
+  const existing = save.carConfigs?.[carId];
   if (!existing) return createDefaultCarConfig(carId);
-  return {
-    ...existing,
-    tuning: getEffectiveTuning(carId, existing),
-  };
+  return sanitizeCarConfig(carId, existing);
 }
 
 export function formatEt(ms: number): string {

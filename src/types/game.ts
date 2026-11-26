@@ -175,6 +175,7 @@ export interface PlayerSave {
   carConfigs: Record<string, CarConfig>;
   totalWins: number;
   totalRaces: number;
+  updatedAtMs?: number;
 }
 
 export interface ReplayShiftEvent {

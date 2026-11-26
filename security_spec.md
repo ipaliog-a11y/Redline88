@@ -7,15 +7,19 @@
    - Only the verified authenticated owner (`request.auth.uid == userId && request.auth.token.email_verified == true`) can `get`, `create`, `update`, or `delete` their own save document.
    - `list` is strictly denied to prevent enumeration of player saves.
    - `ownerId` and `createdAt` are immutable after creation; `createdAt` and `updatedAt` must equal `request.time`.
-   - Arrays `ownedCars` (max 10) and `defeatedRivals` (max 30) are strictly size-bounded and type-checked.
+   - Arrays `ownedCars` (max 30) and `defeatedRivals` (max 80) are strictly size-bounded and type-checked.
    - `cash` is bounded to `[0, 99999999]`, `highestUnlockedTier` to `[1, 5]`.
 3. **Global Leaderboard Integrity (`/leaderboardEntries/{entryId}`)**:
    - Contains zero PII (only arcade callsign, car specs, paint hex, and run telemetry).
-   - Deterministic ID format: `{uid}_t{tier}` validated with `isValidId(entryId)` and exact prefix matching (`entryId == request.auth.uid + '_t' + string(incoming().tier)`).
-   - Public reads (`get`, `list`) are allowed strictly when `resource.data.isPublic == true`.
+   - Deterministic ID format: `{uid}_t{tier}` (legacy 1/4 mile) or `{uid}_t{tier}_{distance}` validated with `isValidId(entryId)` and `isValidLeaderboardEntryId(entryId, incoming())` on both `create` and `update`.
+   - Public reads (`get`, `list`) are allowed strictly when `resource.data.isPublic == true` (plus owner `get` on their own empty slot before first `create`).
    - Writes (`create`, `update`, `delete`) require verified authentication (`isVerifiedUser()`) and strict ownership (`incoming().uid == request.auth.uid`).
-   - Physics bounds prevent impossible cheated records: `etMs` in `[3200, 35000]`, `trapMph` in `[50, 365]`, `reactionMs` in `[0, 5000]`, `tier` in `[1, 5]`.
-   - `uid`, `tier`, `isPublic`, and `createdAt` are immutable after creation; updates use explicit action-based `affectedKeys().hasOnly(...)`.
+   - Per-distance physics bounds prevent impossible cheated records:
+     - `quarter`: `etMs` in `[3200, 35000]`, `trapMph` in `[50, 365]`
+     - `half`: `etMs` in `[5200, 60000]`, `trapMph` in `[60, 420]`
+     - `mile`: `etMs` in `[8500, 90000]`, `trapMph` in `[75, 480]`
+     - All distances: `reactionMs` in `[0, 5000]`, `perfectShifts` in `[0, 20]`, `tier` in `[1, 5]`.
+   - `uid`, `tier`, `distance`, `isPublic`, and `createdAt` are immutable after creation; `update` enforces `incoming().etMs < existing().etMs` and explicit action-based `affectedKeys().hasOnly(...)`.
 
 ## 2. The "Dirty Dozen" Adversarial Payloads
 1. **Unauthenticated Save Write**: Creating `/playerSaves/userA` with `auth == null` -> `PERMISSION_DENIED`.

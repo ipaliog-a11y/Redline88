@@ -50,6 +50,9 @@ export const HiBitShowcaseCanvas: React.FC<HiBitShowcaseCanvasProps> = ({
   const lastLabelRef = useRef<ShowroomAngle>('SIDE R');
   const prevSnapRef = useRef(snapQuarterTick);
 
+  const propsRef = useRef({ chassis, bodyVariant, visuals, upgrades });
+  propsRef.current = { chassis, bodyVariant, visuals, upgrades };
+
   // Trigger clean 90° turntable step when button clicked
   useEffect(() => {
     if (mode !== 'turntable') return;
@@ -94,17 +97,18 @@ export const HiBitShowcaseCanvas: React.FC<HiBitShowcaseCanvasProps> = ({
       const dt = Math.min(0.05, Math.max(0.001, (now - lastNow) / 1000));
       lastNow = now;
       const timeSec = (now - startMs) / 1000;
+      const cur = propsRef.current;
 
       if (mode === 'pitbay') {
         drawHiBitPitBay(
           ctx,
           logicalW,
           logicalH,
-          chassis,
-          visuals,
-          upgrades,
+          cur.chassis,
+          cur.visuals,
+          cur.upgrades,
           timeSec,
-          bodyVariant
+          cur.bodyVariant
         );
       } else {
         if (targetAngleRef.current !== null) {
@@ -123,12 +127,12 @@ export const HiBitShowcaseCanvas: React.FC<HiBitShowcaseCanvasProps> = ({
           ctx,
           logicalW,
           logicalH,
-          chassis,
-          visuals,
-          upgrades,
+          cur.chassis,
+          cur.visuals,
+          cur.upgrades,
           angleRef.current,
           timeSec,
-          bodyVariant
+          cur.bodyVariant
         );
 
         const nextLabel = getHiBitShowroomAngleLabel(angleRef.current);
@@ -147,7 +151,7 @@ export const HiBitShowcaseCanvas: React.FC<HiBitShowcaseCanvasProps> = ({
       alive = false;
       cancelAnimationFrame(rafId);
     };
-  }, [mode, chassis, bodyVariant, visuals, upgrades]);
+  }, [mode]);
 
   return (
     <div className={`relative w-full h-full select-none ${className}`}>

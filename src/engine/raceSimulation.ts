@@ -67,6 +67,7 @@ export class RaceSimulation {
   private greenLightTime = 0;
   private simTime = 0;
   private raceElapsed = 0;
+  private playerRunElapsed = 0;
   private foul = false;
   private hitstopTimer = 0;
   private shakeAmp = 0;
@@ -183,6 +184,7 @@ export class RaceSimulation {
     this.greenLightTime = 0;
     this.simTime = 0;
     this.raceElapsed = 0;
+    this.playerRunElapsed = 0;
     this.foul = false;
     this.hitstopTimer = 0;
     this.shakeAmp = 0;
@@ -277,7 +279,7 @@ export class RaceSimulation {
           treeStep: this.treeStep,
           shakeAmp: this.shakeAmp,
           simTime: this.simTime,
-          elapsedSec: this.playerFinishSec > 0 ? this.playerFinishSec : this.raceElapsed,
+          elapsedSec: this.playerFinishSec > 0 ? this.playerFinishSec : this.playerRunElapsed,
         },
         dt
       );
@@ -436,7 +438,7 @@ export class RaceSimulation {
     }
 
     this.replayEvents.push({
-      t: Number(this.raceElapsed.toFixed(3)),
+      t: Number(this.playerRunElapsed.toFixed(3)),
       distFt: Number(this.playerDistFt.toFixed(1)),
       mph: Math.round(this.playerVelFps * 0.681818),
       rpm: launchRpmSnapshot,
@@ -515,7 +517,7 @@ export class RaceSimulation {
     }
 
     this.replayEvents.push({
-      t: Number(this.raceElapsed.toFixed(3)),
+      t: Number(this.playerRunElapsed.toFixed(3)),
       distFt: Number(this.playerDistFt.toFixed(1)),
       mph: mphBefore,
       rpm: Math.round(rpmBefore),
@@ -548,7 +550,7 @@ export class RaceSimulation {
     this.showCallout('NITROUS BOOST!', '#38bdf8');
     soundEngine.playNitrous();
     this.replayEvents.push({
-      t: Number(this.raceElapsed.toFixed(3)),
+      t: Number(this.playerRunElapsed.toFixed(3)),
       distFt: Number(this.playerDistFt.toFixed(1)),
       mph: Math.round(this.playerVelFps * 0.681818),
       rpm: Math.round(this.playerRpm),
@@ -622,9 +624,13 @@ export class RaceSimulation {
         this.executeLaunch();
       }
 
+      const prevDistFt = this.playerDistFt;
+      const prevRunElapsed = this.playerRunElapsed;
+
       if (!this.launched) {
         this.updateStagingRpm(dt);
       } else {
+        this.playerRunElapsed += dt;
         this.updatePlayerRacingPhysics(dt);
       }
 
@@ -632,29 +638,45 @@ export class RaceSimulation {
         this.updateRivalPhysics(dt);
       }
 
-      if (this.sixtyFtSec === 0 && this.playerDistFt >= 60) {
-        this.sixtyFtSec = this.raceElapsed;
-      }
-      if (this.distanceId !== 'quarter' && this.quarterSplitSec === 0 && this.playerDistFt >= QUARTER_MILE_FT) {
-        this.quarterSplitSec = this.raceElapsed;
-      }
-      if (this.distanceId === 'mile' && this.halfSplitSec === 0 && this.playerDistFt >= HALF_MILE_FT) {
-        this.halfSplitSec = this.raceElapsed;
-      }
+      if (this.launched) {
+        const distDelta = this.playerDistFt - prevDistFt;
+        const interpolateCrossing = (targetFt: number): number => {
+          if (distDelta <= 0.0001) return this.playerRunElapsed;
+          const frac = Math.max(0, Math.min(1, (targetFt - prevDistFt) / distDelta));
+          return prevRunElapsed + frac * dt;
+        };
 
-      const sampleInterval =
-        this.distanceId === 'mile' ? 0.14 : this.distanceId === 'half' ? 0.09 : 0.06;
-      if (this.lastReplaySampleSec < 0 || this.raceElapsed - this.lastReplaySampleSec >= sampleInterval) {
-        this.pushReplaySample(this.raceElapsed);
-        this.lastReplaySampleSec = this.raceElapsed;
-      }
+        if (this.sixtyFtSec === 0 && this.playerDistFt >= 60) {
+          this.sixtyFtSec = interpolateCrossing(60);
+        }
+        if (
+          this.distanceId !== 'quarter' &&
+          this.quarterSplitSec === 0 &&
+          this.playerDistFt >= QUARTER_MILE_FT
+        ) {
+          this.quarterSplitSec = interpolateCrossing(QUARTER_MILE_FT);
+        }
+        if (this.distanceId === 'mile' && this.halfSplitSec === 0 && this.playerDistFt >= HALF_MILE_FT) {
+          this.halfSplitSec = interpolateCrossing(HALF_MILE_FT);
+        }
 
-      if (this.playerFinishSec === 0 && this.playerDistFt >= this.distanceSpec.feet) {
-        this.playerFinishSec = this.raceElapsed;
-        this.playerTrapMph = this.playerVelFps * 0.681818;
-        this.pushReplaySample(this.playerFinishSec, true);
-        if (this.car.hasParachute) {
-          soundEngine.playParachute();
+        const sampleInterval =
+          this.distanceId === 'mile' ? 0.14 : this.distanceId === 'half' ? 0.09 : 0.06;
+        if (
+          this.lastReplaySampleSec < 0 ||
+          this.playerRunElapsed - this.lastReplaySampleSec >= sampleInterval
+        ) {
+          this.pushReplaySample(this.playerRunElapsed);
+          this.lastReplaySampleSec = this.playerRunElapsed;
+        }
+
+        if (this.playerFinishSec === 0 && this.playerDistFt >= this.distanceSpec.feet) {
+          this.playerFinishSec = interpolateCrossing(this.distanceSpec.feet);
+          this.playerTrapMph = this.playerVelFps * 0.681818;
+          this.pushReplaySample(this.playerFinishSec, true);
+          if (this.car.hasParachute) {
+            soundEngine.playParachute();
+          }
         }
       }
 
@@ -818,16 +840,23 @@ export class RaceSimulation {
     }
     if (!this.rivalLaunched) return;
 
+    const prevRivalDist = this.rivalDistFt;
     const t = Math.max(0.001, this.raceElapsed - this.rival.reactionSec);
     const curveExp = this.distanceId === 'mile' ? 1.42 : this.distanceId === 'half' ? 1.58 : 1.82;
     const nextDist = this.rivalAccelCurveA * Math.pow(t, curveExp);
-    this.rivalVelFps = Math.max(0, (nextDist - this.rivalDistFt) / Math.max(0.001, dt));
+    this.rivalVelFps = Math.max(0, (nextDist - prevRivalDist) / Math.max(0.001, dt));
     this.rivalDistFt = nextDist;
     this.rivalWheelAngle += (this.rivalVelFps / 11) * dt * 6;
     this.rivalPitchDeg *= Math.pow(0.92, dt * 60);
 
     if (this.rivalFinishSec === 0 && this.rivalDistFt >= this.distanceSpec.feet) {
-      this.rivalFinishSec = this.raceElapsed;
+      const distDelta = this.rivalDistFt - prevRivalDist;
+      const frac =
+        distDelta > 0.0001
+          ? Math.max(0, Math.min(1, (this.distanceSpec.feet - prevRivalDist) / distDelta))
+          : 1;
+      // Rival finish time measured from green light (RT + ET) with sub-frame interpolation
+      this.rivalFinishSec = Math.max(0, this.raceElapsed - dt) + frac * dt;
       this.rivalTrapMph = this.rival.targetTrapMph * (0.98 + Math.random() * 0.04);
     }
   }
@@ -838,18 +867,24 @@ export class RaceSimulation {
     soundEngine.stopEngine();
 
     const isTimeTrial = !this.rival;
+    // Pure track ET (measured from launch, excluding reaction time)
     const playerEtMs = this.foul ? 0 : Math.round(this.playerFinishSec * 1000);
-    const rivalEtSec = this.rival
+    const rivalTotalSec = this.rival
       ? this.rivalFinishSec > 0
         ? this.rivalFinishSec
         : this.rivalTargetEt + this.rival.reactionSec
       : 0;
-    const rivalEtMs = Math.round(rivalEtSec * 1000);
+    const rivalPureEtSec = this.rival
+      ? Math.max(0.01, rivalTotalSec - this.rival.reactionSec)
+      : 0;
+    const rivalEtMs = Math.round(rivalPureEtSec * 1000);
     const rivalTrapMph = this.rival
       ? Number((this.rivalTrapMph > 0 ? this.rivalTrapMph : this.rival.targetTrapMph).toFixed(1))
       : 0;
 
-    const won = !this.foul && (isTimeTrial ? true : playerEtMs <= rivalEtMs);
+    // Head-to-head drag race winner is first to the finish stripe (Reaction Time + Track ET)
+    const playerTotalSec = this.reactionSec + this.playerFinishSec;
+    const won = !this.foul && (isTimeTrial ? true : playerTotalSec <= rivalTotalSec);
     if (won) {
       soundEngine.playVictory();
     } else {
@@ -979,7 +1014,7 @@ export class RaceSimulation {
       distance: this.distanceId,
       distanceFt: this.distanceSpec.feet,
       treeStep: this.treeStep,
-      elapsedSec: this.playerFinishSec > 0 ? this.playerFinishSec : this.raceElapsed,
+      elapsedSec: this.playerFinishSec > 0 ? this.playerFinishSec : this.playerRunElapsed,
       playerDistFt: Math.min(this.distanceSpec.feet, this.playerDistFt),
       rivalDistFt: Math.min(this.distanceSpec.feet, this.rivalDistFt),
       playerMph: Math.round(this.playerVelFps * 0.681818),

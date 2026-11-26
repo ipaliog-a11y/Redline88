@@ -37,6 +37,12 @@
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
   }
+
+  input,
+  textarea {
+    user-select: text;
+    -webkit-user-select: text;
+  }
 }
 
 .no-scrollbar::-webkit-scrollbar {
