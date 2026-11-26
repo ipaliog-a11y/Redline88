@@ -729,10 +729,10 @@ export const PixelRivalPortrait: React.FC<{
   const normalized = rows.map((r) => (r.length >= 16 ? r.slice(0, 16) : r.padEnd(16, '.')));
 
   return (
-    <div className={`relative arcade-inset overflow-hidden shrink-0 ${className}`}>
+    <div className={`relative arcade-inset rounded-xl overflow-hidden shrink-0 ${className}`}>
       {renderPixelMatrix(normalized, palette, 'w-full h-full block', `${rival.name} portrait`)}
       {rival.isBoss && (
-        <div className="pointer-events-none absolute bottom-0 inset-x-0 bg-[#090d1a]/85 text-center font-pixel text-[7px] text-[#facc15] py-0.5 leading-none">
+        <div className="pointer-events-none absolute bottom-0 inset-x-0 bg-[#090d1a]/88 text-center font-pixel text-[7px] text-[#facc15] py-0.5 leading-none">
           BOSS
         </div>
       )}

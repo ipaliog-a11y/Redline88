@@ -298,14 +298,14 @@ export const RaceReplayModal: React.FC<RaceReplayModalProps> = ({ record, onClos
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-[#0b0f1a]/88 flex items-center justify-center p-2.5 sm:p-4"
+      className="fixed inset-0 z-50 bg-[#0b0f1a]/84 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Run Replay"
     >
-      <div className="pixel-panel-accent max-w-4xl w-full max-h-[94dvh] overflow-y-auto p-3.5 sm:p-5 space-y-3.5 sm:space-y-4">
+      <div className="pixel-panel-accent rounded-3xl max-w-4xl w-full max-h-[94dvh] overflow-y-auto p-4 sm:p-5 space-y-3.5 sm:space-y-4">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 border-b-2 border-[#3c4d73] pb-3">
+        <div className="flex items-start justify-between gap-3 border-b border-[#3c4d73]/60 pb-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <PixelIcon name="film" className="w-4 h-4" />
@@ -330,7 +330,7 @@ export const RaceReplayModal: React.FC<RaceReplayModalProps> = ({ record, onClos
               type="button"
               onClick={onClose}
               aria-label="Close replay"
-              className="pixel-btn h-9 w-9 flex items-center justify-center bg-[#222c45] hover:bg-[#2a3654] border-[3px] border-[#495f8f] text-[#f8fafc] cursor-pointer"
+              className="pixel-btn rounded-full h-9 w-9 flex items-center justify-center bg-[#222c45] hover:bg-[#2a3654] border border-[#526ba3]/70 text-[#f8fafc] cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -338,16 +338,16 @@ export const RaceReplayModal: React.FC<RaceReplayModalProps> = ({ record, onClos
         </div>
 
         {/* Hi-Bit 16-Bit Pixel Art Replay Viewport */}
-        <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] pixel-inset overflow-hidden">
+        <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] pixel-inset rounded-2xl overflow-hidden">
           <div ref={mountRef} className="w-full h-full" />
 
-          {/* Top-Left Speed Badge */}
-          <div className="pointer-events-none absolute top-2 left-2 bg-[#0e1320] border-2 border-[#3c4d73] shadow-[2px_2px_0_#070a12] px-2 py-1 font-pixel text-[8px] text-[#f5b82e]">
+          {/* Top-Left Speed Indicator */}
+          <div className="pointer-events-none absolute top-2.5 left-2.5 bg-[#0e1422]/90 border border-[#5670a6]/55 rounded-full px-3 py-1 font-pixel text-[8px] text-[#f5b82e] backdrop-blur-sm">
             REPLAY · {speed}X
           </div>
 
           {/* Top-Right ET & Distance Readout */}
-          <div className="pointer-events-none absolute top-2 right-2 bg-[#0e1320] border-2 border-[#3c4d73] shadow-[2px_2px_0_#070a12] px-2.5 py-1 font-mono-num text-[11px] sm:text-xs flex items-center gap-3">
+          <div className="pointer-events-none absolute top-2.5 right-2.5 bg-[#0e1422]/90 border border-[#5670a6]/55 rounded-full px-3 py-1 font-mono-num text-[11px] sm:text-xs flex items-center gap-3 backdrop-blur-sm">
             <span className="text-[#f5b82e] font-bold">ET {currentTime.toFixed(2)}s</span>
             <span className="text-[#cbd5e1]">
               {Math.round(frame.distFt).toLocaleString()} / {replay.distanceFt.toLocaleString()} FT
@@ -356,7 +356,7 @@ export const RaceReplayModal: React.FC<RaceReplayModalProps> = ({ record, onClos
 
           {/* On-Viewport Active Shift Timing Callout */}
           {activeEvent && (
-            <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 bg-[#0e1320] border-[3px] border-[#3c4d73] shadow-[2px_2px_0_#070a12] px-3 py-1.5 text-center">
+            <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 bg-[#0e1422]/92 border border-[#5670a6]/65 rounded-2xl shadow-[0_8px_20px_rgba(5,8,18,0.5)] px-4 py-1.5 text-center backdrop-blur-sm">
               <div
                 className="font-pixel text-[10px] sm:text-xs pixel-text-shadow"
                 style={{ color: activeEvent.color }}
@@ -432,11 +432,11 @@ export const RaceReplayModal: React.FC<RaceReplayModalProps> = ({ record, onClos
 
             {/* Playback Controls */}
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleTogglePlay}
-                  className="pixel-btn px-3 py-1.5 bg-[#ff4d3d] hover:bg-[#ff6254] border-2 border-[#f5b82e] text-[#ffffff] text-xs font-bold flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                  className="pixel-btn rounded-full px-4 py-1.5 bg-gradient-to-b from-[#ff5a4a] to-[#e6392a] hover:from-[#ff6d5e] hover:to-[#f04435] border border-[#f5b82e] text-[#ffffff] text-xs font-bold flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
                 >
                   <PixelIcon name={playing ? 'pause' : 'play'} className="w-3.5 h-3.5" />
                   <span>{playing ? 'Pause' : currentTime >= totalSec - 0.01 ? 'Replay' : 'Play'}</span>
@@ -444,7 +444,7 @@ export const RaceReplayModal: React.FC<RaceReplayModalProps> = ({ record, onClos
                 <button
                   type="button"
                   onClick={handleRestart}
-                  className="pixel-btn px-2.5 py-1.5 bg-[#222c45] hover:bg-[#2a3654] border-2 border-[#495f8f] text-[#f8fafc] text-xs font-bold flex items-center gap-1 whitespace-nowrap cursor-pointer"
+                  className="pixel-btn rounded-full px-3.5 py-1.5 bg-[#222c45] hover:bg-[#2a3654] border border-[#526ba3]/70 text-[#f8fafc] text-xs font-bold flex items-center gap-1 whitespace-nowrap cursor-pointer"
                 >
                   <PixelIcon name="restart" className="w-3.5 h-3.5" />
                   <span>Restart</span>
@@ -461,10 +461,10 @@ export const RaceReplayModal: React.FC<RaceReplayModalProps> = ({ record, onClos
                       soundEngine.playUiClick();
                       setSpeed(sp);
                     }}
-                    className={`pixel-btn px-2 py-1 text-xs font-bold border-2 whitespace-nowrap cursor-pointer ${
+                    className={`pixel-btn rounded-full px-2.5 py-1 text-xs font-bold border whitespace-nowrap cursor-pointer ${
                       speed === sp
                         ? 'bg-[#f5b82e] border-[#fef08a] text-[#0e1320]'
-                        : 'bg-[#192033] border-[#3c4d73] text-[#cbd5e1] hover:bg-[#232d47]'
+                        : 'bg-[#192033] border-[#425582]/70 text-[#cbd5e1] hover:bg-[#232d47]'
                     }`}
                   >
                     {sp}x
@@ -501,10 +501,10 @@ export const RaceReplayModal: React.FC<RaceReplayModalProps> = ({ record, onClos
                     key={`${ev.kind}-${ev.t}-${idx}`}
                     type="button"
                     onClick={() => handleJumpToEvent(ev)}
-                    className={`pixel-btn text-left p-2.5 border-2 cursor-pointer ${
+                    className={`pixel-btn rounded-xl text-left p-2.5 border cursor-pointer ${
                       isActive
                         ? 'bg-[#263457] border-[#f5b82e]'
-                        : 'bg-[#192033] border-[#3c4d73] hover:border-[#5b74ab]'
+                        : 'bg-[#192033] border-[#425582]/65 hover:border-[#6884bf]'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-1 font-mono-num text-[11px]">

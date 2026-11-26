@@ -123,26 +123,26 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
       {/* Live Hi-Bit 16-Bit Pixel Art Golden-Hour Drag Strip */}
       <div ref={mountRef} className="w-full h-full" />
 
-      {/* Top-Right Crisp Audio Toggle */}
+      {/* Top-Right Sleek Audio Toggle */}
       <div className="absolute top-4 right-4 sm:top-5 sm:right-6 z-20 flex items-center gap-2">
         <button
           type="button"
           onClick={onToggleMute}
           aria-label={muted ? 'Unmute audio' : 'Mute audio'}
-          className="pixel-btn h-10 w-10 flex items-center justify-center bg-[#192033] hover:bg-[#232d47] border-[3px] border-[#3c4d73] cursor-pointer"
+          className="pixel-btn h-11 w-11 rounded-full flex items-center justify-center bg-[#192136]/90 hover:bg-[#24304d] border border-[#5670a6]/60 backdrop-blur-sm cursor-pointer"
         >
           <PixelIcon name={muted ? 'soundOff' : 'soundOn'} className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Centered Clean Modern Pixel Marquee & Start CTA */}
+      {/* Centered Clean Modern Marquee & Start CTA */}
       <div className="absolute inset-0 z-10 flex flex-col items-center justify-between py-7 sm:py-10 px-4 sm:px-6 pointer-events-none">
         <div className="flex flex-col items-center text-center mt-2 w-full">
-          <div className="pixel-panel-accent px-5 sm:px-8 py-4 sm:py-5 inline-flex flex-col items-center">
+          <div className="pixel-panel-accent rounded-3xl px-6 sm:px-10 py-4 sm:py-5 inline-flex flex-col items-center backdrop-blur-sm">
             <h1 className="font-pixel text-xl sm:text-4xl md:text-[42px] text-[#f5b82e] pixel-text-shadow-lg tracking-wider leading-none">
               REDLINE &apos;88
             </h1>
-            <div className="mt-2.5 px-3 py-1 bg-[#0e1320] border-2 border-[#3c4d73] font-mono-num text-[11px] sm:text-xs font-bold tracking-[0.22em] text-[#f8fafc] uppercase">
+            <div className="mt-2.5 font-mono-num text-[11px] sm:text-xs font-bold tracking-[0.26em] text-[#e2e8f0] uppercase">
               HI-BIT DRAG RACING
             </div>
           </div>
@@ -153,12 +153,12 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
           <button
             type="button"
             onClick={onStart}
-            className="pixel-btn px-8 sm:px-12 py-4 bg-[#ff4d3d] hover:bg-[#ff6254] text-[#ffffff] font-pixel text-xs sm:text-sm tracking-wider border-[3px] border-[#f5b82e] pixel-text-shadow focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f5b82e] whitespace-nowrap cursor-pointer"
+            className="pixel-btn rounded-full px-9 sm:px-12 py-4 bg-gradient-to-b from-[#ff5e4d] to-[#e6392a] hover:from-[#ff7061] hover:to-[#f04435] text-[#ffffff] font-pixel text-xs sm:text-sm tracking-wider border-2 border-[#f5b82e] pixel-text-shadow focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f5b82e] whitespace-nowrap cursor-pointer"
           >
             PRESS START · ENTER GARAGE
           </button>
 
-          <div className="pixel-panel px-4 py-1.5 font-mono-num text-[11px] sm:text-xs text-[#cbd5e1] tracking-wide text-center">
+          <div className="pixel-panel rounded-full px-5 py-2 font-mono-num text-[11px] sm:text-xs text-[#cbd5e1] tracking-wide text-center backdrop-blur-sm">
             <span className="sm:hidden">Touch Pedals or Keyboard · Manual Clutch &amp; Shift</span>
             <span className="hidden sm:inline">
               W Gas · Shift Clutch · Space Shift Up · N Nitrous · Esc Pause

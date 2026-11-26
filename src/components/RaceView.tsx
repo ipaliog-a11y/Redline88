@@ -231,11 +231,11 @@ export const RaceView: React.FC<RaceViewProps> = ({
       <div className="relative flex-1 min-h-0 w-full overflow-hidden">
         <div ref={viewportRef} className="w-full h-full" />
 
-        {/* TOP CLEAN MODERN PIXEL HUD OVERLAY */}
-        <div className="pointer-events-none absolute top-0 left-0 right-0 z-10 px-2 sm:px-4 pt-2 sm:pt-3 flex flex-col gap-1.5">
+        {/* TOP CLEAN MODERN HUD OVERLAY */}
+        <div className="pointer-events-none absolute top-0 left-0 right-0 z-10 px-2.5 sm:px-4 pt-2.5 sm:pt-3 flex flex-col gap-1.5">
           <div className="flex items-start justify-between gap-2 sm:gap-4">
-            {/* Left: Event Box */}
-            <div className="pixel-panel px-2.5 sm:px-3.5 py-1.5 sm:py-2 min-w-0 max-w-[54%] sm:max-w-none flex items-center gap-2.5">
+            {/* Left: Event Card */}
+            <div className="pixel-panel rounded-2xl px-3 sm:px-4 py-1.5 sm:py-2 min-w-0 max-w-[54%] sm:max-w-none flex items-center gap-2.5 backdrop-blur-sm">
               {rival && (
                 <PixelRivalPortrait rival={rival} className="hidden sm:block w-9 h-9" />
               )}
@@ -250,7 +250,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
             </div>
 
             {/* Center: Strip Progress Rail & Live ET Timer (Desktop) */}
-            <div className="hidden md:flex flex-col items-center pixel-panel px-4 py-2 min-w-[320px]">
+            <div className="hidden md:flex flex-col items-center pixel-panel rounded-2xl px-4 py-2 min-w-[320px] backdrop-blur-sm">
               <div className="w-full flex items-center justify-between text-[11px] font-mono-num text-[#cbd5e1] mb-1.5">
                 <span className="font-pixel text-[8px] text-[#94a3b8]">START</span>
                 <span className="font-pixel text-xs text-[#f5b82e]">
@@ -258,30 +258,30 @@ export const RaceView: React.FC<RaceViewProps> = ({
                 </span>
                 <span className="font-pixel text-[8px] text-[#38bdf8]">{distSpec.shortLabel}</span>
               </div>
-              <div className="relative w-full h-3.5 pixel-inset overflow-hidden">
+              <div className="relative w-full h-3.5 pixel-inset rounded-full overflow-hidden">
                 {rival && (
                   <div
-                    className="absolute top-0.5 h-1 w-3 bg-[#94a3b8]"
-                    style={{ left: `calc(${rivalPct}% - 6px)` }}
+                    className="absolute top-0.5 h-1 w-3.5 rounded-full bg-[#94a3b8]"
+                    style={{ left: `calc(${rivalPct}% - 7px)` }}
                   />
                 )}
                 <div
-                  className="absolute bottom-0.5 h-1.5 w-3.5 bg-[#ff4d3d]"
-                  style={{ left: `calc(${playerPct}% - 7px)` }}
+                  className="absolute bottom-0.5 h-1.5 w-4 rounded-full bg-[#ff4d3d]"
+                  style={{ left: `calc(${playerPct}% - 8px)` }}
                 />
               </div>
             </div>
 
             {/* Right: Live ET (mobile) + Audio & Pause Switches */}
             <div className="pointer-events-auto flex items-center gap-1.5 shrink-0">
-              <div className="md:hidden pixel-panel px-2.5 py-2 font-mono-num text-xs font-bold text-[#f5b82e]">
+              <div className="md:hidden pixel-panel rounded-full px-3 py-2 font-mono-num text-xs font-bold text-[#f5b82e]">
                 {hud.elapsedSec.toFixed(2)}s
               </div>
               <button
                 type="button"
                 onClick={onToggleMute}
                 aria-label={muted ? 'Unmute audio' : 'Mute audio'}
-                className="pixel-btn h-10 w-10 flex items-center justify-center bg-[#192033] hover:bg-[#232d47] border-[3px] border-[#3c4d73] cursor-pointer"
+                className="pixel-btn rounded-full h-10 w-10 flex items-center justify-center bg-[#1a2338]/92 hover:bg-[#24304d] border border-[#5670a6]/60 cursor-pointer"
               >
                 <PixelIcon name={muted ? 'soundOff' : 'soundOn'} className="w-4 h-4" />
               </button>
@@ -289,7 +289,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
                 type="button"
                 onClick={togglePause}
                 aria-label="Pause race"
-                className="pixel-btn h-10 w-10 flex items-center justify-center bg-[#192033] hover:bg-[#232d47] border-[3px] border-[#3c4d73] text-[#f8fafc] cursor-pointer"
+                className="pixel-btn rounded-full h-10 w-10 flex items-center justify-center bg-[#1a2338]/92 hover:bg-[#24304d] border border-[#5670a6]/60 text-[#f8fafc] cursor-pointer"
               >
                 <PixelIcon name="pause" className="w-4 h-4" />
               </button>
@@ -297,17 +297,17 @@ export const RaceView: React.FC<RaceViewProps> = ({
           </div>
 
           {/* Mobile Compact Strip Progress Rail */}
-          <div className="md:hidden flex items-center gap-2 pixel-panel px-2.5 py-1 font-mono-num text-[10px] text-[#cbd5e1]">
+          <div className="md:hidden flex items-center gap-2 pixel-panel rounded-full px-3 py-1 font-mono-num text-[10px] text-[#cbd5e1]">
             <span className="shrink-0 font-pixel text-[8px] text-[#f5b82e]">GO</span>
-            <div className="relative flex-1 h-2.5 pixel-inset overflow-hidden">
+            <div className="relative flex-1 h-2.5 pixel-inset rounded-full overflow-hidden">
               {rival && (
                 <div
-                  className="absolute top-0.5 h-1 w-2.5 bg-[#94a3b8]"
+                  className="absolute top-0.5 h-1 w-2.5 rounded-full bg-[#94a3b8]"
                   style={{ left: `calc(${rivalPct}% - 5px)` }}
                 />
               )}
               <div
-                className="absolute bottom-0.5 h-1 w-3 bg-[#ff4d3d]"
+                className="absolute bottom-0.5 h-1 w-3 rounded-full bg-[#ff4d3d]"
                 style={{ left: `calc(${playerPct}% - 6px)` }}
               />
             </div>
@@ -319,7 +319,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
         {hud.calloutText && !result && (
           <div className="pointer-events-none absolute top-[24%] left-1/2 -translate-x-1/2 z-10 text-center">
             <div
-              className="font-pixel text-sm sm:text-lg tracking-wider px-3.5 py-1.5 bg-[#111623] border-[3px] border-[#3c4d73] shadow-[2px_2px_0_#070a12]"
+              className="font-pixel text-sm sm:text-lg tracking-wider px-5 py-2 bg-[#111623]/92 border border-[#5670a6]/65 rounded-full shadow-[0_8px_20px_rgba(5,8,18,0.5)] backdrop-blur-sm"
               style={{ color: hud.calloutColor }}
             >
               {hud.calloutText}
@@ -329,7 +329,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
 
         {/* Staging Instruction Banner */}
         {isStagingPhase && !hud.foul && (
-          <div className="pointer-events-none absolute top-[92px] md:top-[78px] left-1/2 -translate-x-1/2 z-10 max-w-[94%] pixel-panel-accent px-3 sm:px-4 py-1.5 text-center">
+          <div className="pointer-events-none absolute top-[92px] md:top-[78px] left-1/2 -translate-x-1/2 z-10 max-w-[94%] pixel-panel-accent rounded-full px-4 sm:px-5 py-1.5 text-center backdrop-blur-sm">
             <p className="font-mono-num text-[10px] sm:text-xs text-[#fef08a] font-bold tracking-wide">
               <span className="sm:hidden">
                 {hud.treeStep < 5
@@ -346,8 +346,8 @@ export const RaceView: React.FC<RaceViewProps> = ({
         )}
       </div>
 
-      {/* BOTTOM CLEAN PIXEL COCKPIT DECK */}
-      <div className="shrink-0 w-full bg-[#192033] border-t-[3px] border-[#3c4d73] px-2 sm:px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] z-20">
+      {/* BOTTOM SLEEK COCKPIT DECK */}
+      <div className="shrink-0 w-full bg-[#171f33] border-t border-[#4d6599]/45 px-2.5 sm:px-4 py-2.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] z-20">
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-2 sm:gap-3">
           {/* Pixel Font Tachometer + Shift Light + Gear/MPH */}
           <AnalogPixelTach
@@ -386,10 +386,10 @@ export const RaceView: React.FC<RaceViewProps> = ({
                 simRef.current?.setClutch(false);
               }}
               onPointerCancel={() => simRef.current?.setClutch(false)}
-              className={`pixel-btn touch-none select-none min-h-[50px] lg:h-14 px-2 sm:px-4 border-[3px] font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
+              className={`pixel-btn rounded-2xl touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-4 border-[1.5px] font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
                 hud.clutch
                   ? 'bg-[#f5b82e] border-[#fef08a] text-[#0e1320]'
-                  : 'bg-[#222c45] border-[#495f8f] text-[#f8fafc] hover:bg-[#2a3654]'
+                  : 'bg-[#222c45] border-[#526ba3]/75 text-[#f8fafc] hover:bg-[#2a3654]'
               }`}
             >
               CLUTCH
@@ -411,10 +411,10 @@ export const RaceView: React.FC<RaceViewProps> = ({
                 simRef.current?.setThrottle(false);
               }}
               onPointerCancel={() => simRef.current?.setThrottle(false)}
-              className={`pixel-btn touch-none select-none min-h-[50px] lg:h-14 px-2 sm:px-5 border-[3px] font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
+              className={`pixel-btn rounded-2xl touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-5 border-[1.5px] font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
                 hud.throttle
                   ? 'bg-[#22c55e] border-[#bbf7d0] text-[#0e1320]'
-                  : 'bg-[#173329] border-[#22c55e] text-[#bbf7d0] hover:bg-[#1e4235]'
+                  : 'bg-[#173329] border-[#22c55e]/80 text-[#bbf7d0] hover:bg-[#1e4235]'
               }`}
             >
               GAS
@@ -428,10 +428,10 @@ export const RaceView: React.FC<RaceViewProps> = ({
                 e.preventDefault();
                 simRef.current?.triggerShiftUp();
               }}
-              className={`pixel-btn touch-none select-none min-h-[50px] lg:h-14 px-2 sm:px-5 border-[3px] font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
+              className={`pixel-btn rounded-2xl touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-5 border-[1.5px] font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
                 hud.inShiftZone
                   ? 'bg-[#f5b82e] border-[#fef08a] text-[#0e1320]'
-                  : 'bg-[#ff4d3d] border-[#fca5a5] text-[#ffffff] hover:bg-[#ff6254]'
+                  : 'bg-gradient-to-b from-[#ff5a4a] to-[#e6392a] border-[#fca5a5]/80 text-[#ffffff] hover:from-[#ff6d5e] hover:to-[#f04435]'
               }`}
             >
               SHIFT+
@@ -447,11 +447,11 @@ export const RaceView: React.FC<RaceViewProps> = ({
                   e.preventDefault();
                   simRef.current?.triggerNitrous();
                 }}
-                className={`pixel-btn touch-none select-none min-h-[50px] lg:h-14 px-2 sm:px-3.5 border-[3px] font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
+                className={`pixel-btn rounded-2xl touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-3.5 border-[1.5px] font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
                   hud.nitrousActive
                     ? 'bg-[#38bdf8] border-[#bae6fd] text-[#0e1320]'
                     : hud.nitrousLeft > 0
-                    ? 'bg-[#0369a1] border-[#38bdf8] text-[#e0f2fe] hover:bg-[#0284c7]'
+                    ? 'bg-[#0369a1] border-[#38bdf8]/80 text-[#e0f2fe] hover:bg-[#0284c7]'
                     : 'bg-[#141a2b] border-[#2a3552] text-[#64748b] cursor-not-allowed'
                 }`}
               >
@@ -463,10 +463,10 @@ export const RaceView: React.FC<RaceViewProps> = ({
         </div>
       </div>
 
-      {/* CLEAN PIXEL PAUSE MODAL */}
+      {/* SLEEK PAUSE MODAL */}
       {paused && !result && (
-        <div className="absolute inset-0 z-30 bg-[#0b0f1a]/82 flex items-center justify-center p-4">
-          <div className="pixel-panel-accent max-w-sm w-full p-6 text-center space-y-5">
+        <div className="absolute inset-0 z-30 bg-[#0b0f1a]/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="pixel-panel-accent rounded-3xl max-w-sm w-full p-6 text-center space-y-5">
             <h2 className="font-pixel text-lg text-[#f5b82e] pixel-text-shadow">PAUSED</h2>
             <p className="text-sm text-[#cbd5e1] font-semibold">
               {car.name} · {tierSpec.venueName}
@@ -475,21 +475,21 @@ export const RaceView: React.FC<RaceViewProps> = ({
               <button
                 type="button"
                 onClick={togglePause}
-                className="pixel-btn w-full py-3 bg-[#22c55e] hover:bg-[#16a34a] text-[#0e1320] border-[3px] border-[#bbf7d0] font-pixel text-[11px] flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
+                className="pixel-btn rounded-full w-full py-3 bg-[#22c55e] hover:bg-[#16a34a] text-[#0e1320] border border-[#bbf7d0] font-pixel text-[11px] flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
               >
                 <PixelIcon name="play" className="w-4 h-4" /> Resume Race
               </button>
               <button
                 type="button"
                 onClick={handleRestart}
-                className="pixel-btn w-full py-3 bg-[#222c45] hover:bg-[#2a3654] border-[3px] border-[#495f8f] text-[#f8fafc] font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
+                className="pixel-btn rounded-full w-full py-3 bg-[#222c45] hover:bg-[#2a3654] border border-[#526ba3]/70 text-[#f8fafc] font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
               >
                 <PixelIcon name="restart" className="w-4 h-4" /> Restart Run
               </button>
               <button
                 type="button"
                 onClick={onExitToGarage}
-                className="pixel-btn w-full py-3 bg-[#141b2d] hover:bg-[#1e2842] border-[3px] border-[#3c4d73] text-[#cbd5e1] font-bold text-sm whitespace-nowrap cursor-pointer"
+                className="pixel-btn rounded-full w-full py-3 bg-[#141b2d] hover:bg-[#1e2842] border border-[#3c4d73]/70 text-[#cbd5e1] font-bold text-sm whitespace-nowrap cursor-pointer"
               >
                 Return to Garage
               </button>
@@ -500,10 +500,10 @@ export const RaceView: React.FC<RaceViewProps> = ({
 
       {/* REACTION-TIME & ET OFFICIAL TIME SLIP RESULTS MODAL */}
       {result && (
-        <div className="absolute inset-0 z-30 bg-[#0b0f1a]/84 flex items-center justify-center p-3 sm:p-4">
-          <div className="pixel-panel-accent max-w-xl w-full max-h-[92dvh] overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-5">
+        <div className="absolute inset-0 z-30 bg-[#0b0f1a]/82 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="pixel-panel-accent rounded-3xl max-w-xl w-full max-h-[92dvh] overflow-y-auto p-5 sm:p-6 space-y-4 sm:space-y-5">
             {/* Header */}
-            <div className="flex items-start justify-between gap-4 border-b-2 border-[#3c4d73] pb-4">
+            <div className="flex items-start justify-between gap-4 border-b border-[#3c4d73]/60 pb-4">
               <div className="flex items-center gap-3 min-w-0">
                 {result.rival && (
                   <PixelRivalPortrait rival={result.rival} className="w-12 h-12" />
@@ -637,7 +637,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
             </div>
 
             {result.unlockedNextTier && (
-              <div className="bg-[#152e22] border-[3px] border-[#22c55e] shadow-[2px_2px_0_#070a12] px-4 py-2.5 text-xs font-bold text-[#bbf7d0]">
+              <div className="bg-[#152e22] border border-[#22c55e]/75 rounded-xl px-4 py-2.5 text-xs font-bold text-[#bbf7d0]">
                 Tier Boss defeated! Next racing class &amp; new dealership chassis unlocked.
               </div>
             )}
@@ -647,14 +647,14 @@ export const RaceView: React.FC<RaceViewProps> = ({
               <button
                 type="button"
                 onClick={onExitToGarage}
-                className="pixel-btn px-4 py-2.5 bg-[#1b243b] hover:bg-[#253152] border-[3px] border-[#3c4d73] text-[#f8fafc] font-bold text-sm whitespace-nowrap cursor-pointer"
+                className="pixel-btn rounded-full px-5 py-2.5 bg-[#1b243b] hover:bg-[#253152] border border-[#495f8f]/70 text-[#f8fafc] font-bold text-sm whitespace-nowrap cursor-pointer"
               >
                 Garage &amp; Shop
               </button>
               <button
                 type="button"
                 onClick={handleRestart}
-                className="pixel-btn px-4 py-2.5 bg-[#263457] hover:bg-[#314370] border-[3px] border-[#52699e] text-[#f8fafc] font-bold text-sm whitespace-nowrap cursor-pointer"
+                className="pixel-btn rounded-full px-5 py-2.5 bg-[#263457] hover:bg-[#314370] border border-[#627db8]/75 text-[#f8fafc] font-bold text-sm whitespace-nowrap cursor-pointer"
               >
                 Race Again
               </button>
@@ -662,7 +662,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
                 <button
                   type="button"
                   onClick={() => onNextRival(nextRival)}
-                  className="pixel-btn px-5 py-2.5 bg-[#ff4d3d] hover:bg-[#ff6254] border-[3px] border-[#f5b82e] text-[#ffffff] font-pixel text-[10px] whitespace-nowrap cursor-pointer"
+                  className="pixel-btn rounded-full px-6 py-2.5 bg-gradient-to-b from-[#ff5a4a] to-[#e6392a] hover:from-[#ff6d5e] hover:to-[#f04435] border-2 border-[#f5b82e] text-[#ffffff] font-pixel text-[10px] whitespace-nowrap cursor-pointer"
                 >
                   NEXT RIVAL
                 </button>

@@ -146,28 +146,28 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
             <button
               type="button"
               onClick={() => applyPreset('quarter')}
-              className="arcade-btn px-2 sm:px-3 py-2 sm:py-1.5 bg-[#ef3b2d] hover:bg-[#ff5245] border-2 border-[#3c4d73] text-[11px] sm:text-xs font-bold text-[#f7f3e3] whitespace-nowrap cursor-pointer"
+              className="arcade-btn rounded-full px-2.5 sm:px-3.5 py-2 sm:py-1.5 bg-[#ef3b2d] hover:bg-[#ff5245] border border-[#fca5a5]/55 text-[11px] sm:text-xs font-bold text-[#f7f3e3] whitespace-nowrap cursor-pointer"
             >
               1/4 Mi
             </button>
             <button
               type="button"
               onClick={() => applyPreset('half')}
-              className="arcade-btn px-2 sm:px-3 py-2 sm:py-1.5 bg-[#b45309] hover:bg-[#d97706] border-2 border-[#3c4d73] text-[11px] sm:text-xs font-bold text-[#fef08a] whitespace-nowrap cursor-pointer"
+              className="arcade-btn rounded-full px-2.5 sm:px-3.5 py-2 sm:py-1.5 bg-[#b45309] hover:bg-[#d97706] border border-[#fde047]/45 text-[11px] sm:text-xs font-bold text-[#fef08a] whitespace-nowrap cursor-pointer"
             >
               1/2 Mi
             </button>
             <button
               type="button"
               onClick={() => applyPreset('mile')}
-              className="arcade-btn px-2 sm:px-3 py-2 sm:py-1.5 bg-[#0369a1] hover:bg-[#0284c7] border-2 border-[#3c4d73] text-[11px] sm:text-xs font-bold text-[#e0f2fe] whitespace-nowrap cursor-pointer"
+              className="arcade-btn rounded-full px-2.5 sm:px-3.5 py-2 sm:py-1.5 bg-[#0369a1] hover:bg-[#0284c7] border border-[#7dd3fc]/50 text-[11px] sm:text-xs font-bold text-[#e0f2fe] whitespace-nowrap cursor-pointer"
             >
               1 Mile
             </button>
             <button
               type="button"
               onClick={() => applyPreset('stock')}
-              className="arcade-btn px-2 sm:px-2.5 py-2 sm:py-1.5 bg-[#223052] hover:bg-[#2c3f6b] border-2 border-[#3c4d73] text-[11px] sm:text-xs font-bold text-[#cbd5e1] flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer"
+              className="arcade-btn rounded-full px-2.5 sm:px-3 py-2 sm:py-1.5 bg-[#223052] hover:bg-[#2c3f6b] border border-[#5670a6]/65 text-[11px] sm:text-xs font-bold text-[#cbd5e1] flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer"
             >
               <PixelIcon name="restart" className="w-3.5 h-3.5" />
               <span>Stock</span>
@@ -388,13 +388,13 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
                 <span>TACH ARCS</span>
                 <span>REDLINE {perf.redlineRpm.toLocaleString()}</span>
               </div>
-              <div className="relative h-6 bg-[#131b30] border-2 border-[#060912] overflow-hidden">
+              <div className="relative h-6 bg-[#131b30] border border-[#3c4d73]/60 rounded-full overflow-hidden">
                 <div
-                  className="absolute top-0 bottom-0 bg-[#22c55e]/45 border-x-2 border-[#22c55e]"
+                  className="absolute top-0 bottom-0 bg-[#22c55e]/45 border-x border-[#22c55e]"
                   style={{ left: `${launchStartPct}%`, width: `${launchWidthPct}%` }}
                 />
                 <div
-                  className="absolute top-0 bottom-0 bg-[#facc15]/45 border-x-2 border-[#facc15]"
+                  className="absolute top-0 bottom-0 bg-[#facc15]/45 border-x border-[#facc15]"
                   style={{ left: `${shiftStartPct}%`, width: `${shiftWidthPct}%` }}
                 />
                 <div className="absolute top-0 bottom-0 right-0 w-[6%] bg-[#ef3b2d]/45 border-l border-[#ef3b2d]" />

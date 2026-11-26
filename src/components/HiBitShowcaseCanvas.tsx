@@ -159,7 +159,7 @@ export const HiBitShowcaseCanvas: React.FC<HiBitShowcaseCanvasProps> = ({
         }
       />
       {mode === 'turntable' && (
-        <div className="pointer-events-none absolute bottom-1.5 right-2 bg-[#0e1320] border-2 border-[#3c4d73] shadow-[2px_2px_0_#070a12] px-2 py-0.5 font-pixel text-[8px] text-[#f5b82e]">
+        <div className="pointer-events-none absolute bottom-2 right-2 bg-[#0e1422]/90 border border-[#5670a6]/55 rounded-full px-2.5 py-1 font-pixel text-[8px] text-[#f5b82e] backdrop-blur-sm">
           {ANGLE_BADGE_LABELS[angleLabel]}
         </div>
       )}

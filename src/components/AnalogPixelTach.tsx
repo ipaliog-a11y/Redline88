@@ -98,9 +98,9 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
 
   return (
     <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-      {/* Pixel Font Tachometer Face + Crisp Flat-Shaded Shift Light */}
+      {/* Sleek Rounded Tachometer Face + Circular Shift Light */}
       <div
-        className={`relative shrink-0 bg-[#0e1320] border-[3px] border-[#3c4d73] shadow-[2px_2px_0_#070a12] flex items-center justify-center ${
+        className={`relative shrink-0 bg-[#0e1422] border border-[#4a6294]/55 rounded-2xl shadow-[inset_0_2px_6px_rgba(4,7,15,0.5)] flex items-center justify-center ${
           compact ? 'w-[146px] h-[78px]' : 'w-[158px] sm:w-[214px] h-[84px] sm:h-[104px]'
         }`}
       >
@@ -110,18 +110,20 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
           role="img"
           aria-label={`Tachometer ${rpm} RPM`}
         >
-          {/* Outer pixel bezel arc */}
+          {/* Outer bezel arc */}
           <path
             d={describeArc(cx, cy, dialR + 8, MIN_ANG - 4, MAX_ANG + 4)}
             fill="none"
             stroke="#3c4d73"
-            strokeWidth="5"
+            strokeWidth="4"
+            strokeLinecap="round"
           />
           <path
             d={describeArc(cx, cy, dialR, MIN_ANG, MAX_ANG)}
             fill="none"
             stroke="#192033"
             strokeWidth="12"
+            strokeLinecap="round"
           />
 
           {/* Launch Sweet-Spot Emerald Arc */}
@@ -168,6 +170,7 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
                   y2={pOuter.y}
                   stroke={val >= redlineRpm ? '#ff4d3d' : '#cbd5e1'}
                   strokeWidth={isMajor ? 2.5 : 1.5}
+                  strokeLinecap="round"
                 />
                 {isMajor && (
                   <text
@@ -197,15 +200,15 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
             RPM x1K
           </text>
 
-          {/* Crisp Hard-Edged Needle */}
+          {/* Tapered Motorsport Needle */}
           <line
             x1={tail.x}
             y1={tail.y}
             x2={tip.x}
             y2={tip.y}
             stroke="#070a12"
-            strokeWidth="6"
-            strokeLinecap="square"
+            strokeWidth="5.5"
+            strokeLinecap="round"
           />
           <line
             x1={tail.x}
@@ -213,13 +216,13 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
             x2={tip.x}
             y2={tip.y}
             stroke={inShiftZone ? '#f5b82e' : inLaunchZone ? '#22c55e' : '#ff4d3d'}
-            strokeWidth="3.5"
-            strokeLinecap="square"
+            strokeWidth="3.2"
+            strokeLinecap="round"
           />
 
-          {/* Center Hub Cap */}
-          <rect x={cx - 6} y={cy - 6} width="12" height="12" fill="#3c4d73" stroke="#070a12" strokeWidth="2" />
-          <rect x={cx - 3} y={cy - 3} width="6" height="6" fill="#f5b82e" />
+          {/* Circular Center Hub Cap */}
+          <circle cx={cx} cy={cy} r="6.5" fill="#3c4d73" stroke="#070a12" strokeWidth="2" />
+          <circle cx={cx} cy={cy} r="3" fill="#f5b82e" />
 
           {/* Pixel Font RPM Readout */}
           <text
@@ -234,13 +237,13 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
           </text>
         </svg>
 
-        {/* Crisp Flat-Shaded Shift Light Lamp (Zero Blur / Zero Bloom) */}
+        {/* Circular Shift Light Lamp */}
         <div
-          className="absolute top-1 right-1 flex flex-col items-center"
+          className="absolute top-1.5 right-1.5 flex flex-col items-center"
           title="Shift Light"
         >
           <div
-            className={`w-6 h-6 sm:w-7 sm:h-7 border-2 flex items-center justify-center ${
+            className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 flex items-center justify-center transition-colors ${
               shiftLightState === 'SHIFT'
                 ? 'bg-[#f5b82e] border-[#fef08a]'
                 : shiftLightState === 'LAUNCH'
@@ -253,7 +256,7 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
             }`}
           >
             <div
-              className={`w-2 h-2 ${
+              className={`w-2 h-2 rounded-full ${
                 shiftLightState === 'OFF' ? 'bg-[#334155]' : 'bg-[#ffffff]'
               }`}
             />
@@ -264,11 +267,11 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
         </div>
       </div>
 
-      {/* Pixel Gear Indicator + Speed Readout + Status Bar */}
+      {/* Sculpted Gear Indicator + Speed Readout + Status Bar */}
       <div className="flex-1 min-w-0 flex flex-col gap-1.5">
         <div className="flex items-stretch gap-1.5 sm:gap-2">
-          {/* Gear Box */}
-          <div className="bg-[#0e1320] border-[3px] border-[#3c4d73] shadow-[2px_2px_0_#070a12] px-2.5 sm:px-3 py-1 sm:py-1.5 text-center min-w-[54px] sm:min-w-[68px]">
+          {/* Gear Pod */}
+          <div className="bg-[#0e1422] border border-[#4a6294]/50 rounded-xl shadow-[inset_0_2px_5px_rgba(4,7,15,0.45)] px-2.5 sm:px-3.5 py-1.5 text-center min-w-[54px] sm:min-w-[68px]">
             <div className="font-pixel text-[7px] sm:text-[8px] text-[#94a3b8] leading-none">
               GEAR
             </div>
@@ -285,8 +288,8 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
             </div>
           </div>
 
-          {/* Speed Readout */}
-          <div className="bg-[#0e1320] border-[3px] border-[#3c4d73] shadow-[2px_2px_0_#070a12] px-2.5 sm:px-3 py-1 sm:py-1.5 text-right flex-1 min-w-[78px]">
+          {/* Speed Pod */}
+          <div className="bg-[#0e1422] border border-[#4a6294]/50 rounded-xl shadow-[inset_0_2px_5px_rgba(4,7,15,0.45)] px-3 sm:px-3.5 py-1.5 text-right flex-1 min-w-[78px]">
             <div className="font-pixel text-[7px] sm:text-[8px] text-[#94a3b8] leading-none">
               SPEED MPH
             </div>
@@ -296,8 +299,8 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
           </div>
         </div>
 
-        {/* Crisp State Readout Bar */}
-        <div className="bg-[#0e1320] border-2 border-[#3c4d73] shadow-[2px_2px_0_#070a12] px-2.5 py-1 flex items-center justify-between gap-2 font-mono-num text-[10px] sm:text-xs">
+        {/* Sleek State Readout Bar */}
+        <div className="bg-[#0e1422] border border-[#4a6294]/45 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2 font-mono-num text-[10px] sm:text-xs">
           <span className="text-[#94a3b8] truncate">
             REDLINE {(redlineRpm / 1000).toFixed(1)}K
           </span>

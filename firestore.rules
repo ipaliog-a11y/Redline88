@@ -55,6 +55,33 @@ service cloud.firestore {
         && (arr.size() == 0 || (arr[0] is string && arr[0].size() >= 1 && arr[0].size() <= 32));
     }
 
+    // Deterministic ownership check for checking existence of a user's own leaderboard slot before first create
+    function isOwnLeaderboardSlotId(entryId) {
+      return isVerifiedUser()
+        && (
+          entryId == (request.auth.uid + '_t1')
+          || entryId == (request.auth.uid + '_t2')
+          || entryId == (request.auth.uid + '_t3')
+          || entryId == (request.auth.uid + '_t4')
+          || entryId == (request.auth.uid + '_t5')
+          || entryId == (request.auth.uid + '_t1_quarter')
+          || entryId == (request.auth.uid + '_t2_quarter')
+          || entryId == (request.auth.uid + '_t3_quarter')
+          || entryId == (request.auth.uid + '_t4_quarter')
+          || entryId == (request.auth.uid + '_t5_quarter')
+          || entryId == (request.auth.uid + '_t1_half')
+          || entryId == (request.auth.uid + '_t2_half')
+          || entryId == (request.auth.uid + '_t3_half')
+          || entryId == (request.auth.uid + '_t4_half')
+          || entryId == (request.auth.uid + '_t5_half')
+          || entryId == (request.auth.uid + '_t1_mile')
+          || entryId == (request.auth.uid + '_t2_mile')
+          || entryId == (request.auth.uid + '_t3_mile')
+          || entryId == (request.auth.uid + '_t4_mile')
+          || entryId == (request.auth.uid + '_t5_mile')
+        );
+    }
+
     // --- Entity Validation Blueprints ---
     function isValidPlayerSave(data, userId) {
       return data.keys().hasAll([
@@ -151,7 +178,10 @@ service cloud.firestore {
 
     // --- Collection: /leaderboardEntries/{entryId} ---
     match /leaderboardEntries/{entryId} {
-      allow get: if isValidId(entryId) && existing().isPublic == true;
+      allow get: if isValidId(entryId) && (
+        (resource == null && isOwnLeaderboardSlotId(entryId))
+        || (resource != null && existing().isPublic == true)
+      );
       allow list: if existing().isPublic == true;
 
       allow create: if isValidId(entryId)

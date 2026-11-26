@@ -257,9 +257,11 @@ export async function submitGlobalRecord(params: {
   const clampedShifts = Math.max(0, Math.min(20, Math.floor(params.perfectShifts)));
   const cleanName = sanitizeCallsign(params.driverName);
   const cleanCarId = sanitizeShortId(params.carId);
-  const cleanCarName = params.carName.trim().slice(0, 40) || 'Street Racer';
+  const rawCarName = params.carName.trim().slice(0, 40);
+  const cleanCarName = rawCarName.length >= 2 ? rawCarName : 'Street Racer';
   const cleanPaint = sanitizeHexColor(params.paintColor);
 
+  let currentOp: OperationType = OperationType.GET;
   try {
     const existing = await getDoc(ref);
     if (existing.exists()) {
@@ -267,6 +269,7 @@ export async function submitGlobalRecord(params: {
       if (clampedEt >= prevEt) {
         return { submitted: false, improved: false };
       }
+      currentOp = OperationType.UPDATE;
       await updateDoc(ref, {
         driverName: cleanName,
         distance: dist,
@@ -281,6 +284,7 @@ export async function submitGlobalRecord(params: {
       });
       return { submitted: true, improved: true };
     } else {
+      currentOp = OperationType.CREATE;
       await setDoc(ref, {
         uid: params.uid,
         driverName: cleanName,
@@ -300,6 +304,6 @@ export async function submitGlobalRecord(params: {
       return { submitted: true, improved: true };
     }
   } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, path);
+    handleFirestoreError(error, currentOp, path);
   }
 }
