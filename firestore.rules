@@ -110,6 +110,19 @@ service cloud.firestore {
         && data.updatedAt is timestamp;
     }
 
+    function isValidPhysicsForDistance(data) {
+      let dist = ('distance' in data) ? data.distance : 'quarter';
+      return (dist == 'quarter'
+          && data.etMs >= 3200 && data.etMs <= 35000
+          && data.trapMph >= 50 && data.trapMph <= 365)
+        || (dist == 'half'
+          && data.etMs >= 5200 && data.etMs <= 60000
+          && data.trapMph >= 60 && data.trapMph <= 420)
+        || (dist == 'mile'
+          && data.etMs >= 8500 && data.etMs <= 90000
+          && data.trapMph >= 75 && data.trapMph <= 480);
+    }
+
     function isValidLeaderboardEntry(data) {
       return data.keys().hasAll([
           'uid', 'driverName', 'tier', 'carId', 'carName', 'etMs', 'trapMph',
@@ -126,8 +139,9 @@ service cloud.firestore {
         && (!('distance' in data) || isValidDistance(data.distance))
         && isValidShortId(data.carId)
         && data.carName is string && data.carName.size() >= 2 && data.carName.size() <= 40
-        && data.etMs is int && data.etMs >= 3200 && data.etMs <= 90000
-        && data.trapMph is number && data.trapMph >= 50 && data.trapMph <= 480
+        && data.etMs is int
+        && data.trapMph is number
+        && isValidPhysicsForDistance(data)
         && data.reactionMs is int && data.reactionMs >= 0 && data.reactionMs <= 5000
         && data.perfectShifts is int && data.perfectShifts >= 0 && data.perfectShifts <= 20
         && isValidHexColor(data.paintColor)
@@ -194,6 +208,7 @@ service cloud.firestore {
       allow update: if isValidId(entryId)
         && isVerifiedUser()
         && isValidLeaderboardEntry(incoming())
+        && isValidLeaderboardEntryId(entryId, incoming())
         && existing().uid == request.auth.uid
         && incoming().uid == existing().uid
         && incoming().tier == existing().tier
@@ -201,6 +216,7 @@ service cloud.firestore {
         && incoming().isPublic == existing().isPublic
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
+        && incoming().etMs < existing().etMs
         && (
           // Action: Update Personal Best Record
           incoming().diff(existing()).affectedKeys().hasOnly([

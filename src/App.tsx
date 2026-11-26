@@ -75,22 +75,47 @@ function GameApp() {
   const saveRef = useRef(save);
   saveRef.current = save;
 
-  const syncTimerRef = useRef<number | null>(null);
+  const userRef = useRef(user);
+  userRef.current = user;
 
-  const persistSave = useCallback(
-    (next: PlayerSave, currentUser: User | null) => {
-      saveLocalSave(next);
-      if (currentUser && currentUser.emailVerified) {
-        if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
-        syncTimerRef.current = window.setTimeout(() => {
-          syncCloudSave(currentUser.uid, next).catch((err) => {
-            console.warn('Cloud save sync deferred:', err);
-          });
-        }, 450);
+  const syncTimerRef = useRef<number | null>(null);
+  const didMountSaveRef = useRef(false);
+
+  // Persist save locally and debounce cloud sync whenever save changes (pure React side effect)
+  useEffect(() => {
+    if (!didMountSaveRef.current) {
+      didMountSaveRef.current = true;
+      return;
+    }
+    saveLocalSave(save);
+    if (user && user.emailVerified) {
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
+      const uid = user.uid;
+      syncTimerRef.current = window.setTimeout(() => {
+        syncTimerRef.current = null;
+        syncCloudSave(uid, saveRef.current).catch((err) => {
+          console.warn('Cloud save sync deferred:', err);
+        });
+      }, 450);
+    }
+  }, [save, user]);
+
+  // Flush any pending debounced cloud save on pagehide / unmount
+  useEffect(() => {
+    const flushPendingSync = () => {
+      const currentUser = userRef.current;
+      if (syncTimerRef.current && currentUser && currentUser.emailVerified) {
+        window.clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = null;
+        void syncCloudSave(currentUser.uid, saveRef.current);
       }
-    },
-    []
-  );
+    };
+    window.addEventListener('pagehide', flushPendingSync);
+    return () => {
+      window.removeEventListener('pagehide', flushPendingSync);
+      flushPendingSync();
+    };
+  }, []);
 
   const refreshGlobal = useCallback(async () => {
     setGlobalLoading(true);
@@ -112,24 +137,19 @@ function GameApp() {
       if (authUser && authUser.emailVerified) {
         loadCloudSave(authUser.uid)
           .then((cloud) => {
-            if (cloud) {
-              const merged = mergeSaves(saveRef.current, cloud);
-              setSave(merged);
-              saveLocalSave(merged);
-              void syncCloudSave(authUser.uid, merged);
-            } else {
-              // Seed cloud save with local progress + default callsign from display name if untouched
-              const seeded: PlayerSave = {
-                ...saveRef.current,
+            setSave((current) => {
+              if (cloud) {
+                return mergeSaves(current, cloud);
+              }
+              return {
+                ...current,
                 callsign:
-                  saveRef.current.callsign === 'ROOKIE_88' && authUser.displayName
+                  current.callsign === 'ROOKIE_88' && authUser.displayName
                     ? sanitizeCallsign(authUser.displayName)
-                    : saveRef.current.callsign,
+                    : current.callsign,
+                updatedAtMs: Date.now(),
               };
-              setSave(seeded);
-              saveLocalSave(seeded);
-              void syncCloudSave(authUser.uid, seeded);
-            }
+            });
           })
           .catch((err) => {
             console.warn('Cloud garage load failed:', err);
@@ -168,16 +188,13 @@ function GameApp() {
     void signOutUser();
   }, []);
 
-  const updateSave = useCallback(
-    (updater: (prev: PlayerSave) => PlayerSave) => {
-      setSave((prev) => {
-        const next = updater(prev);
-        persistSave(next, user);
-        return next;
-      });
-    },
-    [persistSave, user]
-  );
+  const updateSave = useCallback((updater: (prev: PlayerSave) => PlayerSave) => {
+    setSave((prev) => {
+      const next = updater(prev);
+      if (next === prev) return prev;
+      return { ...next, updatedAtMs: Date.now() };
+    });
+  }, []);
 
   const handleUpdateCallsign = useCallback(
     (callsign: string) => {
@@ -395,9 +412,9 @@ function GameApp() {
         defeatedRivals: nextDefeated,
         totalWins: currentSave.totalWins + (rawResult.won && !rawResult.isTimeTrial ? 1 : 0),
         totalRaces: currentSave.totalRaces + 1,
+        updatedAtMs: Date.now(),
       };
       setSave(updatedSave);
-      persistSave(updatedSave, user);
 
       return {
         ...rawResult,
@@ -409,7 +426,7 @@ function GameApp() {
         isRematch,
       };
     },
-    [persistSave, refreshGlobal, user]
+    [refreshGlobal, user]
   );
 
   // Determine Next Rival in same strip distance ladder

@@ -18,6 +18,9 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   onStart,
 }) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
+  const rendererRef = useRef<HiBitStripRenderer | null>(null);
+  const saveRef = useRef(save);
+  saveRef.current = save;
 
   // Enter / Space starts immediately
   useEffect(() => {
@@ -31,13 +34,14 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [onStart]);
 
-  // Live Hi-Bit 16-Bit Pixel Art Golden-Hour Sunset Attract Strip
+  // Live Hi-Bit 16-Bit Pixel Art Golden-Hour Sunset Attract Strip (mounted once)
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
 
-    const playerCar = getCarById(save.activeCarId);
-    const playerCfg = getCarConfig(save, save.activeCarId);
+    const initialSave = saveRef.current;
+    const playerCar = getCarById(initialSave.activeCarId);
+    const playerCfg = getCarConfig(initialSave, initialSave.activeCarId);
 
     const renderer = new HiBitStripRenderer(
       container,
@@ -57,6 +61,7 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
         upgrades: { engine: 5, induction: 5, transmission: 5, tires: 5, chassis: 5, nitrous: 5 },
       }
     );
+    rendererRef.current = renderer;
 
     let alive = true;
     let rafId = 0;
@@ -115,7 +120,22 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
       alive = false;
       cancelAnimationFrame(rafId);
       renderer.dispose();
+      rendererRef.current = null;
     };
+  }, []);
+
+  // Live-update attract-mode player car when cloud save loads without restarting the animation
+  useEffect(() => {
+    const renderer = rendererRef.current;
+    if (!renderer) return;
+    const playerCar = getCarById(save.activeCarId);
+    const playerCfg = getCarConfig(save, save.activeCarId);
+    renderer.setPlayerCar({
+      chassis: playerCar.chassis,
+      bodyVariant: playerCar.bodyVariant,
+      visuals: playerCfg.visuals,
+      upgrades: playerCfg.upgrades,
+    });
   }, [save]);
 
   return (

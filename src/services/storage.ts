@@ -1,12 +1,30 @@
 import {
-  createDefaultCarConfig,
   createInitialPlayerSave,
   getEffectiveTuning,
+  sanitizeCarConfig,
 } from '../data/gameData';
-import { LocalRecord, PlayerSave, StripDistanceId, TierId } from '../types/game';
+import { CarConfig, LocalRecord, PlayerSave, StripDistanceId, TierId } from '../types/game';
 
 const SAVE_KEY = 'redline88_save_v1';
 const LOCAL_BOARD_KEY = 'redline88_local_records_v1';
+const MAX_RECORDS_PER_BUCKET = 12;
+const MAX_EXTRA_REPLAYS = 12;
+
+function sanitizeIdList(raw: unknown, maxLen: number): string[] {
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    if (typeof item !== 'string') continue;
+    const cleaned = item.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32);
+    if (cleaned.length > 0 && !seen.has(cleaned)) {
+      seen.add(cleaned);
+      out.push(cleaned);
+      if (out.length >= maxLen) break;
+    }
+  }
+  return out;
+}
 
 export function loadLocalSave(): PlayerSave {
   try {
@@ -14,38 +32,49 @@ export function loadLocalSave(): PlayerSave {
     if (!raw) return createInitialPlayerSave();
     const parsed = JSON.parse(raw) as Partial<PlayerSave>;
     const initial = createInitialPlayerSave();
-    const ownedCars = Array.isArray(parsed.ownedCars) && parsed.ownedCars.length > 0
-      ? parsed.ownedCars
-      : initial.ownedCars;
-    const carConfigs = parsed.carConfigs && typeof parsed.carConfigs === 'object'
-      ? parsed.carConfigs
-      : initial.carConfigs;
+    const ownedCarsRaw = sanitizeIdList(parsed.ownedCars, 30);
+    const ownedCars = ownedCarsRaw.length > 0 ? ownedCarsRaw : initial.ownedCars;
 
+    const rawConfigs =
+      parsed.carConfigs && typeof parsed.carConfigs === 'object' ? parsed.carConfigs : {};
+    const carConfigs: Record<string, CarConfig> = {};
+
+    for (const [carId, cfg] of Object.entries(rawConfigs)) {
+      if (Object.keys(carConfigs).length >= 30) break;
+      carConfigs[carId] = sanitizeCarConfig(carId, cfg);
+    }
     for (const carId of ownedCars) {
       if (!carConfigs[carId]) {
-        carConfigs[carId] = createDefaultCarConfig(carId);
-      } else {
-        carConfigs[carId] = {
-          ...carConfigs[carId],
-          tuning: getEffectiveTuning(carId, carConfigs[carId]),
-        };
+        carConfigs[carId] = sanitizeCarConfig(carId, null);
       }
     }
 
     return {
-      callsign: typeof parsed.callsign === 'string' && parsed.callsign.trim().length >= 2
-        ? parsed.callsign.trim().slice(0, 18)
-        : initial.callsign,
-      cash: typeof parsed.cash === 'number' && Number.isFinite(parsed.cash) ? Math.max(0, parsed.cash) : initial.cash,
-      activeCarId: typeof parsed.activeCarId === 'string' && ownedCars.includes(parsed.activeCarId)
-        ? parsed.activeCarId
-        : ownedCars[0],
-      highestUnlockedTier: (Math.max(1, Math.min(5, Number(parsed.highestUnlockedTier ?? 1))) as TierId),
+      callsign:
+        typeof parsed.callsign === 'string' && parsed.callsign.trim().length >= 2
+          ? parsed.callsign.trim().slice(0, 18)
+          : initial.callsign,
+      cash:
+        typeof parsed.cash === 'number' && Number.isFinite(parsed.cash)
+          ? Math.max(0, Math.min(99999999, Math.floor(parsed.cash)))
+          : initial.cash,
+      activeCarId:
+        typeof parsed.activeCarId === 'string' && ownedCars.includes(parsed.activeCarId)
+          ? parsed.activeCarId
+          : ownedCars[0],
+      highestUnlockedTier: Math.max(
+        1,
+        Math.min(5, Math.floor(Number(parsed.highestUnlockedTier ?? 1)) || 1)
+      ) as TierId,
       ownedCars,
-      defeatedRivals: Array.isArray(parsed.defeatedRivals) ? parsed.defeatedRivals : [],
+      defeatedRivals: sanitizeIdList(parsed.defeatedRivals, 80),
       carConfigs,
-      totalWins: Number(parsed.totalWins ?? 0),
-      totalRaces: Number(parsed.totalRaces ?? 0),
+      totalWins: Math.max(0, Math.min(1000000, Math.floor(Number(parsed.totalWins ?? 0)) || 0)),
+      totalRaces: Math.max(0, Math.min(1000000, Math.floor(Number(parsed.totalRaces ?? 0)) || 0)),
+      updatedAtMs:
+        typeof parsed.updatedAtMs === 'number' && Number.isFinite(parsed.updatedAtMs)
+          ? Math.max(0, parsed.updatedAtMs)
+          : 0,
     };
   } catch {
     return createInitialPlayerSave();
@@ -60,19 +89,57 @@ export function saveLocalSave(save: PlayerSave): void {
   }
 }
 
-export function mergeSaves(local: PlayerSave, cloud: PlayerSave): PlayerSave {
-  const mergedOwned = Array.from(new Set([...local.ownedCars, ...cloud.ownedCars]));
-  const mergedRivals = Array.from(new Set([...local.defeatedRivals, ...cloud.defeatedRivals]));
-  const mergedConfigs = { ...local.carConfigs };
+export function clearLocalSave(): void {
+  try {
+    localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem(LOCAL_BOARD_KEY);
+  } catch {
+    // Ignore storage errors
+  }
+}
 
-  for (const [carId, cloudCfg] of Object.entries(cloud.carConfigs)) {
-    const localCfg = mergedConfigs[carId];
-    if (!localCfg) {
-      mergedConfigs[carId] = {
-        ...cloudCfg,
-        tuning: getEffectiveTuning(carId, cloudCfg),
-      };
-    } else {
+export function mergeSaves(local: PlayerSave, cloud: PlayerSave): PlayerSave {
+  // If local save is an untouched starter save on a fresh browser, adopt cloud directly
+  const localIsFresh =
+    local.totalRaces === 0 &&
+    local.ownedCars.length <= 1 &&
+    local.defeatedRivals.length === 0 &&
+    (local.updatedAtMs ?? 0) === 0;
+  if (localIsFresh) {
+    return {
+      ...cloud,
+      updatedAtMs: cloud.updatedAtMs ?? Date.now(),
+    };
+  }
+
+  const localTs = local.updatedAtMs ?? 0;
+  const cloudTs = cloud.updatedAtMs ?? 0;
+  const cloudIsNewer =
+    cloudTs !== localTs ? cloudTs > localTs : cloud.totalRaces >= local.totalRaces;
+
+  const mergedOwned = Array.from(new Set([...local.ownedCars, ...cloud.ownedCars])).slice(0, 30);
+  const mergedRivals = Array.from(
+    new Set([...local.defeatedRivals, ...cloud.defeatedRivals])
+  ).slice(0, 80);
+  const mergedConfigs: Record<string, CarConfig> = {};
+
+  const allCarIds = Array.from(
+    new Set([...Object.keys(local.carConfigs), ...Object.keys(cloud.carConfigs), ...mergedOwned])
+  ).slice(0, 30);
+
+  for (const carId of allCarIds) {
+    const localCfg = local.carConfigs[carId]
+      ? sanitizeCarConfig(carId, local.carConfigs[carId])
+      : null;
+    const cloudCfg = cloud.carConfigs[carId]
+      ? sanitizeCarConfig(carId, cloud.carConfigs[carId])
+      : null;
+
+    if (!localCfg && cloudCfg) {
+      mergedConfigs[carId] = cloudCfg;
+    } else if (localCfg && !cloudCfg) {
+      mergedConfigs[carId] = localCfg;
+    } else if (localCfg && cloudCfg) {
       mergedConfigs[carId] = {
         upgrades: {
           engine: Math.max(localCfg.upgrades.engine, cloudCfg.upgrades.engine),
@@ -82,24 +149,31 @@ export function mergeSaves(local: PlayerSave, cloud: PlayerSave): PlayerSave {
           chassis: Math.max(localCfg.upgrades.chassis, cloudCfg.upgrades.chassis),
           nitrous: Math.max(localCfg.upgrades.nitrous, cloudCfg.upgrades.nitrous),
         },
-        visuals: cloud.totalRaces >= local.totalRaces ? cloudCfg.visuals : localCfg.visuals,
-        tuning: cloud.totalRaces >= local.totalRaces
+        visuals: cloudIsNewer ? cloudCfg.visuals : localCfg.visuals,
+        tuning: cloudIsNewer
           ? getEffectiveTuning(carId, cloudCfg)
           : getEffectiveTuning(carId, localCfg),
       };
+    } else {
+      mergedConfigs[carId] = sanitizeCarConfig(carId, null);
     }
   }
 
+  const preferredActive = cloudIsNewer ? cloud.activeCarId : local.activeCarId;
+  const activeCarId = mergedOwned.includes(preferredActive) ? preferredActive : mergedOwned[0];
+
   return {
-    callsign: cloud.totalRaces >= local.totalRaces ? cloud.callsign : local.callsign,
-    cash: Math.max(local.cash, cloud.cash),
-    activeCarId: cloud.totalRaces >= local.totalRaces ? cloud.activeCarId : local.activeCarId,
+    callsign: cloudIsNewer ? cloud.callsign : local.callsign,
+    // Use the newer save's cash balance to prevent refunding offline purchases via Math.max
+    cash: cloudIsNewer ? cloud.cash : local.cash,
+    activeCarId,
     highestUnlockedTier: Math.max(local.highestUnlockedTier, cloud.highestUnlockedTier) as TierId,
     ownedCars: mergedOwned,
     defeatedRivals: mergedRivals,
     carConfigs: mergedConfigs,
     totalWins: Math.max(local.totalWins, cloud.totalWins),
     totalRaces: Math.max(local.totalRaces, cloud.totalRaces),
+    updatedAtMs: Math.max(localTs, cloudTs, Date.now()),
   };
 }
 
@@ -135,45 +209,62 @@ export function addLocalRecord(record: Omit<LocalRecord, 'id' | 'timestamp'>): {
     timestamp: Date.now(),
   };
 
-  const sorted = [...existing, entry]
-    .sort((a, b) => a.etMs - b.etMs)
-    .slice(0, 90);
-
-  // Preserve full replay payloads on every (tier, distance) #1 best run + up to 18 fastest replays overall
-  const bestByBucket = new Set<string>();
-  const keptReplays = new Set<string>();
-  for (const r of sorted) {
+  // Cap records per (tier, distance) bucket so short-strip Tier 5 runs never evict 1-Mile or Street runs
+  const buckets = new Map<string, LocalRecord[]>();
+  for (const r of [...existing, entry]) {
     const key = `${r.tier}_${r.distance ?? 'quarter'}`;
-    if (!bestByBucket.has(key) && r.replay) {
-      bestByBucket.add(key);
-      keptReplays.add(r.id);
-    }
+    const list = buckets.get(key) ?? [];
+    list.push(r);
+    buckets.set(key, list);
   }
+
+  const retained: LocalRecord[] = [];
+  const bestReplayIds = new Set<string>();
+  for (const list of buckets.values()) {
+    list.sort((a, b) => a.etMs - b.etMs);
+    const trimmed = list.slice(0, MAX_RECORDS_PER_BUCKET);
+    const bestWithReplay = trimmed.find((r) => Boolean(r.replay));
+    if (bestWithReplay) {
+      bestReplayIds.add(bestWithReplay.id);
+    }
+    retained.push(...trimmed);
+  }
+
+  retained.sort((a, b) => a.etMs - b.etMs);
+
+  // Preserve full replay payloads on every (tier, distance) #1 best run + up to 12 additional replays
+  const keptReplays = new Set<string>(bestReplayIds);
   let extraCount = 0;
-  for (const r of sorted) {
-    if (r.replay && !keptReplays.has(r.id) && extraCount < 12) {
+  for (const r of retained) {
+    if (r.replay && !keptReplays.has(r.id) && extraCount < MAX_EXTRA_REPLAYS) {
       keptReplays.add(r.id);
       extraCount++;
     }
   }
 
-  const next: LocalRecord[] = sorted.map((r) =>
+  const next: LocalRecord[] = retained.map((r) =>
     r.replay && !keptReplays.has(r.id) ? { ...r, replay: undefined } : r
   );
 
   try {
     localStorage.setItem(LOCAL_BOARD_KEY, JSON.stringify(next));
   } catch {
-    // Storage quota fallback: keep replays strictly on #1 best per (tier, distance) bucket
+    // Storage quota fallback 1: keep replays strictly on #1 best record ID per (tier, distance) bucket
     const compact = next.map((r) =>
-      r.replay && !bestByBucket.has(`${r.tier}_${r.distance ?? 'quarter'}`)
-        ? { ...r, replay: undefined }
-        : r
+      r.replay && !bestReplayIds.has(r.id) ? { ...r, replay: undefined } : r
     );
     try {
       localStorage.setItem(LOCAL_BOARD_KEY, JSON.stringify(compact));
+      return { records: compact, isNewBestInTier };
     } catch {
-      // Ignore storage quota errors
+      // Storage quota fallback 2: strip all replays so time slips still persist
+      const minimal = compact.map((r) => (r.replay ? { ...r, replay: undefined } : r));
+      try {
+        localStorage.setItem(LOCAL_BOARD_KEY, JSON.stringify(minimal));
+        return { records: minimal, isNewBestInTier };
+      } catch {
+        // Ignore storage quota errors
+      }
     }
   }
 

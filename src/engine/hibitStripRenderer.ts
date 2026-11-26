@@ -240,6 +240,10 @@ export class HiBitStripRenderer {
     for (const p of this.particles) p.active = false;
   }
 
+  public setPlayerCar(cfg: HiBitStripCarConfig): void {
+    this.playerCfg = cfg;
+  }
+
   public spawnSmoke(worldFt: number, laneYOffset: number, count: number, speedFt: number): void {
     let spawned = 0;
     for (const p of this.particles) {

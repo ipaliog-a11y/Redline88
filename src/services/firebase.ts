@@ -11,18 +11,23 @@ import {
   collection,
   doc,
   getDoc,
-  getDocFromServer,
   getDocs,
   getFirestore,
   limit,
+  orderBy,
   query,
+  QuerySnapshot,
+  DocumentData,
   serverTimestamp,
   setDoc,
+  Timestamp,
   updateDoc,
   where,
 } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
+import { sanitizeCarConfig } from '../data/gameData';
 import {
+  CarConfig,
   GlobalLeaderboardEntry,
   PlayerSave,
   StripDistanceId,
@@ -34,6 +39,9 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
+// Cache UIDs known to already have a playerSaves/{uid} document to avoid redundant getDoc reads
+const knownCloudSaveUids = new Set<string>();
+
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
@@ -43,21 +51,21 @@ export enum OperationType {
   WRITE = 'write',
 }
 
-export interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId?: string | null;
-    email?: string | null;
-    emailVerified?: boolean | null;
-    isAnonymous?: boolean | null;
-    tenantId?: string | null;
-    providerInfo?: {
-      providerId?: string | null;
-      email?: string | null;
-    }[];
-  };
+function getUserFriendlyFirestoreMessage(error: unknown, operationType: OperationType): string {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code ?? '')
+      : '';
+  if (code === 'permission-denied') {
+    return 'Access denied by leaderboard security rules. Please verify your account and try again.';
+  }
+  if (code === 'unavailable' || code === 'deadline-exceeded') {
+    return 'Cloud service is temporarily unreachable. Local progress is safely saved.';
+  }
+  if (operationType === OperationType.LIST) {
+    return 'Unable to load the global leaderboard right now. Please try refreshing.';
+  }
+  return 'Cloud sync encountered an error. Local progress is safely saved.';
 }
 
 export function handleFirestoreError(
@@ -65,39 +73,18 @@ export function handleFirestoreError(
   operationType: OperationType,
   path: string | null
 ): never {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo:
-        auth.currentUser?.providerData?.map((provider) => ({
-          providerId: provider.providerId,
-          email: provider.email,
-        })) || [],
-    },
+  const rawMessage = error instanceof Error ? error.message : String(error);
+  console.error('Firestore Error:', {
     operationType,
     path,
-  };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+    authenticated: Boolean(auth.currentUser),
+    emailVerified: Boolean(auth.currentUser?.emailVerified),
+    message: rawMessage,
+  });
+  throw new Error(getUserFriendlyFirestoreMessage(error, operationType));
 }
 
-async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Please check your Firebase configuration.');
-    }
-  }
-}
-void testConnection();
-
-// Sanitization helpers synchronized strictly with firebase-blueprint.json
+// Sanitization helpers synchronized strictly with firebase-blueprint.json & firestore.rules
 export function sanitizeCallsign(input: string): string {
   const cleaned = input.replace(/[^a-zA-Z0-9 _-]/g, '').trim().slice(0, 18);
   return cleaned.length >= 2 ? cleaned : 'RACER_88';
@@ -117,12 +104,31 @@ function sanitizeDistance(d: unknown): StripDistanceId {
   return 'quarter';
 }
 
+function clampPhysicsForDistance(
+  dist: StripDistanceId,
+  etMs: number,
+  trapMph: number
+): { etMs: number; trapMph: number } {
+  const bounds =
+    dist === 'mile'
+      ? { minEt: 8500, maxEt: 90000, minMph: 75, maxMph: 480 }
+      : dist === 'half'
+      ? { minEt: 5200, maxEt: 60000, minMph: 60, maxMph: 420 }
+      : { minEt: 3200, maxEt: 35000, minMph: 50, maxMph: 365 };
+
+  return {
+    etMs: Math.max(bounds.minEt, Math.min(bounds.maxEt, Math.round(etMs))),
+    trapMph: Math.max(bounds.minMph, Math.min(bounds.maxMph, Number(trapMph.toFixed(1)))),
+  };
+}
+
 export async function signInWithGoogle(): Promise<User> {
   const res = await signInWithPopup(auth, googleProvider);
   return res.user;
 }
 
 export async function signOutUser(): Promise<void> {
+  knownCloudSaveUids.clear();
   await signOut(auth);
 }
 
@@ -135,17 +141,55 @@ export async function loadCloudSave(uid: string): Promise<PlayerSave | null> {
   try {
     const snap = await getDoc(doc(db, 'playerSaves', uid));
     if (!snap.exists()) return null;
+    knownCloudSaveUids.add(uid);
     const data = snap.data();
+
+    const ownedCars = Array.isArray(data.ownedCars)
+      ? data.ownedCars
+          .filter((id): id is string => typeof id === 'string')
+          .slice(0, 30)
+          .map(sanitizeShortId)
+      : ['civic_86'];
+    const safeOwned = ownedCars.length > 0 ? ownedCars : ['civic_86'];
+
+    const rawConfigs =
+      typeof data.carConfigs === 'object' && data.carConfigs
+        ? (data.carConfigs as Record<string, unknown>)
+        : {};
+    const carConfigs: Record<string, CarConfig> = {};
+    for (const [carId, cfg] of Object.entries(rawConfigs)) {
+      if (Object.keys(carConfigs).length >= 30) break;
+      carConfigs[carId] = sanitizeCarConfig(carId, cfg);
+    }
+    for (const carId of safeOwned) {
+      if (!carConfigs[carId]) {
+        carConfigs[carId] = sanitizeCarConfig(carId, null);
+      }
+    }
+
+    const activeRaw = sanitizeShortId(String(data.activeCarId ?? safeOwned[0]));
+    const updatedAtMs =
+      data.updatedAt instanceof Timestamp ? data.updatedAt.toMillis() : 0;
+
     return {
       callsign: sanitizeCallsign(String(data.callsign ?? 'RACER_88')),
-      cash: Number(data.cash ?? 650),
-      activeCarId: sanitizeShortId(String(data.activeCarId ?? 'civic_86')),
-      highestUnlockedTier: Math.max(1, Math.min(5, Number(data.highestUnlockedTier ?? 1))) as TierId,
-      ownedCars: Array.isArray(data.ownedCars) ? data.ownedCars.slice(0, 30) : ['civic_86'],
-      defeatedRivals: Array.isArray(data.defeatedRivals) ? data.defeatedRivals.slice(0, 80) : [],
-      carConfigs: typeof data.carConfigs === 'object' && data.carConfigs ? data.carConfigs : {},
-      totalWins: Number(data.totalWins ?? 0),
-      totalRaces: Number(data.totalRaces ?? 0),
+      cash: Math.max(0, Math.min(99999999, Math.floor(Number(data.cash ?? 250) || 0))),
+      activeCarId: safeOwned.includes(activeRaw) ? activeRaw : safeOwned[0],
+      highestUnlockedTier: Math.max(
+        1,
+        Math.min(5, Math.floor(Number(data.highestUnlockedTier ?? 1)) || 1)
+      ) as TierId,
+      ownedCars: safeOwned,
+      defeatedRivals: Array.isArray(data.defeatedRivals)
+        ? data.defeatedRivals
+            .filter((id): id is string => typeof id === 'string')
+            .slice(0, 80)
+            .map(sanitizeShortId)
+        : [],
+      carConfigs,
+      totalWins: Math.max(0, Math.min(1000000, Math.floor(Number(data.totalWins ?? 0) || 0))),
+      totalRaces: Math.max(0, Math.min(1000000, Math.floor(Number(data.totalRaces ?? 0) || 0))),
+      updatedAtMs,
     };
   } catch (error) {
     handleFirestoreError(error, OperationType.GET, path);
@@ -155,76 +199,114 @@ export async function loadCloudSave(uid: string): Promise<PlayerSave | null> {
 export async function syncCloudSave(uid: string, save: PlayerSave): Promise<void> {
   const path = `playerSaves/${uid}`;
   const ref = doc(db, 'playerSaves', uid);
-  const basePayload = {
-    ownerId: uid,
+
+  const sanitizedConfigs: Record<string, CarConfig> = {};
+  for (const [carId, cfg] of Object.entries(save.carConfigs)) {
+    if (Object.keys(sanitizedConfigs).length >= 30) break;
+    sanitizedConfigs[carId] = sanitizeCarConfig(carId, cfg);
+  }
+
+  const updateFields = {
     callsign: sanitizeCallsign(save.callsign),
     cash: Math.max(0, Math.min(99999999, Math.floor(save.cash))),
     activeCarId: sanitizeShortId(save.activeCarId),
     highestUnlockedTier: Math.max(1, Math.min(5, Math.floor(save.highestUnlockedTier))),
     ownedCars: save.ownedCars.slice(0, 30).map(sanitizeShortId),
     defeatedRivals: save.defeatedRivals.slice(0, 80).map(sanitizeShortId),
-    carConfigs: save.carConfigs,
+    carConfigs: sanitizedConfigs,
     totalWins: Math.max(0, Math.min(1000000, Math.floor(save.totalWins))),
     totalRaces: Math.max(0, Math.min(1000000, Math.floor(save.totalRaces))),
     updatedAt: serverTimestamp(),
   };
 
   try {
+    if (knownCloudSaveUids.has(uid)) {
+      try {
+        await updateDoc(ref, updateFields);
+        return;
+      } catch (err) {
+        const code =
+          typeof err === 'object' && err !== null && 'code' in err
+            ? String((err as { code?: unknown }).code ?? '')
+            : '';
+        if (code !== 'not-found') throw err;
+        knownCloudSaveUids.delete(uid);
+      }
+    }
+
     const existing = await getDoc(ref);
     if (existing.exists()) {
-      await updateDoc(ref, {
-        callsign: basePayload.callsign,
-        cash: basePayload.cash,
-        activeCarId: basePayload.activeCarId,
-        highestUnlockedTier: basePayload.highestUnlockedTier,
-        ownedCars: basePayload.ownedCars,
-        defeatedRivals: basePayload.defeatedRivals,
-        carConfigs: basePayload.carConfigs,
-        totalWins: basePayload.totalWins,
-        totalRaces: basePayload.totalRaces,
-        updatedAt: serverTimestamp(),
-      });
+      knownCloudSaveUids.add(uid);
+      await updateDoc(ref, updateFields);
     } else {
       await setDoc(ref, {
-        ...basePayload,
+        ownerId: uid,
+        ...updateFields,
         createdAt: serverTimestamp(),
       });
+      knownCloudSaveUids.add(uid);
     }
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }
 }
 
+function mapLeaderboardSnapshot(snap: QuerySnapshot<DocumentData>): GlobalLeaderboardEntry[] {
+  const entries: GlobalLeaderboardEntry[] = [];
+  snap.forEach((docSnap) => {
+    const d = docSnap.data();
+    entries.push({
+      id: docSnap.id,
+      uid: String(d.uid),
+      driverName: String(d.driverName),
+      tier: Number(d.tier) as TierId,
+      distance: sanitizeDistance(d.distance),
+      carId: String(d.carId),
+      carName: String(d.carName),
+      etMs: Number(d.etMs),
+      trapMph: Number(d.trapMph),
+      reactionMs: Number(d.reactionMs),
+      perfectShifts: Number(d.perfectShifts),
+      paintColor: String(d.paintColor),
+      isPublic: Boolean(d.isPublic),
+    });
+  });
+  entries.sort((a, b) => a.etMs - b.etMs);
+  return entries;
+}
+
 export async function fetchGlobalLeaderboard(): Promise<GlobalLeaderboardEntry[]> {
   const path = 'leaderboardEntries';
   try {
-    const q = query(
+    const orderedQuery = query(
       collection(db, 'leaderboardEntries'),
       where('isPublic', '==', true),
+      orderBy('etMs', 'asc'),
       limit(300)
     );
-    const snap = await getDocs(q);
-    const entries: GlobalLeaderboardEntry[] = [];
-    snap.forEach((docSnap) => {
-      const d = docSnap.data();
-      entries.push({
-        id: docSnap.id,
-        uid: String(d.uid),
-        driverName: String(d.driverName),
-        tier: Number(d.tier) as TierId,
-        distance: sanitizeDistance(d.distance),
-        carId: String(d.carId),
-        carName: String(d.carName),
-        etMs: Number(d.etMs),
-        trapMph: Number(d.trapMph),
-        reactionMs: Number(d.reactionMs),
-        perfectShifts: Number(d.perfectShifts),
-        paintColor: String(d.paintColor),
-        isPublic: Boolean(d.isPublic),
-      });
-    });
-    entries.sort((a, b) => a.etMs - b.etMs);
-    return entries;
+    try {
+      const snap = await getDocs(orderedQuery);
+      return mapLeaderboardSnapshot(snap);
+    } catch (orderedErr) {
+      const code =
+        typeof orderedErr === 'object' && orderedErr !== null && 'code' in orderedErr
+          ? String((orderedErr as { code?: unknown }).code ?? '')
+          : '';
+      if (code === 'failed-precondition') {
+        // Fallback when composite index (isPublic ASC, etMs ASC) has not yet been deployed
+        console.warn(
+          'Firestore composite index (isPublic, etMs) not deployed yet; falling back to unordered query.'
+        );
+        const fallbackQuery = query(
+          collection(db, 'leaderboardEntries'),
+          where('isPublic', '==', true),
+          limit(300)
+        );
+        const snap = await getDocs(fallbackQuery);
+        return mapLeaderboardSnapshot(snap);
+      }
+      throw orderedErr;
+    }
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, path);
   }
@@ -251,8 +333,11 @@ export async function submitGlobalRecord(params: {
   const path = `leaderboardEntries/${entryId}`;
   const ref = doc(db, 'leaderboardEntries', entryId);
 
-  const clampedEt = Math.max(3200, Math.min(90000, Math.round(params.etMs)));
-  const clampedMph = Math.max(50, Math.min(480, Number(params.trapMph.toFixed(1))));
+  const { etMs: clampedEt, trapMph: clampedMph } = clampPhysicsForDistance(
+    dist,
+    params.etMs,
+    params.trapMph
+  );
   const clampedReaction = Math.max(0, Math.min(5000, Math.round(params.reactionMs)));
   const clampedShifts = Math.max(0, Math.min(20, Math.floor(params.perfectShifts)));
   const cleanName = sanitizeCallsign(params.driverName);
