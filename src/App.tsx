@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { User } from 'firebase/auth';
 import { soundEngine } from './audio/soundEngine';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -10,6 +10,7 @@ import {
   getCarById,
   getCarConfig,
   getUpgradeCost,
+  resolveTimeOfDay,
   RIVALS,
 } from './data/gameData';
 import {
@@ -41,6 +42,7 @@ import {
   StripDistanceId,
   StripeStyle,
   TierId,
+  TimeOfDayMode,
   UpgradeKey,
 } from './types/game';
 
@@ -53,6 +55,17 @@ function GameApp() {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [muted, setMuted] = useState<boolean>(() => soundEngine.isMuted());
+  const [timeOfDayMode, setTimeOfDayMode] = useState<TimeOfDayMode>(() => {
+    try {
+      const stored = localStorage.getItem('redline88_tod_v1');
+      if (stored === 'afternoon' || stored === 'sunset' || stored === 'night' || stored === 'auto') {
+        return stored;
+      }
+      return 'auto';
+    } catch {
+      return 'auto';
+    }
+  });
 
   // Active race matchup
   const [raceTier, setRaceTier] = useState<TierId>(1);
@@ -134,6 +147,15 @@ function GameApp() {
   const handleToggleMute = useCallback(() => {
     const next = soundEngine.toggleMute();
     setMuted(next);
+  }, []);
+
+  const handleChangeTimeOfDayMode = useCallback((mode: TimeOfDayMode) => {
+    setTimeOfDayMode(mode);
+    try {
+      localStorage.setItem('redline88_tod_v1', mode);
+    } catch {
+      // ignore storage errors
+    }
   }, []);
 
   const handleSignIn = useCallback(() => {
@@ -289,7 +311,7 @@ function GameApp() {
       let isNewBest = false;
       let recordBonusCash = 0;
 
-      // 1. Log Local Leaderboard if valid non-foul finish
+      // 1. Log Local Leaderboard (including compact shift-timing replay) if valid non-foul finish
       if (!rawResult.foul && rawResult.playerEtMs > 0) {
         const { records, isNewBestInTier } = addLocalRecord({
           driverName: currentSave.callsign,
@@ -302,11 +324,13 @@ function GameApp() {
           reactionMs: rawResult.reactionMs,
           perfectShifts: rawResult.perfectShifts,
           paintColor: rawResult.paintColor,
+          replay: rawResult.replay,
         });
         setLocalRecords(records);
         isNewBest = isNewBestInTier;
-        if (isNewBest) {
-          recordBonusCash = Math.round(120 * [1, 1.8, 3, 5.2, 9][rawResult.tier - 1]);
+        // Record cash bonus applies only to competitive rival races (solo tests earn $0)
+        if (isNewBest && !rawResult.isTimeTrial) {
+          recordBonusCash = Math.round(65 * [1, 1.65, 2.7, 4.6, 7.8][rawResult.tier - 1]);
         }
 
         // 2. Submit to Global Firestore Leaderboard if signed in
@@ -333,8 +357,23 @@ function GameApp() {
         }
       }
 
-      // 3. Apply Career Progression & Cash Economy
-      const totalEarned = rawResult.totalCashEarned + recordBonusCash;
+      // 3. Apply Career Progression & Rebalanced Cash Economy
+      let adjustedBasePurse = rawResult.basePurse;
+      let isRematch = false;
+      if (
+        !rawResult.isTimeTrial &&
+        rawResult.won &&
+        rawResult.rival &&
+        currentSave.defeatedRivals.includes(rawResult.rival.id)
+      ) {
+        adjustedBasePurse = Math.round(rawResult.basePurse * 0.65);
+        isRematch = true;
+      }
+
+      const totalEarned = rawResult.isTimeTrial
+        ? 0
+        : adjustedBasePurse + rawResult.shiftBonusCash + rawResult.launchBonusCash + recordBonusCash;
+
       let unlockedNextTier = false;
       let nextTier = currentSave.highestUnlockedTier;
       const nextDefeated = [...currentSave.defeatedRivals];
@@ -362,10 +401,12 @@ function GameApp() {
 
       return {
         ...rawResult,
+        basePurse: adjustedBasePurse,
         recordBonusCash,
         totalCashEarned: totalEarned,
         isNewPersonalBest: isNewBest,
         unlockedNextTier,
+        isRematch,
       };
     },
     [persistSave, refreshGlobal, user]
@@ -384,8 +425,14 @@ function GameApp() {
     return null;
   }, [raceRival, save.highestUnlockedTier]);
 
+  const activeRaceTimeOfDay = useMemo(
+    () => resolveTimeOfDay(raceTier, timeOfDayMode),
+    [raceTier, timeOfDayMode]
+  );
+
+  let activeView: ReactNode;
   if (screen === 'TITLE') {
-    return (
+    activeView = (
       <TitleScreen
         save={save}
         muted={muted}
@@ -396,13 +443,12 @@ function GameApp() {
         }}
       />
     );
-  }
-
-  if (screen === 'RACE') {
-    return (
+  } else if (screen === 'RACE') {
+    activeView = (
       <RaceView
         save={save}
         tierId={raceTier}
+        timeOfDay={activeRaceTimeOfDay}
         distanceId={raceDistance}
         rival={raceRival}
         muted={muted}
@@ -421,30 +467,34 @@ function GameApp() {
         }}
       />
     );
+  } else {
+    activeView = (
+      <GarageHub
+        save={save}
+        user={user}
+        muted={muted}
+        timeOfDayMode={timeOfDayMode}
+        localRecords={localRecords}
+        globalRecords={globalRecords}
+        globalLoading={globalLoading}
+        globalError={globalError}
+        onToggleMute={handleToggleMute}
+        onChangeTimeOfDayMode={handleChangeTimeOfDayMode}
+        onSignIn={handleSignIn}
+        onSignOut={handleSignOut}
+        onRefreshGlobal={() => void refreshGlobal()}
+        onUpdateCallsign={handleUpdateCallsign}
+        onSelectCar={handleSelectCar}
+        onBuyCar={handleBuyCar}
+        onBuyUpgrade={handleBuyUpgrade}
+        onUpdateTuning={handleUpdateTuning}
+        onBuyVisual={handleBuyVisual}
+        onStartRace={handleStartRace}
+      />
+    );
   }
 
-  return (
-    <GarageHub
-      save={save}
-      user={user}
-      muted={muted}
-      localRecords={localRecords}
-      globalRecords={globalRecords}
-      globalLoading={globalLoading}
-      globalError={globalError}
-      onToggleMute={handleToggleMute}
-      onSignIn={handleSignIn}
-      onSignOut={handleSignOut}
-      onRefreshGlobal={() => void refreshGlobal()}
-      onUpdateCallsign={handleUpdateCallsign}
-      onSelectCar={handleSelectCar}
-      onBuyCar={handleBuyCar}
-      onBuyUpgrade={handleBuyUpgrade}
-      onUpdateTuning={handleUpdateTuning}
-      onBuyVisual={handleBuyVisual}
-      onStartRace={handleStartRace}
-    />
-  );
+  return <>{activeView}</>;
 }
 
 export default function App() {

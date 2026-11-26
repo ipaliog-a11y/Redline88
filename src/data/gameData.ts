@@ -11,6 +11,8 @@ import {
   StripeStyle,
   TierId,
   TierSpec,
+  TimeOfDay,
+  TimeOfDayMode,
   UpgradeCategoryMeta,
   UpgradeKey,
 } from '../types/game';
@@ -51,6 +53,26 @@ export const STRIP_DISTANCES: StripDistanceSpec[] = [
 
 export function getStripDistanceSpec(id: StripDistanceId): StripDistanceSpec {
   return STRIP_DISTANCES.find((d) => d.id === id) ?? STRIP_DISTANCES[0];
+}
+
+export const TIME_OF_DAY_OPTIONS: {
+  id: TimeOfDayMode;
+  label: string;
+  shortLabel: string;
+}[] = [
+  { id: 'auto', label: 'Tier Default', shortLabel: 'Auto' },
+  { id: 'afternoon', label: 'Sunny Afternoon', shortLabel: 'Afternoon' },
+  { id: 'sunset', label: 'Golden Sunset', shortLabel: 'Sunset' },
+  { id: 'night', label: 'Night Floodlights', shortLabel: 'Night' },
+];
+
+export function resolveTimeOfDay(tierId: TierId, mode: TimeOfDayMode): TimeOfDay {
+  if (mode !== 'auto') return mode;
+  if (tierId === 1) return 'afternoon';
+  if (tierId === 2) return 'sunset';
+  if (tierId === 3) return 'afternoon';
+  if (tierId === 4) return 'sunset';
+  return 'night';
 }
 
 export const TIERS: TierSpec[] = [
@@ -918,8 +940,8 @@ export function createDefaultCarConfig(carId: string): CarConfig {
 
 export function getUpgradeCost(car: CarSpec, key: UpgradeKey, nextLevel: number): number {
   const meta = UPGRADE_CATEGORIES.find((u) => u.key === key)!;
-  const tierScale = [1, 1.85, 3.3, 6.2, 11.5][car.tier - 1];
-  const levelScale = Math.pow(1.58, nextLevel - 1);
+  const tierScale = [1, 1.9, 3.45, 6.4, 12.0][car.tier - 1];
+  const levelScale = Math.pow(1.72, nextLevel - 1);
   return Math.round((meta.baseCost * tierScale * levelScale) / 25) * 25;
 }
 
@@ -1164,8 +1186,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 15.15,
     targetTrapMph: 94,
     reactionSec: 0.34,
-    winPurse: 450,
-    lossPurse: 125,
+    winPurse: 200,
+    lossPurse: 55,
   },
   {
     id: 't1_r2',
@@ -1186,8 +1208,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 13.85,
     targetTrapMph: 103,
     reactionSec: 0.26,
-    winPurse: 650,
-    lossPurse: 160,
+    winPurse: 300,
+    lossPurse: 70,
   },
   {
     id: 't1_r3',
@@ -1208,8 +1230,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 12.65,
     targetTrapMph: 112,
     reactionSec: 0.21,
-    winPurse: 900,
-    lossPurse: 200,
+    winPurse: 425,
+    lossPurse: 90,
   },
   {
     id: 't1_boss',
@@ -1230,8 +1252,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 11.75,
     targetTrapMph: 121,
     reactionSec: 0.17,
-    winPurse: 1650,
-    lossPurse: 275,
+    winPurse: 750,
+    lossPurse: 120,
   },
 
   // ==================== 1/4 MILE · TIER 2 ====================
@@ -1254,8 +1276,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 11.45,
     targetTrapMph: 125,
     reactionSec: 0.23,
-    winPurse: 1250,
-    lossPurse: 300,
+    winPurse: 550,
+    lossPurse: 130,
   },
   {
     id: 't2_r2',
@@ -1276,8 +1298,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 10.65,
     targetTrapMph: 134,
     reactionSec: 0.19,
-    winPurse: 1650,
-    lossPurse: 375,
+    winPurse: 750,
+    lossPurse: 160,
   },
   {
     id: 't2_r3',
@@ -1298,8 +1320,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 9.95,
     targetTrapMph: 143,
     reactionSec: 0.15,
-    winPurse: 2200,
-    lossPurse: 450,
+    winPurse: 1000,
+    lossPurse: 200,
   },
   {
     id: 't2_boss',
@@ -1320,8 +1342,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 9.35,
     targetTrapMph: 151,
     reactionSec: 0.13,
-    winPurse: 3800,
-    lossPurse: 600,
+    winPurse: 1700,
+    lossPurse: 260,
   },
 
   // ==================== 1/4 MILE · TIER 3 ====================
@@ -1344,8 +1366,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 9.1,
     targetTrapMph: 155,
     reactionSec: 0.17,
-    winPurse: 2900,
-    lossPurse: 650,
+    winPurse: 1300,
+    lossPurse: 280,
   },
   {
     id: 't3_r2',
@@ -1366,8 +1388,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 8.45,
     targetTrapMph: 168,
     reactionSec: 0.14,
-    winPurse: 3800,
-    lossPurse: 800,
+    winPurse: 1700,
+    lossPurse: 340,
   },
   {
     id: 't3_r3',
@@ -1388,8 +1410,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 7.88,
     targetTrapMph: 180,
     reactionSec: 0.11,
-    winPurse: 5200,
-    lossPurse: 1000,
+    winPurse: 2300,
+    lossPurse: 420,
   },
   {
     id: 't3_boss',
@@ -1410,8 +1432,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 7.35,
     targetTrapMph: 194,
     reactionSec: 0.1,
-    winPurse: 8500,
-    lossPurse: 1350,
+    winPurse: 3800,
+    lossPurse: 560,
   },
 
   // ==================== 1/4 MILE · TIER 4 ====================
@@ -1434,8 +1456,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 6.75,
     targetTrapMph: 214,
     reactionSec: 0.13,
-    winPurse: 6500,
-    lossPurse: 1400,
+    winPurse: 2850,
+    lossPurse: 580,
   },
   {
     id: 't4_r2',
@@ -1456,8 +1478,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 6.1,
     targetTrapMph: 235,
     reactionSec: 0.1,
-    winPurse: 8500,
-    lossPurse: 1750,
+    winPurse: 3750,
+    lossPurse: 720,
   },
   {
     id: 't4_r3',
@@ -1478,8 +1500,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 5.55,
     targetTrapMph: 256,
     reactionSec: 0.085,
-    winPurse: 11500,
-    lossPurse: 2200,
+    winPurse: 5000,
+    lossPurse: 900,
   },
   {
     id: 't4_boss',
@@ -1500,8 +1522,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 5.05,
     targetTrapMph: 274,
     reactionSec: 0.075,
-    winPurse: 19500,
-    lossPurse: 3200,
+    winPurse: 8400,
+    lossPurse: 1300,
   },
 
   // ==================== 1/4 MILE · TIER 5 ====================
@@ -1524,8 +1546,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 4.65,
     targetTrapMph: 292,
     reactionSec: 0.08,
-    winPurse: 14000,
-    lossPurse: 3000,
+    winPurse: 6000,
+    lossPurse: 1200,
   },
   {
     id: 't5_r2',
@@ -1546,8 +1568,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 4.32,
     targetTrapMph: 308,
     reactionSec: 0.068,
-    winPurse: 18000,
-    lossPurse: 3800,
+    winPurse: 7800,
+    lossPurse: 1550,
   },
   {
     id: 't5_r3',
@@ -1568,8 +1590,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 4.04,
     targetTrapMph: 322,
     reactionSec: 0.058,
-    winPurse: 24000,
-    lossPurse: 4800,
+    winPurse: 10500,
+    lossPurse: 1950,
   },
   {
     id: 't5_boss',
@@ -1590,8 +1612,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 3.82,
     targetTrapMph: 334,
     reactionSec: 0.05,
-    winPurse: 45000,
-    lossPurse: 7500,
+    winPurse: 19500,
+    lossPurse: 3000,
   },
 
   // ==================== 1/2 MILE RUNWAY CHALLENGES (10 NEW) ====================
@@ -1614,8 +1636,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 21.8,
     targetTrapMph: 128,
     reactionSec: 0.24,
-    winPurse: 1050,
-    lossPurse: 240,
+    winPurse: 475,
+    lossPurse: 100,
     challengeNote: 'Runway Speed Trap: Lengthen Final Drive so 5th gear does not hit the limiter early.',
   },
   {
@@ -1637,8 +1659,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 19.2,
     targetTrapMph: 146,
     reactionSec: 0.18,
-    winPurse: 1950,
-    lossPurse: 360,
+    winPurse: 850,
+    lossPurse: 150,
     challengeNote: 'Save a Nitrous shot for 4th gear to blast through the 2,640-ft trap.',
   },
   {
@@ -1660,8 +1682,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 16.8,
     targetTrapMph: 168,
     reactionSec: 0.18,
-    winPurse: 2600,
-    lossPurse: 550,
+    winPurse: 1150,
+    lossPurse: 225,
     challengeNote: 'Aero Coupe Challenge: Tune 4th & 5th/6th ratios for smooth top-end pull.',
   },
   {
@@ -1683,8 +1705,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 15.1,
     targetTrapMph: 186,
     reactionSec: 0.14,
-    winPurse: 4400,
-    lossPurse: 800,
+    winPurse: 1950,
+    lossPurse: 320,
     challengeNote: 'High-RPM runway screamer — stretch your Final Drive below 3.40.',
   },
   {
@@ -1706,8 +1728,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 13.4,
     targetTrapMph: 210,
     reactionSec: 0.14,
-    winPurse: 5800,
-    lossPurse: 1200,
+    winPurse: 2550,
+    lossPurse: 500,
     challengeNote: '210 MPH Half-Mile Shootout. Low drag and tall 6th gear shine here.',
   },
   {
@@ -1729,8 +1751,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 11.9,
     targetTrapMph: 234,
     reactionSec: 0.1,
-    winPurse: 9600,
-    lossPurse: 1800,
+    winPurse: 4200,
+    lossPurse: 740,
     challengeNote: 'Break 230 MPH before the 1/2 mile markers!',
   },
   {
@@ -1752,8 +1774,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 9.75,
     targetTrapMph: 282,
     reactionSec: 0.1,
-    winPurse: 13500,
-    lossPurse: 2600,
+    winPurse: 5800,
+    lossPurse: 1050,
     challengeNote: 'Tune tall 4th/5th gear ratios — stock quarter-mile gears bounce at 255 MPH!',
   },
   {
@@ -1775,8 +1797,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 8.65,
     targetTrapMph: 310,
     reactionSec: 0.08,
-    winPurse: 22000,
-    lossPurse: 4000,
+    winPurse: 9400,
+    lossPurse: 1600,
     challengeNote: '300+ MPH Half-Mile Pro-Mod Clash!',
   },
   {
@@ -1798,8 +1820,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 7.15,
     targetTrapMph: 358,
     reactionSec: 0.068,
-    winPurse: 28000,
-    lossPurse: 5500,
+    winPurse: 12000,
+    lossPurse: 2200,
     challengeNote: '350+ MPH Half-Mile Nitro Blast — use the 1/2 Mile gearing preset.',
   },
   {
@@ -1821,8 +1843,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 6.35,
     targetTrapMph: 386,
     reactionSec: 0.052,
-    winPurse: 52000,
-    lossPurse: 8500,
+    winPurse: 22000,
+    lossPurse: 3400,
     challengeNote: 'Ultimate Half-Mile Speed Trap Boss at 385+ MPH.',
   },
 
@@ -1846,8 +1868,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 33.8,
     targetTrapMph: 148,
     reactionSec: 0.22,
-    winPurse: 1650,
-    lossPurse: 350,
+    winPurse: 725,
+    lossPurse: 140,
     challengeNote: '5,280-ft Standing Mile! Switch to 1 Mile gearing in Drivetrain Tuning.',
   },
   {
@@ -1869,8 +1891,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 29.6,
     targetTrapMph: 166,
     reactionSec: 0.16,
-    winPurse: 2900,
-    lossPurse: 520,
+    winPurse: 1250,
+    lossPurse: 210,
     challengeNote: 'Endurance speed duel — hold Nitrous until top gear for maximum trap gain.',
   },
   {
@@ -1892,8 +1914,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 25.8,
     targetTrapMph: 192,
     reactionSec: 0.16,
-    winPurse: 4200,
-    lossPurse: 850,
+    winPurse: 1800,
+    lossPurse: 340,
     challengeNote: 'Break the 190 MPH barrier across a full standing mile!',
   },
   {
@@ -1915,8 +1937,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 23.2,
     targetTrapMph: 212,
     reactionSec: 0.13,
-    winPurse: 6800,
-    lossPurse: 1200,
+    winPurse: 2950,
+    lossPurse: 480,
     challengeNote: '210+ MPH Street-Mod Mile Champion — tall final drive mandatory.',
   },
   {
@@ -1938,8 +1960,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 20.6,
     targetTrapMph: 244,
     reactionSec: 0.12,
-    winPurse: 9200,
-    lossPurse: 1800,
+    winPurse: 3950,
+    lossPurse: 740,
     challengeNote: 'Kuroda runs ultra-tall 6th gear ratios — match his aero & gearing!',
   },
   {
@@ -1961,8 +1983,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 18.6,
     targetTrapMph: 268,
     reactionSec: 0.095,
-    winPurse: 15500,
-    lossPurse: 2800,
+    winPurse: 6600,
+    lossPurse: 1150,
     challengeNote: '268 MPH Standing Mile Pro-Street Record Challenge.',
   },
   {
@@ -1984,8 +2006,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 15.2,
     targetTrapMph: 322,
     reactionSec: 0.09,
-    winPurse: 21000,
-    lossPurse: 4200,
+    winPurse: 8900,
+    lossPurse: 1650,
     challengeNote: 'Drop your Final Drive below 2.75 to chase 320+ MPH in the full mile.',
   },
   {
@@ -2007,8 +2029,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 13.7,
     targetTrapMph: 348,
     reactionSec: 0.075,
-    winPurse: 34000,
-    lossPurse: 6200,
+    winPurse: 14500,
+    lossPurse: 2450,
     challengeNote: '348 MPH Standing Mile Gauntlet — every perfect shift counts!',
   },
   {
@@ -2030,8 +2052,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 11.4,
     targetTrapMph: 396,
     reactionSec: 0.062,
-    winPurse: 42000,
-    lossPurse: 8000,
+    winPurse: 18000,
+    lossPurse: 3200,
     challengeNote: 'Approach 400 MPH in a full mile! Custom tall top-gear ratios required.',
   },
   {
@@ -2053,8 +2075,8 @@ export const RIVALS: RivalSpec[] = [
     targetEtSec: 10.15,
     targetTrapMph: 424,
     reactionSec: 0.048,
-    winPurse: 85000,
-    lossPurse: 14000,
+    winPurse: 36000,
+    lossPurse: 5500,
     challengeNote: 'The ultimate 420+ MPH Standing Mile final test of drivetrain mastery.',
   },
 ];
@@ -2062,7 +2084,7 @@ export const RIVALS: RivalSpec[] = [
 export function createInitialPlayerSave(): PlayerSave {
   return {
     callsign: 'ROOKIE_88',
-    cash: 650,
+    cash: 250,
     activeCarId: 'civic_86',
     highestUnlockedTier: 1,
     ownedCars: ['civic_86'],

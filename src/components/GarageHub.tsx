@@ -1,26 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { User } from 'firebase/auth';
-import {
-  Check,
-  ChevronDown,
-  ChevronRight,
-  ChevronUp,
-  Flag,
-  Lock,
-  LogIn,
-  LogOut,
-  Paintbrush,
-  Pause,
-  Play,
-  RefreshCw,
-  RotateCw,
-  ShoppingBag,
-  SlidersHorizontal,
-  Trophy,
-  Volume2,
-  VolumeX,
-  Wrench,
-} from 'lucide-react';
 import { soundEngine } from '../audio/soundEngine';
 import {
   computeCarPerformance,
@@ -36,18 +15,15 @@ import {
   getUpgradeCost,
   getUpgradeImpactPreview,
   PAINT_COLORS,
+  resolveTimeOfDay,
   RIM_OPTIONS,
   RIVALS,
   STRIP_DISTANCES,
   STRIPE_OPTIONS,
   TIERS,
+  TIME_OF_DAY_OPTIONS,
   UPGRADE_CATEGORIES,
 } from '../data/gameData';
-import {
-  drawGarageShowcase,
-  drawShowroomTurntable,
-  getShowroomAngleLabel,
-} from '../engine/pixelSprites';
 import { sanitizeCallsign } from '../services/firebase';
 import {
   CarConfig,
@@ -61,19 +37,30 @@ import {
   StripDistanceId,
   StripeStyle,
   TierId,
+  TimeOfDayMode,
   UpgradeKey,
 } from '../types/game';
 import { DrivetrainTuningPanel } from './DrivetrainTuningPanel';
+import { HiBitShowcaseCanvas } from './HiBitShowcaseCanvas';
+import {
+  PixelIcon,
+  PixelIconName,
+  PixelPartSprite,
+  PixelRivalPortrait,
+} from './PixelSpritesUI';
+import { RaceReplayModal } from './RaceReplayModal';
 
 interface GarageHubProps {
   save: PlayerSave;
   user: User | null;
   muted: boolean;
+  timeOfDayMode: TimeOfDayMode;
   localRecords: LocalRecord[];
   globalRecords: GlobalLeaderboardEntry[];
   globalLoading: boolean;
   globalError: string | null;
   onToggleMute: () => void;
+  onChangeTimeOfDayMode: (mode: TimeOfDayMode) => void;
   onSignIn: () => void;
   onSignOut: () => void;
   onRefreshGlobal: () => void;
@@ -94,11 +81,13 @@ export const GarageHub: React.FC<GarageHubProps> = ({
   save,
   user,
   muted,
+  timeOfDayMode,
   localRecords,
   globalRecords,
   globalLoading,
   globalError,
   onToggleMute,
+  onChangeTimeOfDayMode,
   onSignIn,
   onSignOut,
   onRefreshGlobal,
@@ -128,16 +117,31 @@ export const GarageHub: React.FC<GarageHubProps> = ({
     rims?: RimStyle;
   }>({});
 
-  // Car Showroom turntable state
+  // 3D Car Showroom turntable state
   const [showroomTier, setShowroomTier] = useState<TierId>(() => getCarById(save.activeCarId).tier);
   const [showroomCarId, setShowroomCarId] = useState<string>(save.activeCarId);
   const [turntableSpinning, setTurntableSpinning] = useState<boolean>(true);
   const [showroomSpecMode, setShowroomSpecMode] = useState<'CURRENT' | 'MAXED'>('CURRENT');
-  const [angleLabel, setAngleLabel] = useState<'SIDE R' | 'FRONT' | 'SIDE L' | 'REAR'>('SIDE R');
-  const turntableAngleRef = useRef<number>(0);
+  const [snapQuarterTick, setSnapQuarterTick] = useState<number>(0);
 
-  // Mobile collapsible Dyno/Garage drawer (keeps active tab immediately visible without scrolling)
+  // Mobile collapsible Dyno/Garage drawer
   const [mobileDynoOpen, setMobileDynoOpen] = useState<boolean>(false);
+
+  // Track viewport breakpoint so hidden responsive WebGL viewports never waste GPU contexts
+  const [isDesktop, setIsDesktop] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 1024px)').matches : true
+  );
+
+  // Active Local Record Replay modal
+  const [replayRecord, setReplayRecord] = useState<LocalRecord | null>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    setIsDesktop(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   useEffect(() => {
     setCallsignDraft(save.callsign);
@@ -223,59 +227,6 @@ export const GarageHub: React.FC<GarageHubProps> = ({
     return { patch, items, totalCost, hasChanges: items.length > 0 };
   }, [visualDraft, config.visuals]);
 
-  // Live pixel-art dyno bay showcase canvas (renders previewConfig live!)
-  const dynoCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const mobilePaintCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  useEffect(() => {
-    const canvas = dynoCanvasRef.current;
-    if (!canvas) return;
-    canvas.width = 440;
-    canvas.height = 210;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.imageSmoothingEnabled = false;
-
-    const mobileCanvas = mobilePaintCanvasRef.current;
-    let mobileCtx: CanvasRenderingContext2D | null = null;
-    if (mobileCanvas) {
-      mobileCanvas.width = 440;
-      mobileCanvas.height = 170;
-      mobileCtx = mobileCanvas.getContext('2d');
-      if (mobileCtx) mobileCtx.imageSmoothingEnabled = false;
-    }
-
-    let rafId = 0;
-    const startMs = performance.now();
-    const draw = (now: number) => {
-      const t = (now - startMs) / 1000;
-      drawGarageShowcase(
-        ctx,
-        440,
-        210,
-        car.chassis,
-        previewConfig.visuals,
-        previewConfig.upgrades,
-        t,
-        car.bodyVariant
-      );
-      if (mobileCtx) {
-        drawGarageShowcase(
-          mobileCtx,
-          440,
-          170,
-          car.chassis,
-          previewConfig.visuals,
-          previewConfig.upgrades,
-          t,
-          car.bodyVariant
-        );
-      }
-      rafId = requestAnimationFrame(draw);
-    };
-    rafId = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(rafId);
-  }, [car.chassis, car.bodyVariant, previewConfig.visuals, previewConfig.upgrades, activeTab]);
-
   // Showroom Car & Config
   const showroomCar = getCarById(showroomCarId);
   const showroomOwned = save.ownedCars.includes(showroomCar.id);
@@ -299,64 +250,9 @@ export const GarageHub: React.FC<GarageHubProps> = ({
     [showroomCar.id, showroomConfig]
   );
 
-  // Live 8-bit Showroom Turntable Canvas
-  const turntableCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const spinningRef = useRef(turntableSpinning);
-  spinningRef.current = turntableSpinning;
-
-  useEffect(() => {
-    if (activeTab !== 'DEALER') return;
-    const canvas = turntableCanvasRef.current;
-    if (!canvas) return;
-    canvas.width = 520;
-    canvas.height = 270;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.imageSmoothingEnabled = false;
-
-    let rafId = 0;
-    let lastMs = performance.now();
-    const startMs = lastMs;
-    let lastLabel: 'SIDE R' | 'FRONT' | 'SIDE L' | 'REAR' = getShowroomAngleLabel(
-      turntableAngleRef.current
-    );
-
-    const draw = (now: number) => {
-      const dt = Math.min(0.05, Math.max(0, (now - lastMs) / 1000));
-      lastMs = now;
-      if (spinningRef.current) {
-        turntableAngleRef.current = (turntableAngleRef.current + dt * 0.72) % (Math.PI * 2);
-      }
-      const lbl = getShowroomAngleLabel(turntableAngleRef.current);
-      if (lbl !== lastLabel) {
-        lastLabel = lbl;
-        setAngleLabel(lbl);
-      }
-      drawShowroomTurntable(
-        ctx,
-        520,
-        270,
-        showroomCar.chassis,
-        showroomConfig.visuals,
-        showroomConfig.upgrades,
-        turntableAngleRef.current,
-        (now - startMs) / 1000,
-        showroomCar.bodyVariant
-      );
-      rafId = requestAnimationFrame(draw);
-    };
-
-    rafId = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(rafId);
-  }, [activeTab, showroomCar.chassis, showroomCar.bodyVariant, showroomConfig.visuals, showroomConfig.upgrades]);
-
   const handleStepTurntable = () => {
     soundEngine.playUiClick();
-    // Snap cleanly to next 90-degree angle (Side R -> Front -> Side L -> Rear)
-    const step = Math.PI / 2;
-    const nextQuarter = Math.floor(turntableAngleRef.current / step + 1) % 4;
-    turntableAngleRef.current = nextQuarter * step;
-    setAngleLabel(getShowroomAngleLabel(turntableAngleRef.current));
+    setSnapQuarterTick((t) => t + 1);
   };
 
   const distSpec = getStripDistanceSpec(selectedDistance);
@@ -369,17 +265,15 @@ export const GarageHub: React.FC<GarageHubProps> = ({
 
   const filteredGlobal = useMemo(() => {
     const byDist = globalRecords.filter((e) => (e.distance ?? 'quarter') === boardDistanceFilter);
-    const list = boardTierFilter === 0
-      ? byDist
-      : byDist.filter((e) => e.tier === boardTierFilter);
+    const list =
+      boardTierFilter === 0 ? byDist : byDist.filter((e) => e.tier === boardTierFilter);
     return list.slice(0, 50);
   }, [globalRecords, boardTierFilter, boardDistanceFilter]);
 
   const filteredLocal = useMemo(() => {
     const byDist = localRecords.filter((e) => (e.distance ?? 'quarter') === boardDistanceFilter);
-    const list = boardTierFilter === 0
-      ? byDist
-      : byDist.filter((e) => e.tier === boardTierFilter);
+    const list =
+      boardTierFilter === 0 ? byDist : byDist.filter((e) => e.tier === boardTierFilter);
     return list.slice(0, 50);
   }, [localRecords, boardTierFilter, boardDistanceFilter]);
 
@@ -391,13 +285,13 @@ export const GarageHub: React.FC<GarageHubProps> = ({
     soundEngine.playUiClick();
   };
 
-  const tabs: { id: GarageTab; label: string; shortLabel: string; icon: React.ReactNode }[] = [
-    { id: 'RACES', label: 'Race Strip', shortLabel: 'Race', icon: <Flag className="w-4 h-4" /> },
-    { id: 'SHOP', label: 'Parts Shop', shortLabel: 'Parts', icon: <Wrench className="w-4 h-4" /> },
-    { id: 'TUNING', label: 'Drivetrain', shortLabel: 'Tune', icon: <SlidersHorizontal className="w-4 h-4" /> },
-    { id: 'CUSTOMIZE', label: 'Paint & Mods', shortLabel: 'Paint', icon: <Paintbrush className="w-4 h-4" /> },
-    { id: 'DEALER', label: 'Showroom', shortLabel: 'Cars', icon: <ShoppingBag className="w-4 h-4" /> },
-    { id: 'LEADERBOARD', label: 'Leaderboards', shortLabel: 'Ranks', icon: <Trophy className="w-4 h-4" /> },
+  const tabs: { id: GarageTab; label: string; shortLabel: string; icon: PixelIconName }[] = [
+    { id: 'RACES', label: 'Race Strip', shortLabel: 'Race', icon: 'flag' },
+    { id: 'SHOP', label: 'Parts Shop', shortLabel: 'Parts', icon: 'wrench' },
+    { id: 'TUNING', label: 'Drivetrain', shortLabel: 'Tune', icon: 'gears' },
+    { id: 'CUSTOMIZE', label: 'Paint & Mods', shortLabel: 'Paint', icon: 'paint' },
+    { id: 'DEALER', label: 'Showroom', shortLabel: 'Cars', icon: 'car' },
+    { id: 'LEADERBOARD', label: 'Leaderboards', shortLabel: 'Ranks', icon: 'trophy' },
   ];
 
   const handleSelectTab = (tabId: GarageTab) => {
@@ -431,32 +325,55 @@ export const GarageHub: React.FC<GarageHubProps> = ({
     ? activeUpgradePreview.nextPerf.nitrousShots - perf.nitrousShots
     : 0;
 
-  // Showroom stat bar helpers (normalized across Tier 1..5 scale using log/curved scaling so Tier 1 cars still read clearly)
-  const hpBarPct = Math.min(100, Math.round((Math.log10(showroomPerf.hp) - 2.0) / (4.15 - 2.0) * 100));
+  // Showroom stat bar helpers
+  const hpBarPct = Math.min(
+    100,
+    Math.round(((Math.log10(showroomPerf.hp) - 2.0) / (4.15 - 2.0)) * 100)
+  );
   const gripBarPct = Math.min(100, Math.round((showroomPerf.grip / 3.8) * 100));
-  const paceBarPct = Math.min(100, Math.max(12, Math.round(((16.8 - showroomPerf.estimatedEtSec) / (16.8 - 3.6)) * 100)));
-  const agilityBarPct = Math.min(100, Math.max(18, Math.round(((3400 - showroomPerf.weightLbs) / 1650) * 100)));
+  const paceBarPct = Math.min(
+    100,
+    Math.max(12, Math.round(((16.8 - showroomPerf.estimatedEtSec) / (16.8 - 3.6)) * 100))
+  );
+  const agilityBarPct = Math.min(
+    100,
+    Math.max(18, Math.round(((3400 - showroomPerf.weightLbs) / 1650) * 100))
+  );
+
+  // Strict WebGL context budget: only mount visible 3D viewports and pause them during Replay Theater
+  const mountLeftPitBay = (isDesktop || mobileDynoOpen) && !replayRecord;
+  const mountMobilePaintBay =
+    !isDesktop && !mobileDynoOpen && activeTab === 'CUSTOMIZE' && !replayRecord;
+  const mountShowroomTurntable = activeTab === 'DEALER' && !mobileDynoOpen && !replayRecord;
+
+  const resolvedTod = resolveTimeOfDay(selectedTier, timeOfDayMode);
+  const todAutoLabel = resolveTimeOfDay(selectedTier, 'auto').toUpperCase();
 
   return (
-    <div className="h-[100dvh] w-full bg-[#0d0b14] text-[#f4f1e6] flex flex-col overflow-hidden">
-      {/* Compact Arcade Paddock Top Strip */}
-      <header className="shrink-0 bg-[#141020] border-b-2 border-[#302847] px-3 sm:px-5 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
-        <div className="flex items-center gap-4 min-w-0">
-          <span className="font-pixel text-xs sm:text-base text-[#ff4d2e] whitespace-nowrap shrink-0">
-            REDLINE &apos;88
-          </span>
+    <div className="h-[100dvh] w-full bg-[#111623] text-[#f8fafc] flex flex-col overflow-hidden">
+      {/* Clean Modern Dark Pixel Header Bar */}
+      <header className="shrink-0 bg-[#192033] border-b-[3px] border-[#3c4d73] px-3 sm:px-5 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+          <div className="flex items-center gap-2 shrink-0">
+            <PixelIcon name="flag" className="w-5 h-5 hidden sm:block" />
+            <span className="font-pixel text-[11px] sm:text-base text-[#f5b82e] pixel-text-shadow whitespace-nowrap">
+              REDLINE &apos;88
+            </span>
+          </div>
           <div className="hidden md:flex items-center gap-2 text-xs text-[#94a3b8] font-mono-num whitespace-nowrap">
-            <span className="text-[#f4f1e6] font-semibold">{save.callsign}</span>
+            <span className="text-[#f5b82e] font-bold">{save.callsign}</span>
             <span>·</span>
-            <span>Tier {save.highestUnlockedTier}/5</span>
+            <span>TIER {save.highestUnlockedTier}/5</span>
             <span>·</span>
-            <span>{save.totalWins} Wins</span>
+            <span className="text-[#22c55e] font-bold">{save.totalWins} WINS</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-          <div className="bg-[#0a0812] border-2 border-[#2d3b2f] px-2.5 sm:px-3.5 py-1 sm:py-1.5 font-mono-num text-xs sm:text-base font-bold text-[#22c55e] whitespace-nowrap">
-            {formatCash(save.cash)}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* Cash Bankroll */}
+          <div className="led-readout px-2.5 sm:px-3.5 py-1 sm:py-1.5 font-mono-num text-xs sm:text-base font-bold text-[#22c55e] flex items-center gap-1.5 whitespace-nowrap">
+            <PixelIcon name="coin" className="w-4 h-4" />
+            <span>{formatCash(save.cash)}</span>
           </div>
 
           {user ? (
@@ -464,19 +381,19 @@ export const GarageHub: React.FC<GarageHubProps> = ({
               type="button"
               onClick={onSignOut}
               aria-label="Sign out"
-              className="arcade-btn h-9 sm:h-10 px-2.5 sm:px-3 bg-[#1d1830] hover:bg-[#2a2244] border-2 border-[#3a3154] text-xs font-semibold text-[#cbd5e1] flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              className="arcade-btn h-9 sm:h-10 px-2 sm:px-3 bg-[#141b2d] hover:bg-[#232d47] border-2 border-[#3c4d73] text-xs font-bold text-[#cbd5e1] flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <PixelIcon name="logout" className="w-4 h-4" />
               <span className="hidden sm:inline">Sign Out</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={onSignIn}
-              className="arcade-btn h-9 sm:h-10 px-2.5 sm:px-3 bg-[#1d1830] hover:bg-[#2a2244] border-2 border-[#f5b82e] text-xs font-semibold text-[#fef08a] flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+              className="arcade-btn h-9 sm:h-10 px-2 sm:px-3 bg-[#26233d] hover:bg-[#322e52] border-2 border-[#f5b82e] text-xs font-bold text-[#fef08a] flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
             >
-              <LogIn className="w-3.5 h-3.5" />
-              <span className="hidden xs:inline sm:inline">Sign In</span>
+              <PixelIcon name="login" className="w-4 h-4" />
+              <span className="hidden sm:inline">Sign In</span>
             </button>
           )}
 
@@ -484,15 +401,15 @@ export const GarageHub: React.FC<GarageHubProps> = ({
             type="button"
             onClick={onToggleMute}
             aria-label={muted ? 'Unmute audio' : 'Mute audio'}
-            className="arcade-btn h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center bg-[#1d1830] border-2 border-[#3a3154] text-[#f4f1e6] hover:border-[#f5b82e] cursor-pointer"
+            className="arcade-btn h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center bg-[#141b2d] border-2 border-[#3c4d73] hover:border-[#f5b82e] cursor-pointer"
           >
-            {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+            <PixelIcon name={muted ? 'soundOff' : 'soundOn'} className="w-4 h-4" />
           </button>
         </div>
       </header>
 
-      {/* Mobile Compact Active Car Bar (toggles Dyno & Garage Switcher without blocking menus) */}
-      <div className="lg:hidden shrink-0 bg-[#110e1c] border-b border-[#2c2544] px-3 py-1.5 flex items-center justify-between gap-2">
+      {/* Mobile Compact Active Car Bar (toggles Pit Dyno & Garage Switcher without blocking menus) */}
+      <div className="lg:hidden shrink-0 bg-[#0e1320] border-b-2 border-[#3c4d73] px-3 py-1.5 flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={() => {
@@ -503,11 +420,11 @@ export const GarageHub: React.FC<GarageHubProps> = ({
         >
           <div className="flex items-center gap-2 min-w-0">
             <span
-              className="w-3 h-3 shrink-0 border border-white/30"
+              className="w-3.5 h-3.5 shrink-0 border-2 border-[#3c4d73]"
               style={{ backgroundColor: config.visuals.paintColor }}
             />
             <div className="min-w-0">
-              <div className="text-xs font-bold text-[#f4f1e6] truncate">
+              <div className="text-xs font-bold text-[#f8fafc] truncate">
                 {car.name}
                 <span className="font-mono-num text-[11px] font-normal text-[#94a3b8] ml-1.5">
                   T{car.tier} · {perf.hp.toLocaleString()} HP · {perf.estimatedEtSec.toFixed(2)}s
@@ -515,196 +432,229 @@ export const GarageHub: React.FC<GarageHubProps> = ({
               </div>
             </div>
           </div>
-          <span className="shrink-0 flex items-center gap-1 font-mono-num text-[11px] font-bold text-[#f5b82e]">
-            <span>{mobileDynoOpen ? 'Hide Dyno' : 'Dyno'}</span>
-            {mobileDynoOpen ? (
-              <ChevronUp className="w-3.5 h-3.5" />
-            ) : (
-              <ChevronDown className="w-3.5 h-3.5" />
-            )}
+          <span className="shrink-0 arcade-inset px-2 py-0.5 font-mono-num text-[10px] font-bold text-[#f5b82e] uppercase">
+            {mobileDynoOpen ? '▲ Close Bay' : '▼ Pit Dyno'}
           </span>
         </button>
       </div>
 
-      {/* Main Split Paddock Layout (Mobile: full-height active tab + collapsible dyno; Desktop: 12-col split) */}
-      <div className="flex-1 min-h-0 max-w-[1440px] w-full mx-auto flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:gap-5 p-3 lg:p-5 overflow-hidden">
-        {/* LEFT COLUMN (4 cols on desktop; collapsible full-height drawer on mobile) */}
+      {/* Main Split Paddock Layout */}
+      <div className="flex-1 min-h-0 max-w-[1440px] w-full mx-auto flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:gap-4 p-2.5 sm:p-3 lg:p-4 overflow-hidden">
+        {/* LEFT COLUMN: HI-BIT PIT GARAGE & DYNO TELEMETRY */}
         <aside
           className={`${
             mobileDynoOpen ? 'flex flex-1' : 'hidden'
-          } lg:flex lg:col-span-4 flex-col gap-3 lg:gap-4 min-h-0 overflow-y-auto pr-0.5 lg:pr-1`}
+          } lg:flex lg:col-span-4 flex-col gap-3 min-h-0 overflow-y-auto pr-0.5 lg:pr-1`}
         >
-          <div className="arcade-panel p-4 space-y-4">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold text-[#f4f1e6] leading-tight">
-                    {car.name}
-                  </h2>
-                  {(visualCheckout.hasChanges || activeUpgradePreview) && (
-                    <span className="font-mono-num text-[11px] font-bold text-[#f5b82e]">
-                      · PREVIEW
-                    </span>
+          <div className="arcade-panel overflow-hidden">
+            <div className="p-3.5 sm:p-4 space-y-3.5">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base sm:text-lg font-bold text-[#f7f3e3] leading-tight arcade-shadow-text">
+                      {car.name}
+                    </h2>
+                    {(visualCheckout.hasChanges || activeUpgradePreview) && (
+                      <span className="font-pixel text-[8px] text-[#facc15] bg-[#090d1a] border border-[#facc15] px-1.5 py-0.5">
+                        PREVIEW
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#94a3b8] mt-0.5">
+                    Tier {car.tier} · {car.subtitle}
+                  </p>
+                </div>
+                <div className="led-readout px-2.5 py-1.5 text-right font-mono-num shrink-0">
+                  <div className="text-[9px] text-[#94a3b8]">EST. 1/4 MI</div>
+                  <div className="text-sm sm:text-base font-bold text-[#facc15] leading-tight">
+                    {activeUpgradePreview
+                      ? activeUpgradePreview.nextPerf.estimatedEtSec.toFixed(2)
+                      : perf.estimatedEtSec.toFixed(2)}
+                    s
+                  </div>
+                  {previewEtDiff < 0 && (
+                    <div className="text-[10px] font-bold text-[#22c55e]">
+                      {previewEtDiff.toFixed(2)}s
+                    </div>
                   )}
                 </div>
-                <p className="text-xs text-[#94a3b8] mt-0.5">
-                  Tier {car.tier} · {car.subtitle}
-                </p>
               </div>
-              <div className="text-right font-mono-num shrink-0">
-                <div className="text-[10px] text-[#94a3b8]">EST. 1/4 MI</div>
-                <div className="text-base font-bold text-[#f5b82e]">
-                  {activeUpgradePreview
-                    ? activeUpgradePreview.nextPerf.estimatedEtSec.toFixed(2)
-                    : perf.estimatedEtSec.toFixed(2)}
-                  s
-                </div>
-                {previewEtDiff < 0 && (
-                  <div className="text-[11px] font-bold text-[#22c55e]">
-                    {previewEtDiff.toFixed(2)}s
+
+              {/* Hi-Bit 2D Pit Garage Dyno Bay */}
+              <div className="w-full aspect-[2/1] arcade-inset overflow-hidden relative">
+                {mountLeftPitBay ? (
+                  <HiBitShowcaseCanvas
+                    mode="pitbay"
+                    chassis={car.chassis}
+                    bodyVariant={car.bodyVariant}
+                    visuals={previewConfig.visuals}
+                    upgrades={previewConfig.upgrades}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center font-mono-num text-xs text-[#64748b]">
+                    PIT BAY STANDBY
                   </div>
                 )}
+                <div className="pointer-events-none absolute top-1.5 left-2 bg-[#0e1320] border-2 border-[#3c4d73] px-1.5 py-0.5 font-pixel text-[8px] text-[#f5b82e]">
+                  PIT DYNO BAY
+                </div>
               </div>
-            </div>
 
-            {/* Crisp High-Fidelity Dyno Canvas */}
-            <div className="w-full aspect-[440/210] bg-[#0b0914] border-2 border-[#2e2747] overflow-hidden">
-              <canvas
-                ref={dynoCanvasRef}
-                className="pixel-canvas w-full h-full block"
-              />
-            </div>
-
-            {/* Performance Telemetry Grid (with live Parts Preview deltas!) */}
-            <div className="grid grid-cols-2 gap-2.5 font-mono-num text-xs">
-              <div className="bg-[#0e0b18] border border-[#2c2544] p-2.5">
-                <div className="text-[#94a3b8] text-[11px]">HORSEPOWER</div>
-                <div className="text-base font-bold text-[#f4f1e6] mt-0.5 flex items-baseline gap-1.5 flex-wrap">
-                  <span>
-                    {(activeUpgradePreview ? activeUpgradePreview.nextPerf.hp : perf.hp).toLocaleString()} HP
-                  </span>
-                  {previewHpDiff > 0 && (
-                    <span className="text-xs text-[#22c55e]">+{previewHpDiff.toLocaleString()}</span>
-                  )}
-                </div>
-              </div>
-              <div className="bg-[#0e0b18] border border-[#2c2544] p-2.5">
-                <div className="text-[#94a3b8] text-[11px]">CURB WEIGHT</div>
-                <div className="text-base font-bold text-[#f4f1e6] mt-0.5 flex items-baseline gap-1.5 flex-wrap">
-                  <span>
-                    {(activeUpgradePreview ? activeUpgradePreview.nextPerf.weightLbs : perf.weightLbs).toLocaleString()} LBS
-                  </span>
-                  {previewWeightDiff < 0 && (
-                    <span className="text-xs text-[#22c55e]">{previewWeightDiff}</span>
-                  )}
-                </div>
-              </div>
-              <div className="bg-[#0e0b18] border border-[#2c2544] p-2.5">
-                <div className="text-[#94a3b8] text-[11px]">TIRE GRIP</div>
-                <div className="text-base font-bold text-[#22c55e] mt-0.5 flex items-baseline gap-1.5 flex-wrap">
-                  <span>
-                    {(activeUpgradePreview ? activeUpgradePreview.nextPerf.grip : perf.grip).toFixed(2)} G
-                  </span>
-                  {previewGripDiff > 0 && (
-                    <span className="text-xs text-[#86efac]">+{previewGripDiff.toFixed(2)}</span>
-                  )}
-                </div>
-              </div>
-              <div className="bg-[#0e0b18] border border-[#2c2544] p-2.5">
-                <div className="text-[#94a3b8] text-[11px]">NITROUS / BOOST</div>
-                <div className="text-base font-bold text-[#38bdf8] mt-0.5 flex items-baseline gap-1.5 flex-wrap">
-                  <span>
-                    {(activeUpgradePreview ? activeUpgradePreview.nextPerf.nitrousShots : perf.nitrousShots) > 0
-                      ? `${activeUpgradePreview ? activeUpgradePreview.nextPerf.nitrousShots : perf.nitrousShots} Shots`
-                      : 'None'}{' '}
-                    · +
-                    {Math.round(
-                      ((activeUpgradePreview
-                        ? activeUpgradePreview.nextPerf.shiftBoostMult
-                        : perf.shiftBoostMult) -
-                        1) *
-                        100
-                    )}
-                    %
-                  </span>
-                  {(previewBoostDiff > 0 || previewNosDiff > 0) && (
-                    <span className="text-xs text-[#22c55e]">
-                      {previewNosDiff > 0 ? `+${previewNosDiff} NOS` : `+${previewBoostDiff}%`}
+              {/* LED Performance Telemetry Grid */}
+              <div className="grid grid-cols-2 gap-2 font-mono-num text-xs">
+                <div className="led-readout p-2">
+                  <div className="text-[#94a3b8] text-[10px]">HORSEPOWER</div>
+                  <div className="text-sm sm:text-base font-bold text-[#f7f3e3] mt-0.5 flex items-baseline gap-1.5 flex-wrap">
+                    <span>
+                      {(activeUpgradePreview
+                        ? activeUpgradePreview.nextPerf.hp
+                        : perf.hp
+                      ).toLocaleString()}{' '}
+                      HP
                     </span>
-                  )}
+                    {previewHpDiff > 0 && (
+                      <span className="text-[11px] text-[#22c55e]">
+                        +{previewHpDiff.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="led-readout p-2">
+                  <div className="text-[#94a3b8] text-[10px]">CURB WEIGHT</div>
+                  <div className="text-sm sm:text-base font-bold text-[#f7f3e3] mt-0.5 flex items-baseline gap-1.5 flex-wrap">
+                    <span>
+                      {(activeUpgradePreview
+                        ? activeUpgradePreview.nextPerf.weightLbs
+                        : perf.weightLbs
+                      ).toLocaleString()}{' '}
+                      LBS
+                    </span>
+                    {previewWeightDiff < 0 && (
+                      <span className="text-[11px] text-[#22c55e]">{previewWeightDiff}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="led-readout p-2">
+                  <div className="text-[#94a3b8] text-[10px]">TIRE GRIP</div>
+                  <div className="text-sm sm:text-base font-bold text-[#22c55e] mt-0.5 flex items-baseline gap-1.5 flex-wrap">
+                    <span>
+                      {(activeUpgradePreview ? activeUpgradePreview.nextPerf.grip : perf.grip).toFixed(
+                        2
+                      )}{' '}
+                      G
+                    </span>
+                    {previewGripDiff > 0 && (
+                      <span className="text-[11px] text-[#86efac]">
+                        +{previewGripDiff.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="led-readout p-2">
+                  <div className="text-[#94a3b8] text-[10px]">NITROUS / BOOST</div>
+                  <div className="text-sm sm:text-base font-bold text-[#38bdf8] mt-0.5 flex items-baseline gap-1.5 flex-wrap">
+                    <span>
+                      {(activeUpgradePreview
+                        ? activeUpgradePreview.nextPerf.nitrousShots
+                        : perf.nitrousShots) > 0
+                        ? `${
+                            activeUpgradePreview
+                              ? activeUpgradePreview.nextPerf.nitrousShots
+                              : perf.nitrousShots
+                          } NOS`
+                        : 'None'}{' '}
+                      · +
+                      {Math.round(
+                        ((activeUpgradePreview
+                          ? activeUpgradePreview.nextPerf.shiftBoostMult
+                          : perf.shiftBoostMult) -
+                          1) *
+                          100
+                      )}
+                      %
+                    </span>
+                    {(previewBoostDiff > 0 || previewNosDiff > 0) && (
+                      <span className="text-[11px] text-[#22c55e]">
+                        {previewNosDiff > 0 ? `+${previewNosDiff} NOS` : `+${previewBoostDiff}%`}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Projected Multi-Strip Speed & ET Strip */}
-            <div className="grid grid-cols-3 gap-2 font-mono-num text-[11px]">
-              <div className="bg-[#0e0b18] border border-[#2c2544] px-2.5 py-2">
-                <div className="text-[#94a3b8] text-[10px]">EST. 1/2 MI</div>
-                <div className="font-bold text-[#38bdf8] mt-0.5">
-                  {(activeUpgradePreview
-                    ? activeUpgradePreview.nextPerf.estimatedHalfEtSec
-                    : perf.estimatedHalfEtSec
-                  ).toFixed(2)}
-                  s
+              {/* Projected Multi-Strip Speed & ET Strip */}
+              <div className="grid grid-cols-3 gap-2 font-mono-num text-[11px]">
+                <div className="led-readout px-2 py-1.5">
+                  <div className="text-[#94a3b8] text-[9px]">EST. 1/2 MI</div>
+                  <div className="font-bold text-[#38bdf8] mt-0.5">
+                    {(activeUpgradePreview
+                      ? activeUpgradePreview.nextPerf.estimatedHalfEtSec
+                      : perf.estimatedHalfEtSec
+                    ).toFixed(2)}
+                    s
+                  </div>
+                </div>
+                <div className="led-readout px-2 py-1.5">
+                  <div className="text-[#94a3b8] text-[9px]">EST. 1 MILE</div>
+                  <div className="font-bold text-[#c084fc] mt-0.5">
+                    {(activeUpgradePreview
+                      ? activeUpgradePreview.nextPerf.estimatedMileEtSec
+                      : perf.estimatedMileEtSec
+                    ).toFixed(2)}
+                    s
+                  </div>
+                </div>
+                <div className="led-readout px-2 py-1.5">
+                  <div className="text-[#94a3b8] text-[9px]">GEAR TOP</div>
+                  <div className="font-bold text-[#f7f3e3] mt-0.5">
+                    {activeUpgradePreview
+                      ? activeUpgradePreview.nextPerf.topSpeedMph
+                      : perf.topSpeedMph}{' '}
+                    MPH
+                  </div>
                 </div>
               </div>
-              <div className="bg-[#0e0b18] border border-[#2c2544] px-2.5 py-2">
-                <div className="text-[#94a3b8] text-[10px]">EST. 1 MILE</div>
-                <div className="font-bold text-[#c084fc] mt-0.5">
-                  {(activeUpgradePreview
-                    ? activeUpgradePreview.nextPerf.estimatedMileEtSec
-                    : perf.estimatedMileEtSec
-                  ).toFixed(2)}
-                  s
-                </div>
-              </div>
-              <div className="bg-[#0e0b18] border border-[#2c2544] px-2.5 py-2">
-                <div className="text-[#94a3b8] text-[10px]">GEAR TOP</div>
-                <div className="font-bold text-[#f4f1e6] mt-0.5">
-                  {activeUpgradePreview
-                    ? activeUpgradePreview.nextPerf.topSpeedMph
-                    : perf.topSpeedMph}{' '}
-                  MPH
-                </div>
-              </div>
-            </div>
 
-            {/* Garage Car Switcher (only shown if player owns > 1 car) */}
-            {save.ownedCars.length > 1 && (
-              <div className="pt-2 border-t border-[#2c2544] space-y-2">
-                <div className="text-xs font-semibold text-[#94a3b8]">Your Garage</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {save.ownedCars.map((cid) => {
-                    const spec = getCarById(cid);
-                    const active = cid === save.activeCarId;
-                    return (
-                      <button
-                        key={cid}
-                        type="button"
-                        onClick={() => {
-                          soundEngine.playUiClick();
-                          onSelectCar(cid);
-                        }}
-                        className={`arcade-btn px-2.5 py-1.5 text-xs font-semibold border whitespace-nowrap cursor-pointer ${
-                          active
-                            ? 'bg-[#ff4d2e] text-white border-[#fff3b0]'
-                            : 'bg-[#1b162b] text-[#cbd5e1] border-[#352d4d] hover:border-[#f5b82e]'
-                        }`}
-                      >
-                        T{spec.tier} · {spec.name}
-                      </button>
-                    );
-                  })}
+              {/* Garage Car Switcher (only shown if player owns > 1 car) */}
+              {save.ownedCars.length > 1 && (
+                <div className="pt-2.5 border-t-2 border-[#0b1020] space-y-2">
+                  <div className="font-pixel text-[9px] text-[#94a3b8]">YOUR GARAGE</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {save.ownedCars.map((cid) => {
+                      const spec = getCarById(cid);
+                      const active = cid === save.activeCarId;
+                      return (
+                        <button
+                          key={cid}
+                          type="button"
+                          onClick={() => {
+                            soundEngine.playUiClick();
+                            onSelectCar(cid);
+                          }}
+                          className={`arcade-btn px-2.5 py-1.5 text-xs font-bold border-2 whitespace-nowrap cursor-pointer ${
+                            active
+                              ? 'bg-[#ef3b2d] text-white border-[#facc15]'
+                              : 'bg-[#172038] text-[#cbd5e1] border-[#32446e] hover:border-[#facc15]'
+                          }`}
+                        >
+                          T{spec.tier} · {spec.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          {/* Driver Callsign & Quick Controls Reference */}
-          <div className="arcade-panel p-4 space-y-3">
-            <form onSubmit={handleSaveCallsign} className="space-y-2">
-              <label htmlFor="callsign-input" className="block text-xs font-semibold text-[#94a3b8]">
-                Driver Callsign (Leaderboards)
+          {/* Driver Callsign & Arcade Cabinet Controls Plaque */}
+          <div className="arcade-panel p-3.5 space-y-3">
+            <form onSubmit={handleSaveCallsign} className="space-y-1.5">
+              <label
+                htmlFor="callsign-input"
+                className="block font-pixel text-[9px] text-[#facc15]"
+              >
+                DRIVER CALLSIGN
               </label>
               <div className="flex gap-2">
                 <input
@@ -713,32 +663,34 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                   maxLength={18}
                   value={callsignDraft}
                   onChange={(e) => setCallsignDraft(e.target.value)}
-                  className="flex-1 min-w-0 bg-[#0a0812] border-2 border-[#352d4d] focus:border-[#f5b82e] focus:outline-none px-3 py-1.5 text-sm font-mono-num text-[#f4f1e6]"
+                  className="flex-1 min-w-0 arcade-inset focus:border-[#facc15] focus:outline-none px-2.5 py-1.5 text-sm font-mono-num text-[#f7f3e3]"
                 />
                 <button
                   type="submit"
-                  className="arcade-btn px-3.5 py-1.5 bg-[#261f3d] hover:bg-[#352b54] border-2 border-[#463a6e] text-xs font-semibold text-[#f4f1e6] whitespace-nowrap cursor-pointer"
+                  className="arcade-btn px-3.5 py-1.5 bg-[#223052] hover:bg-[#2c3f6b] border-2 border-[#5b76b0] text-xs font-bold text-[#f7f3e3] whitespace-nowrap cursor-pointer"
                 >
-                  Save
+                  SAVE
                 </button>
               </div>
             </form>
-            <div className="text-xs text-[#94a3b8] leading-relaxed border-t border-[#2a2342] pt-3">
-              Hold <span className="text-[#f4f1e6] font-mono-num">Shift</span> (Clutch) +{' '}
-              <span className="text-[#f4f1e6] font-mono-num">W</span> (Gas) in the green zone, release Clutch on Green, and hit{' '}
-              <span className="text-[#facc15] font-mono-num">Space</span> at peak RPM for a boost surge.
+            <div className="text-xs text-[#94a3b8] leading-relaxed border-t-2 border-[#0b1020] pt-2.5">
+              Hold <span className="text-[#f7f3e3] font-mono-num font-bold">SHIFT</span> (Clutch) +{' '}
+              <span className="text-[#f7f3e3] font-mono-num font-bold">W</span> (Gas) in green launch
+              zone, release on Green, tap{' '}
+              <span className="text-[#facc15] font-mono-num font-bold">SPACE</span> at peak RPM for a
+              boost surge.
             </div>
           </div>
         </aside>
 
-        {/* RIGHT COLUMN (8 cols on desktop; full workspace on mobile when Dyno drawer closed) */}
+        {/* RIGHT COLUMN: BEVELED ARCADE HUB TABS & CONTENT */}
         <section
           className={`${
             mobileDynoOpen ? 'hidden' : 'flex flex-1'
           } lg:flex lg:col-span-8 flex-col min-h-0`}
         >
-          {/* Desktop Segmented Navigation Bar (mobile uses fixed bottom thumb tab bar) */}
-          <div className="hidden lg:flex shrink-0 items-center gap-1.5 bg-[#141020] border-2 border-[#302847] p-1.5 mb-4 overflow-x-auto no-scrollbar">
+          {/* Desktop Beveled Arcade Tab Strip */}
+          <div className="hidden lg:flex shrink-0 items-center gap-1.5 arcade-panel p-1.5 mb-3.5 overflow-x-auto no-scrollbar">
             {tabs.map((tab) => {
               const active = activeTab === tab.id;
               return (
@@ -746,13 +698,13 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                   key={tab.id}
                   type="button"
                   onClick={() => handleSelectTab(tab.id)}
-                  className={`arcade-btn flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-bold whitespace-nowrap shrink-0 cursor-pointer ${
+                  className={`arcade-btn flex items-center gap-2 px-3.5 py-2 text-xs font-bold uppercase tracking-wide whitespace-nowrap shrink-0 cursor-pointer border-2 ${
                     active
-                      ? 'bg-[#ff4d2e] text-white border border-[#fff3b0]'
-                      : 'text-[#cbd5e1] hover:bg-[#1e1830] hover:text-white border border-transparent'
+                      ? 'bg-[#ef3b2d] text-white border-[#facc15] arcade-shadow-text'
+                      : 'bg-[#131b31] text-[#cbd5e1] border-[#32446e] hover:border-[#5b76b0] hover:text-white'
                   }`}
                 >
-                  {tab.icon}
+                  <PixelIcon name={tab.icon} className="w-4 h-4" />
                   <span>{tab.label}</span>
                 </button>
               );
@@ -760,10 +712,11 @@ export const GarageHub: React.FC<GarageHubProps> = ({
           </div>
 
           {/* Scrollable Tab Body */}
-          <div className="flex-1 min-h-0 overflow-y-auto pr-0.5 lg:pr-1 space-y-3 lg:space-y-4">
-            {/* TAB 1: RACE LADDER & TIER PROGRESSION */}
+          <div className="flex-1 min-h-0 overflow-y-auto pr-0.5 lg:pr-1 space-y-3 lg:space-y-3.5">
+            {/* TAB 1: RACE LADDER & 90s ARCADE RACE FLYERS */}
             {activeTab === 'RACES' && (
               <>
+                {/* Tier 1..5 Class Tabs */}
                 <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
                   {TIERS.map((t) => {
                     const unlocked = t.id <= save.highestUnlockedTier;
@@ -777,22 +730,24 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                           soundEngine.playUiClick();
                           setSelectedTier(t.id);
                         }}
-                        className={`arcade-btn p-2 sm:p-2.5 text-center sm:text-left border-2 transition-colors whitespace-nowrap ${
+                        className={`arcade-btn p-2 sm:p-2.5 text-center sm:text-left border-2 whitespace-nowrap ${
                           !unlocked
-                            ? 'bg-[#100d1a] border-[#221c36] text-[#64748b] cursor-not-allowed'
+                            ? 'bg-[#0f1426] border-[#1f2947] text-[#64748b] cursor-not-allowed'
                             : active
-                            ? 'bg-[#221c38] border-[#f5b82e] text-[#f4f1e6] cursor-pointer'
-                            : 'bg-[#151221] border-[#302847] text-[#cbd5e1] hover:border-[#53467a] cursor-pointer'
+                            ? 'bg-[#26355c] border-[#facc15] text-[#f7f3e3] cursor-pointer'
+                            : 'bg-[#161f38] border-[#32446e] text-[#cbd5e1] hover:border-[#5b76b0] cursor-pointer'
                         }`}
                       >
                         <div className="flex items-center justify-center sm:justify-between gap-1 text-[10px] font-mono-num">
-                          <span>
+                          <span className={active ? 'text-[#facc15] font-bold' : ''}>
                             <span className="sm:hidden font-bold text-xs">T{t.id}</span>
                             <span className="hidden sm:inline">TIER {t.id}</span>
                           </span>
-                          {!unlocked && <Lock className="w-3 h-3" />}
+                          {!unlocked && <PixelIcon name="lock" className="w-3.5 h-3.5" />}
                         </div>
-                        <div className="hidden sm:block font-bold text-xs mt-1 truncate">{t.className}</div>
+                        <div className="hidden sm:block font-bold text-xs mt-1 truncate">
+                          {t.className}
+                        </div>
                       </button>
                     );
                   })}
@@ -816,10 +771,10 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                           soundEngine.playUiClick();
                           setSelectedDistance(d.id);
                         }}
-                        className={`arcade-btn p-2 sm:p-3 text-left border-2 transition-colors cursor-pointer ${
+                        className={`arcade-btn p-2 sm:p-2.5 text-left border-2 cursor-pointer ${
                           active
-                            ? 'bg-[#221c38] border-[#38bdf8] text-[#f4f1e6]'
-                            : 'bg-[#141120] border-[#302847] text-[#cbd5e1] hover:border-[#53467a]'
+                            ? 'bg-[#1b3354] border-[#38bdf8] text-[#f7f3e3]'
+                            : 'bg-[#151e36] border-[#32446e] text-[#cbd5e1] hover:border-[#5b76b0]'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-1 font-mono-num text-[10px]">
@@ -836,35 +791,75 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                   })}
                 </div>
 
-                <div className="arcade-panel p-3 sm:p-4 flex flex-wrap items-center justify-between gap-2.5 sm:gap-4">
+                {/* Race-Day Time-of-Day Lighting Selector (Tier Default Auto / Afternoon / Sunset / Night) */}
+                <div className="arcade-panel px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 font-mono-num text-[11px]">
+                    <span className="font-pixel text-[8px] text-[#f5b82e]">LIGHTING</span>
+                    <span className="text-[#94a3b8]">
+                      Active:{' '}
+                      <span className="text-[#f8fafc] font-bold uppercase">{resolvedTod}</span>
+                      {timeOfDayMode === 'auto' && (
+                        <span className="text-[#38bdf8]"> (Tier {selectedTier} Default)</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 sm:flex items-center gap-1.5 w-full sm:w-auto">
+                    {TIME_OF_DAY_OPTIONS.map((opt) => {
+                      const active = timeOfDayMode === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            soundEngine.playUiClick();
+                            onChangeTimeOfDayMode(opt.id);
+                          }}
+                          className={`arcade-btn px-2.5 py-1.5 border-2 text-[11px] font-mono-num font-bold whitespace-nowrap cursor-pointer ${
+                            active
+                              ? 'bg-[#263457] border-[#f5b82e] text-[#f5b82e]'
+                              : 'bg-[#141b2d] border-[#3c4d73] text-[#cbd5e1] hover:border-[#5b74ab]'
+                          }`}
+                        >
+                          {opt.id === 'auto' ? `Auto (${todAutoLabel.slice(0, 3)})` : opt.shortLabel}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Venue Event Header & Solo Test Bar */}
+                <div className="arcade-panel p-3 sm:p-3.5 flex flex-wrap items-center justify-between gap-2.5 sm:gap-4">
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-sm sm:text-base font-bold text-[#f4f1e6]">
+                    <h3 className="text-sm sm:text-base font-bold text-[#f7f3e3] arcade-shadow-text">
                       {tierSpec.name} · <span className="text-[#38bdf8]">{distSpec.label}</span>
                     </h3>
                     <p className="text-[11px] sm:text-xs text-[#94a3b8] mt-0.5">
-                      <span className="hidden sm:inline">{tierSpec.venueName} · {distSpec.description} · </span>
-                      <span className="text-[#f5b82e]">{distSpec.tuningHint}</span>
+                      <span className="hidden sm:inline">
+                        {tierSpec.venueName} · {distSpec.description} ·{' '}
+                      </span>
+                      <span className="text-[#facc15]">{distSpec.tuningHint}</span>
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
                     <button
                       type="button"
                       onClick={() => handleSelectTab('TUNING')}
-                      className="arcade-btn flex-1 sm:flex-initial justify-center px-3 py-2 sm:py-2.5 bg-[#171326] hover:bg-[#241e3b] border-2 border-[#3d345c] text-xs font-bold text-[#f5b82e] flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                      className="arcade-btn flex-1 sm:flex-initial justify-center px-3 py-2 bg-[#16203a] hover:bg-[#223052] border-2 border-[#4f69a1] text-xs font-bold text-[#facc15] flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
                     >
-                      <SlidersHorizontal className="w-3.5 h-3.5" />
+                      <PixelIcon name="gears" className="w-4 h-4" />
                       <span>Tune Gears</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => onStartRace(selectedTier, selectedDistance, null)}
-                      className="arcade-btn flex-1 sm:flex-initial px-3.5 py-2 sm:py-2.5 bg-[#1e1933] hover:bg-[#2a2347] border-2 border-[#4d3f7a] text-xs font-bold text-[#f4f1e6] whitespace-nowrap cursor-pointer"
+                      className="arcade-btn flex-1 sm:flex-initial px-3.5 py-2 bg-[#213054] hover:bg-[#2c3f6b] border-2 border-[#5b76b0] text-xs font-bold text-[#f7f3e3] whitespace-nowrap cursor-pointer"
                     >
-                      Solo {distSpec.shortLabel} Trial
+                      Solo {distSpec.shortLabel} Test · $0
                     </button>
                   </div>
                 </div>
 
+                {/* 90s Arcade Race Event Flyers with Pixel Rival Portraits */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {tierRivals.map((rival) => {
                     const defeated = save.defeatedRivals.includes(rival.id);
@@ -876,64 +871,93 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                     return (
                       <div
                         key={rival.id}
-                        className={`arcade-panel p-4 flex flex-col justify-between gap-4 ${
-                          rival.isBoss ? 'border-[#f5b82e]' : ''
-                        } ${!unlocked ? 'opacity-60' : ''}`}
+                        className={`${
+                          rival.isBoss ? 'arcade-panel-gold' : 'arcade-panel'
+                        } overflow-hidden flex flex-col justify-between ${
+                          !unlocked ? 'opacity-60' : ''
+                        }`}
                       >
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between gap-2 text-xs font-mono-num">
-                            <span className={rival.isBoss ? 'text-[#f5b82e] font-bold' : 'text-[#94a3b8]'}>
-                              {rival.isBoss
-                                ? 'TIER BOSS'
-                                : selectedDistance === 'quarter'
-                                ? `STAGE ${rival.stageIndex} / ${tierRivals.length}`
-                                : `${distSpec.shortLabel} CHALLENGE ${rival.stageIndex} / ${tierRivals.length}`}
-                            </span>
-                            <span className="text-[#22c55e] font-bold">
-                              Purse {formatCash(rival.winPurse)}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="w-3 h-3 shrink-0 border border-white/30"
-                              style={{ backgroundColor: rival.paintColor }}
-                            />
-                            <h4 className="font-bold text-base text-[#f4f1e6] truncate">
-                              {rival.name}
-                            </h4>
-                          </div>
-                          <p className="text-xs text-[#94a3b8]">
-                            {rival.carName} · Target {rival.targetEtSec.toFixed(2)}s @ {rival.targetTrapMph} MPH
-                          </p>
-                          {rival.challengeNote && (
-                            <p className="text-xs text-[#cbd5e1] leading-snug pt-0.5">
-                              {rival.challengeNote}
-                            </p>
-                          )}
+                        {/* Flyer Checkered Header Strip */}
+                        <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-[#090d1a] border-b-2 border-[#060912] font-mono-num text-[11px]">
+                          <span
+                            className={
+                              rival.isBoss
+                                ? 'font-pixel text-[9px] text-[#facc15]'
+                                : 'text-[#94a3b8] font-bold'
+                            }
+                          >
+                            {rival.isBoss
+                              ? '★ TIER BOSS'
+                              : selectedDistance === 'quarter'
+                              ? `STAGE ${rival.stageIndex} / ${tierRivals.length}`
+                              : `${distSpec.shortLabel.toUpperCase()} HEAT ${rival.stageIndex}/${tierRivals.length}`}
+                          </span>
+                          <span className="text-[#22c55e] font-bold flex items-center gap-1">
+                            <PixelIcon name="coin" className="w-3.5 h-3.5" />
+                            {defeated
+                              ? `Rematch ${formatCash(Math.round(rival.winPurse * 0.65))}`
+                              : formatCash(rival.winPurse)}
+                          </span>
                         </div>
 
-                        <div className="flex items-center justify-between gap-3 pt-2 border-t border-[#292240]">
-                          <span className="text-xs font-mono-num text-[#94a3b8]">
-                            {defeated
-                              ? 'Defeated'
-                              : unlocked
-                              ? 'Ready to Race'
-                              : 'Beat previous challenge'}
+                        {/* Flyer Main Body: Pixel Portrait + Matchup Specs */}
+                        <div className="p-3.5 flex items-start gap-3">
+                          <PixelRivalPortrait rival={rival} className="w-16 h-16 shrink-0" />
+                          <div className="min-w-0 flex-1 space-y-1">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className="w-3 h-3 shrink-0 border-2 border-[#060912]"
+                                style={{ backgroundColor: rival.paintColor }}
+                              />
+                              <h4 className="font-bold text-base text-[#f7f3e3] truncate arcade-shadow-text">
+                                {rival.name}
+                              </h4>
+                            </div>
+                            <div className="text-xs text-[#cbd5e1] font-semibold truncate">
+                              {rival.carName}
+                            </div>
+                            <div className="led-readout inline-block px-2 py-0.5 font-mono-num text-[11px] text-[#facc15]">
+                              TARGET {rival.targetEtSec.toFixed(2)}s @ {rival.targetTrapMph} MPH
+                            </div>
+                            {rival.challengeNote && (
+                              <p className="text-[11px] text-[#94a3b8] leading-snug pt-0.5">
+                                {rival.challengeNote}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Flyer Action Footer */}
+                        <div className="px-3.5 py-2.5 bg-[#0f1629] border-t-2 border-[#060912] flex items-center justify-between gap-3">
+                          <span className="text-xs font-mono-num flex items-center gap-1.5">
+                            {defeated ? (
+                              <>
+                                <PixelIcon name="check" className="w-3.5 h-3.5" />
+                                <span className="text-[#4ade80] font-bold">CLEARED</span>
+                              </>
+                            ) : unlocked ? (
+                              <span className="text-[#38bdf8] font-bold">READY TO STAGE</span>
+                            ) : (
+                              <>
+                                <PixelIcon name="lock" className="w-3.5 h-3.5" />
+                                <span className="text-[#64748b]">LOCKED</span>
+                              </>
+                            )}
                           </span>
                           <button
                             type="button"
                             disabled={!unlocked}
                             onClick={() => onStartRace(selectedTier, selectedDistance, rival)}
-                            className={`arcade-btn px-4 py-2 text-xs font-bold flex items-center gap-1.5 whitespace-nowrap ${
+                            className={`arcade-btn px-4 py-2 text-xs font-bold uppercase flex items-center gap-1.5 whitespace-nowrap border-2 ${
                               !unlocked
-                                ? 'bg-[#191529] text-[#64748b] border border-[#2c2542] cursor-not-allowed'
+                                ? 'bg-[#12182b] text-[#64748b] border-[#1f2947] cursor-not-allowed'
                                 : rival.isBoss
-                                ? 'bg-[#f5b82e] hover:bg-[#fbbf24] text-[#09070f] border border-[#fef08a] cursor-pointer'
-                                : 'bg-[#ff4d2e] hover:bg-[#ff6247] text-white border border-[#fca5a5] cursor-pointer'
+                                ? 'bg-[#facc15] hover:bg-[#fde047] text-[#090d1a] border-[#fef9c3] cursor-pointer'
+                                : 'bg-[#ef3b2d] hover:bg-[#f45245] text-white border-[#fca5a5] cursor-pointer'
                             }`}
                           >
                             <span>{defeated ? 'Rematch' : 'Race Now'}</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
+                            <PixelIcon name="chevronRight" className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -943,13 +967,16 @@ export const GarageHub: React.FC<GarageHubProps> = ({
               </>
             )}
 
-            {/* TAB 2: PERFORMANCE PARTS SHOP (WITH LIVE STAT & CHARACTERISTIC IMPACT PREVIEW) */}
+            {/* TAB 2: PERFORMANCE PARTS SHOP (CUSTOM PIXEL PART SPRITES + LIVE PREVIEW) */}
             {activeTab === 'SHOP' && (
               <div className="space-y-3">
-                <div className="text-xs text-[#94a3b8] px-1">
-                  Hover any part upgrade to preview visual modifications and exact stat deltas on the dyno.
+                <div className="arcade-inset px-3 py-2 text-xs text-[#cbd5e1] flex items-center gap-2">
+                  <PixelIcon name="bolt" className="w-4 h-4 shrink-0" />
+                  <span>
+                    Hover or select any part upgrade to preview bolt-on pixel hardware and dyno deltas live.
+                  </span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {UPGRADE_CATEGORIES.map((cat) => {
                     const lvl = config.upgrades[cat.key];
                     const isMax = lvl >= 5;
@@ -962,47 +989,58 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                       <div
                         key={cat.key}
                         onMouseEnter={() => !isMax && setHoveredUpgrade(cat.key)}
-                        onMouseLeave={() => setHoveredUpgrade((prev) => (prev === cat.key ? null : prev))}
+                        onMouseLeave={() =>
+                          setHoveredUpgrade((prev) => (prev === cat.key ? null : prev))
+                        }
                         onFocus={() => !isMax && setHoveredUpgrade(cat.key)}
-                        className={`arcade-panel p-4 flex flex-col justify-between gap-3.5 transition-colors ${
-                          isPreviewing ? 'border-[#f5b82e] bg-[#1a152b]' : ''
-                        }`}
+                        className={`${
+                          isPreviewing ? 'arcade-panel-gold' : 'arcade-panel'
+                        } p-3.5 flex flex-col justify-between gap-3`}
                       >
                         <div>
-                          <div className="flex items-center justify-between gap-2">
-                            <h4 className="font-bold text-base text-[#f4f1e6]">{cat.name}</h4>
-                            <span className="font-mono-num text-xs text-[#f5b82e] font-bold">
-                              LV {lvl} / 5
-                            </span>
+                          <div className="flex items-start gap-3">
+                            <div className="arcade-inset p-1.5 shrink-0">
+                              <PixelPartSprite partKey={cat.key} className="w-11 h-11" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <h4 className="font-bold text-base text-[#f7f3e3] truncate arcade-shadow-text">
+                                  {cat.name}
+                                </h4>
+                                <span className="led-readout px-1.5 py-0.5 font-mono-num text-[11px] text-[#facc15] font-bold shrink-0">
+                                  LV {lvl}/5
+                                </span>
+                              </div>
+                              <p className="text-xs text-[#94a3b8] mt-0.5">{cat.shortDesc}</p>
+                            </div>
                           </div>
-                          <p className="text-xs text-[#94a3b8] mt-0.5">{cat.shortDesc}</p>
 
-                          {/* 5-segment crisp pixel progress bar (next level highlighted when previewing) */}
+                          {/* 5-segment crisp LED progress bar */}
                           <div className="grid grid-cols-5 gap-1.5 mt-3">
                             {[1, 2, 3, 4, 5].map((step) => (
                               <div
                                 key={step}
-                                className={`h-2 ${
+                                className={`h-2.5 border border-[#060912] ${
                                   step <= lvl
                                     ? 'bg-[#22c55e]'
                                     : isPreviewing && step === lvl + 1
-                                    ? 'bg-[#f5b82e]'
-                                    : 'bg-[#231d38]'
+                                    ? 'bg-[#facc15]'
+                                    : 'bg-[#090d1a]'
                                 }`}
                               />
                             ))}
                           </div>
 
                           <div className="text-xs font-mono-num text-[#cbd5e1] mt-2">
-                            Installed: <span className="text-[#f4f1e6]">{cat.tierNames[lvl]}</span>
+                            Part: <span className="text-[#f7f3e3] font-semibold">{cat.tierNames[lvl]}</span>
                             {!isMax && (
-                              <span className="text-[#f5b82e]"> → {cat.tierNames[lvl + 1]}</span>
+                              <span className="text-[#facc15]"> → {cat.tierNames[lvl + 1]}</span>
                             )}
                           </div>
 
                           {/* Exact Stat Impact & Characteristic Changes */}
                           {impact && (
-                            <div className="mt-3 pt-2.5 border-t border-[#28213e] space-y-1.5">
+                            <div className="mt-2.5 pt-2 border-t-2 border-[#0b1020] space-y-1">
                               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono-num text-xs">
                                 {impact.statChanges.map((sc, i) => (
                                   <span key={sc.label} className="text-[#22c55e] font-bold">
@@ -1020,8 +1058,8 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between pt-2 border-t border-[#292240]">
-                          <span className="font-mono-num text-sm font-bold text-[#22c55e]">
+                        <div className="flex items-center justify-between pt-2.5 border-t-2 border-[#0b1020]">
+                          <span className="led-readout px-2.5 py-1 font-mono-num text-sm font-bold text-[#22c55e]">
                             {isMax ? 'MAXED' : formatCash(nextCost)}
                           </span>
                           <button
@@ -1031,12 +1069,12 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                               soundEngine.playShopBuy();
                               onBuyUpgrade(car.id, cat.key);
                             }}
-                            className={`arcade-btn px-4 py-2 text-xs font-bold whitespace-nowrap ${
+                            className={`arcade-btn px-4 py-2 text-xs font-bold uppercase whitespace-nowrap border-2 ${
                               isMax
-                                ? 'bg-[#191529] text-[#64748b] border border-[#2c2542] cursor-default'
+                                ? 'bg-[#12182b] text-[#64748b] border-[#1f2947] cursor-default'
                                 : canAfford
-                                ? 'bg-[#22c55e] hover:bg-[#16a34a] text-[#09070f] border border-[#bbf7d0] cursor-pointer'
-                                : 'bg-[#191529] text-[#64748b] border border-[#2c2542] cursor-not-allowed'
+                                ? 'bg-[#22c55e] hover:bg-[#16a34a] text-[#090d1a] border-[#bbf7d0] cursor-pointer'
+                                : 'bg-[#12182b] text-[#64748b] border-[#1f2947] cursor-not-allowed'
                             }`}
                           >
                             {isMax ? 'Max Level' : canAfford ? 'Install Part' : 'Need Cash'}
@@ -1049,7 +1087,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
               </div>
             )}
 
-            {/* TAB 3: DRIVETRAIN TUNING (GEAR RATIOS, FINAL DRIVE & SHIFT POINTS) */}
+            {/* TAB 3: DRIVETRAIN TUNING */}
             {activeTab === 'TUNING' && (
               <DrivetrainTuningPanel
                 carId={car.id}
@@ -1058,30 +1096,35 @@ export const GarageHub: React.FC<GarageHubProps> = ({
               />
             )}
 
-            {/* TAB 4: VISUAL CUSTOMIZATION (LIVE PAINT, STRIPE & RIM PREVIEW BEFORE BUYING) */}
+            {/* TAB 4: VISUAL CUSTOMIZATION (LIVE HI-BIT PAINT, STRIPE & RIM PREVIEW) */}
             {activeTab === 'CUSTOMIZE' && (
-              <div className="space-y-3 sm:space-y-4">
-                {/* Inline Live Paint Preview Canvas on Mobile (desktop sees left Dyno Bay) */}
-                <div className="lg:hidden arcade-panel p-2">
-                  <div className="w-full aspect-[440/170] bg-[#0b0914] border border-[#2e2747] overflow-hidden">
-                    <canvas
-                      ref={mobilePaintCanvasRef}
-                      className="pixel-canvas w-full h-full block"
-                    />
+              <div className="space-y-3">
+                {/* Inline Live Hi-Bit Paint Preview on Mobile (desktop sees left Pit Bay) */}
+                {mountMobilePaintBay && (
+                  <div className="lg:hidden arcade-panel p-2">
+                    <div className="w-full aspect-[2/1] arcade-inset overflow-hidden">
+                      <HiBitShowcaseCanvas
+                        mode="pitbay"
+                        chassis={car.chassis}
+                        bodyVariant={car.bodyVariant}
+                        visuals={previewConfig.visuals}
+                        upgrades={previewConfig.upgrades}
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Preview & Checkout Action Bar */}
                 <div
-                  className={`arcade-panel p-4 flex flex-wrap items-center justify-between gap-3 ${
-                    visualCheckout.hasChanges ? 'border-[#f5b82e] bg-[#1b162d]' : ''
-                  }`}
+                  className={`${
+                    visualCheckout.hasChanges ? 'arcade-panel-gold' : 'arcade-panel'
+                  } p-3.5 flex flex-wrap items-center justify-between gap-3`}
                 >
                   <div className="space-y-0.5 min-w-0">
-                    <div className="text-sm font-bold text-[#f4f1e6]">
+                    <div className="text-sm font-bold text-[#f8fafc]">
                       {visualCheckout.hasChanges
-                        ? 'Previewing Custom Look on Dyno'
-                        : 'Select any paint, stripe, or rim to preview before buying'}
+                        ? 'Previewing Custom Paint & Mods'
+                        : 'Select any paint, decal, or rim to preview live'}
                     </div>
                     {visualCheckout.hasChanges ? (
                       <div className="text-xs font-mono-num text-[#cbd5e1] flex flex-wrap items-center gap-x-2">
@@ -1094,7 +1137,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                       </div>
                     ) : (
                       <div className="text-xs text-[#94a3b8]">
-                        Nothing is charged until you click Buy &amp; Apply.
+                        Nothing is charged until you press Buy &amp; Apply.
                       </div>
                     )}
                   </div>
@@ -1107,9 +1150,9 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                           soundEngine.playUiClick();
                           setVisualDraft({});
                         }}
-                        className="arcade-btn px-3.5 py-2 bg-[#171326] hover:bg-[#241e3b] border-2 border-[#3a3154] text-xs font-semibold text-[#cbd5e1] whitespace-nowrap cursor-pointer"
+                        className="arcade-btn px-3.5 py-2 bg-[#141b2d] hover:bg-[#232d47] border-2 border-[#3c4d73] text-xs font-bold text-[#cbd5e1] whitespace-nowrap cursor-pointer"
                       >
-                        Reset Preview
+                        Reset
                       </button>
                       <button
                         type="button"
@@ -1119,14 +1162,18 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                           onBuyVisual(car.id, visualCheckout.patch, visualCheckout.totalCost);
                           setVisualDraft({});
                         }}
-                        className={`arcade-btn px-4 py-2 text-xs font-bold whitespace-nowrap ${
+                        className={`arcade-btn px-4 py-2 text-xs font-bold uppercase whitespace-nowrap border-2 ${
                           save.cash >= visualCheckout.totalCost
-                            ? 'bg-[#22c55e] hover:bg-[#16a34a] text-[#09070f] border-2 border-[#bbf7d0] cursor-pointer'
-                            : 'bg-[#191529] text-[#64748b] border-2 border-[#2c2542] cursor-not-allowed'
+                            ? 'bg-[#22c55e] hover:bg-[#16a34a] text-[#090d1a] border-[#bbf7d0] cursor-pointer'
+                            : 'bg-[#12182b] text-[#64748b] border-[#26324d] cursor-not-allowed'
                         }`}
                       >
                         {save.cash >= visualCheckout.totalCost
-                          ? `Buy & Apply (${visualCheckout.totalCost === 0 ? 'Free' : formatCash(visualCheckout.totalCost)})`
+                          ? `Buy & Apply (${
+                              visualCheckout.totalCost === 0
+                                ? 'Free'
+                                : formatCash(visualCheckout.totalCost)
+                            })`
                           : `Need ${formatCash(visualCheckout.totalCost)}`}
                       </button>
                     </div>
@@ -1134,14 +1181,15 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                 </div>
 
                 {/* Paint Coats */}
-                <div className="arcade-panel p-4 space-y-3">
+                <div className="arcade-panel p-3.5 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-bold text-sm text-[#f4f1e6]">Body Paint Coat</h4>
-                    <span className="text-xs text-[#94a3b8]">Click any color to preview</span>
+                    <h4 className="font-pixel text-[10px] text-[#f5b82e]">BODY PAINT COAT</h4>
+                    <span className="text-xs text-[#94a3b8]">Live cel-shaded coat</span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {PAINT_COLORS.map((p) => {
-                      const equipped = config.visuals.paintColor.toLowerCase() === p.hex.toLowerCase();
+                      const equipped =
+                        config.visuals.paintColor.toLowerCase() === p.hex.toLowerCase();
                       const previewing =
                         previewConfig.visuals.paintColor.toLowerCase() === p.hex.toLowerCase() &&
                         !equipped;
@@ -1155,21 +1203,23 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                           }}
                           className={`arcade-btn p-2.5 border-2 text-left flex items-center gap-2.5 cursor-pointer ${
                             previewing
-                              ? 'bg-[#292140] border-[#f5b82e]'
+                              ? 'bg-[#272445] border-[#facc15]'
                               : equipped
-                              ? 'bg-[#1b2b22] border-[#22c55e]'
-                              : 'bg-[#171326] border-[#352d4d] hover:border-[#f5b82e]'
+                              ? 'bg-[#132b23] border-[#22c55e]'
+                              : 'bg-[#141d34] border-[#32446e] hover:border-[#facc15]'
                           }`}
                         >
                           <span
-                            className="w-6 h-6 shrink-0 border border-white/30"
+                            className="w-6 h-6 shrink-0 border-2 border-[#060912]"
                             style={{ backgroundColor: p.hex }}
                           />
                           <div className="min-w-0">
-                            <div className="text-xs font-bold text-[#f4f1e6] truncate">{p.name}</div>
+                            <div className="text-xs font-bold text-[#f7f3e3] truncate">
+                              {p.name}
+                            </div>
                             <div className="font-mono-num text-[11px] text-[#94a3b8]">
                               {previewing ? (
-                                <span className="text-[#f5b82e] font-bold">
+                                <span className="text-[#facc15] font-bold">
                                   Preview · {p.cost === 0 ? 'Free' : formatCash(p.cost)}
                                 </span>
                               ) : equipped ? (
@@ -1188,9 +1238,11 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                 </div>
 
                 {/* Racing Stripes & Decals */}
-                <div className="arcade-panel p-4 space-y-3">
-                  <h4 className="font-bold text-sm text-[#f4f1e6]">Racing Stripes &amp; Decals</h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                <div className="arcade-panel p-3.5 space-y-3">
+                  <h4 className="font-pixel text-[10px] text-[#facc15]">
+                    RACING STRIPES &amp; DECALS
+                  </h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     {STRIPE_OPTIONS.map((opt) => {
                       const equipped = config.visuals.stripe === opt.id;
                       const previewing = previewConfig.visuals.stripe === opt.id && !equipped;
@@ -1202,18 +1254,18 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                             soundEngine.playUiClick();
                             setVisualDraft((prev) => ({ ...prev, stripe: opt.id }));
                           }}
-                          className={`arcade-btn p-3 border-2 text-left cursor-pointer ${
+                          className={`arcade-btn p-2.5 border-2 text-left cursor-pointer ${
                             previewing
-                              ? 'bg-[#292140] border-[#f5b82e]'
+                              ? 'bg-[#272445] border-[#facc15]'
                               : equipped
-                              ? 'bg-[#1b2b22] border-[#22c55e]'
-                              : 'bg-[#171326] border-[#352d4d] hover:border-[#f5b82e]'
+                              ? 'bg-[#132b23] border-[#22c55e]'
+                              : 'bg-[#141d34] border-[#32446e] hover:border-[#facc15]'
                           }`}
                         >
-                          <div className="text-xs font-bold text-[#f4f1e6]">{opt.name}</div>
+                          <div className="text-xs font-bold text-[#f7f3e3]">{opt.name}</div>
                           <div className="font-mono-num text-[11px] text-[#94a3b8] mt-1">
                             {previewing ? (
-                              <span className="text-[#f5b82e] font-bold">
+                              <span className="text-[#facc15] font-bold">
                                 Preview · {opt.cost === 0 ? 'Free' : formatCash(opt.cost)}
                               </span>
                             ) : equipped ? (
@@ -1231,9 +1283,9 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                 </div>
 
                 {/* Drag Rims */}
-                <div className="arcade-panel p-4 space-y-3">
-                  <h4 className="font-bold text-sm text-[#f4f1e6]">Wheel Rims</h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="arcade-panel p-3.5 space-y-3">
+                  <h4 className="font-pixel text-[10px] text-[#facc15]">WHEEL RIMS</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {RIM_OPTIONS.map((opt) => {
                       const equipped = config.visuals.rims === opt.id;
                       const previewing = previewConfig.visuals.rims === opt.id && !equipped;
@@ -1245,18 +1297,18 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                             soundEngine.playUiClick();
                             setVisualDraft((prev) => ({ ...prev, rims: opt.id }));
                           }}
-                          className={`arcade-btn p-3 border-2 text-left cursor-pointer ${
+                          className={`arcade-btn p-2.5 border-2 text-left cursor-pointer ${
                             previewing
-                              ? 'bg-[#292140] border-[#f5b82e]'
+                              ? 'bg-[#272445] border-[#facc15]'
                               : equipped
-                              ? 'bg-[#1b2b22] border-[#22c55e]'
-                              : 'bg-[#171326] border-[#352d4d] hover:border-[#f5b82e]'
+                              ? 'bg-[#132b23] border-[#22c55e]'
+                              : 'bg-[#141d34] border-[#32446e] hover:border-[#facc15]'
                           }`}
                         >
-                          <div className="text-xs font-bold text-[#f4f1e6]">{opt.name}</div>
+                          <div className="text-xs font-bold text-[#f7f3e3]">{opt.name}</div>
                           <div className="font-mono-num text-[11px] text-[#94a3b8] mt-1">
                             {previewing ? (
-                              <span className="text-[#f5b82e] font-bold">
+                              <span className="text-[#facc15] font-bold">
                                 Preview · {opt.cost === 0 ? 'Free' : formatCash(opt.cost)}
                               </span>
                             ) : equipped ? (
@@ -1275,10 +1327,10 @@ export const GarageHub: React.FC<GarageHubProps> = ({
               </div>
             )}
 
-            {/* TAB 5: CAR SHOWROOM (25 CARS · 5 PER TIER · TURNTABLE STAGE + SIDE STATS PANEL) */}
+            {/* TAB 5: 3D VOXEL CAR SHOWROOM (25 CARS · 360° ORBIT TURNTABLE + SIDE STATS) */}
             {activeTab === 'DEALER' && (
-              <div className="space-y-3 sm:space-y-4">
-                {/* Tier 1..5 Showroom Class Selector (Single compact row on mobile & desktop) */}
+              <div className="space-y-3">
+                {/* Tier 1..5 Showroom Class Selector */}
                 <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
                   {TIERS.map((t) => {
                     const active = showroomTier === t.id;
@@ -1295,32 +1347,34 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                           setShowroomCarId(tierCars[0].id);
                           setShowroomSpecMode('CURRENT');
                         }}
-                        className={`arcade-btn p-2 sm:p-2.5 text-center sm:text-left border-2 transition-colors cursor-pointer ${
+                        className={`arcade-btn p-2 sm:p-2.5 text-center sm:text-left border-2 cursor-pointer ${
                           active
-                            ? 'bg-[#221c38] border-[#f5b82e] text-[#f4f1e6]'
-                            : 'bg-[#141120] border-[#302847] text-[#cbd5e1] hover:border-[#53467a]'
+                            ? 'bg-[#26355c] border-[#facc15] text-[#f7f3e3]'
+                            : 'bg-[#151e36] border-[#32446e] text-[#cbd5e1] hover:border-[#5b76b0]'
                         }`}
                       >
                         <div className="flex items-center justify-center sm:justify-between gap-1 text-[10px] font-mono-num">
-                          <span className={active ? 'text-[#f5b82e] font-bold' : 'text-[#94a3b8]'}>
+                          <span className={active ? 'text-[#facc15] font-bold' : 'text-[#94a3b8]'}>
                             <span className="sm:hidden text-xs">T{t.id}</span>
                             <span className="hidden sm:inline">TIER {t.id}</span>
                           </span>
                           {!unlocked ? (
-                            <Lock className="w-3 h-3 text-[#64748b]" />
+                            <PixelIcon name="lock" className="w-3.5 h-3.5" />
                           ) : (
-                            <span className="hidden sm:inline text-[#4ade80]">
+                            <span className="hidden sm:inline text-[#4ade80] font-bold">
                               {ownedInTier}/{tierCars.length}
                             </span>
                           )}
                         </div>
-                        <div className="hidden sm:block font-bold text-xs mt-1 truncate">{t.className}</div>
+                        <div className="hidden sm:block font-bold text-xs mt-1 truncate">
+                          {t.className}
+                        </div>
                       </button>
                     );
                   })}
                 </div>
 
-                {/* 5-Car Tier Selector Bar (Single horizontal swipe row on mobile, 5-col grid on desktop) */}
+                {/* 5-Car Tier Selector Bar */}
                 <div className="flex overflow-x-auto no-scrollbar gap-2 pb-0.5 sm:grid sm:grid-cols-5 sm:overflow-visible">
                   {showroomTierCars.map((c) => {
                     const owned = save.ownedCars.includes(c.id);
@@ -1335,27 +1389,27 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                           setShowroomCarId(c.id);
                           setShowroomSpecMode('CURRENT');
                         }}
-                        className={`arcade-btn min-w-[132px] sm:min-w-0 shrink-0 p-2 sm:p-2.5 text-left border-2 transition-colors cursor-pointer ${
+                        className={`arcade-btn min-w-[132px] sm:min-w-0 shrink-0 p-2 sm:p-2.5 text-left border-2 cursor-pointer ${
                           selected
-                            ? 'bg-[#241d3c] border-[#ff4d2e] text-[#f4f1e6]'
-                            : 'bg-[#151221] border-[#302847] text-[#cbd5e1] hover:border-[#53467a]'
+                            ? 'bg-[#291e38] border-[#ef3b2d] text-[#f7f3e3]'
+                            : 'bg-[#151e36] border-[#32446e] text-[#cbd5e1] hover:border-[#5b76b0]'
                         }`}
                       >
                         <div className="flex items-center justify-between gap-1 text-[10px] font-mono-num">
                           <span
-                            className="w-2.5 h-2.5 shrink-0 border border-white/30"
+                            className="w-3 h-3 shrink-0 border-2 border-[#060912]"
                             style={{ backgroundColor: c.defaultPaint }}
                           />
                           {owned ? (
-                            <span className="text-[#4ade80]">OWNED</span>
+                            <span className="text-[#4ade80] font-bold">OWNED</span>
                           ) : !unlocked ? (
-                            <Lock className="w-3 h-3 text-[#64748b]" />
+                            <PixelIcon name="lock" className="w-3.5 h-3.5" />
                           ) : (
-                            <span className="text-[#94a3b8]">{formatCash(c.price)}</span>
+                            <span className="text-[#cbd5e1]">{formatCash(c.price)}</span>
                           )}
                         </div>
                         <div className="font-bold text-xs mt-1 truncate">{c.name}</div>
-                        <div className="text-[10px] text-[#f5b82e] truncate mt-0.5">
+                        <div className="text-[10px] text-[#facc15] truncate mt-0.5">
                           {c.specialty}
                         </div>
                       </button>
@@ -1363,142 +1417,153 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                   })}
                 </div>
 
-                {/* Split Showroom Stage: Turntable Left · Detailed Stats Right */}
-                <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
-                  {/* Left: Illuminated Turntable Stage */}
-                  <div className="xl:col-span-7 arcade-panel p-4 flex flex-col justify-between gap-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-xs font-mono-num text-[#f5b82e]">
-                          TIER {showroomCar.tier} · {showroomCar.specialty.toUpperCase()} ·{' '}
-                          {showroomCar.gearRatios.length}-SPEED
-                          {showroomCar.hasParachute ? ' · CHUTE' : ''}
+                {/* Split Showroom Stage: 4-Angle Hi-Bit Turntable Left · Detailed Stats Right */}
+                <div className="grid grid-cols-1 xl:grid-cols-12 gap-3.5 items-stretch">
+                  {/* Left: Illuminated 4-Angle Hi-Bit Pixel Turntable Stage */}
+                  <div className="xl:col-span-7 arcade-panel overflow-hidden flex flex-col justify-between">
+                    <div className="p-3.5 flex-1 flex flex-col justify-between gap-3.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-[11px] font-mono-num text-[#f5b82e] font-bold">
+                            TIER {showroomCar.tier} · {showroomCar.specialty.toUpperCase()} ·{' '}
+                            {showroomCar.gearRatios.length}-SPD
+                            {showroomCar.hasParachute ? ' · CHUTE' : ''}
+                          </div>
+                          <h3 className="text-lg sm:text-xl font-bold text-[#f8fafc] mt-0.5 arcade-shadow-text">
+                            {showroomCar.name}
+                          </h3>
+                          <p className="text-xs text-[#94a3b8]">{showroomCar.subtitle}</p>
                         </div>
-                        <h3 className="text-xl font-bold text-[#f4f1e6] mt-0.5">
-                          {showroomCar.name}
-                        </h3>
-                        <p className="text-xs text-[#94a3b8]">{showroomCar.subtitle}</p>
-                      </div>
 
-                      {/* Turntable Controls */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="font-mono-num text-[11px] text-[#94a3b8] mr-1">
-                          {angleLabel}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={handleStepTurntable}
-                          aria-label="Rotate car 90 degrees"
-                          className="arcade-btn h-8 px-2.5 bg-[#1b162e] hover:bg-[#282144] border border-[#3d345c] text-xs font-semibold text-[#f4f1e6] flex items-center gap-1 cursor-pointer"
-                        >
-                          <RotateCw className="w-3.5 h-3.5" />
-                          <span>90°</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            soundEngine.playUiClick();
-                            setTurntableSpinning((s) => !s);
-                          }}
-                          aria-label={turntableSpinning ? 'Pause turntable' : 'Spin turntable'}
-                          className="arcade-btn h-8 w-8 bg-[#1b162e] hover:bg-[#282144] border border-[#3d345c] text-[#f4f1e6] flex items-center justify-center cursor-pointer"
-                        >
-                          {turntableSpinning ? (
-                            <Pause className="w-3.5 h-3.5" />
-                          ) : (
-                            <Play className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* High-Fidelity Showroom Turntable Canvas */}
-                    <div className="w-full aspect-[520/270] bg-[#0a0812] border-2 border-[#302847] overflow-hidden">
-                      <canvas
-                        ref={turntableCanvasRef}
-                        className="pixel-canvas w-full h-full block"
-                      />
-                    </div>
-
-                    {/* Purchase / Select Action Footer */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#2a2342]">
-                      <div className="font-mono-num">
-                        <div className="text-[11px] text-[#94a3b8]">SHOWROOM PRICE</div>
-                        <div className="text-lg font-bold text-[#22c55e]">
-                          {showroomOwned
-                            ? 'IN GARAGE'
-                            : showroomCar.price === 0
-                            ? 'STARTER'
-                            : formatCash(showroomCar.price)}
+                        {/* 4-Angle Turntable Controls */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={handleStepTurntable}
+                            aria-label="Rotate car 90 degrees"
+                            className="arcade-btn h-8 px-2.5 bg-[#141b2d] hover:bg-[#232d47] border-2 border-[#4f69a1] text-xs font-bold text-[#f8fafc] flex items-center gap-1 cursor-pointer"
+                          >
+                            <PixelIcon name="rotate" className="w-3.5 h-3.5" />
+                            <span>90°</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              soundEngine.playUiClick();
+                              setTurntableSpinning((s) => !s);
+                            }}
+                            aria-label={turntableSpinning ? 'Pause turntable' : 'Spin turntable'}
+                            className="arcade-btn h-8 w-8 bg-[#141b2d] hover:bg-[#232d47] border-2 border-[#4f69a1] text-[#f5b82e] flex items-center justify-center cursor-pointer"
+                          >
+                            <PixelIcon
+                              name={turntableSpinning ? 'pause' : 'play'}
+                              className="w-3.5 h-3.5"
+                            />
+                          </button>
                         </div>
                       </div>
 
-                      {showroomOwned ? (
-                        <button
-                          type="button"
-                          disabled={save.activeCarId === showroomCar.id}
-                          onClick={() => {
-                            soundEngine.playUiClick();
-                            onSelectCar(showroomCar.id);
-                          }}
-                          className={`arcade-btn px-5 py-2.5 text-xs font-bold flex items-center gap-1.5 whitespace-nowrap ${
-                            save.activeCarId === showroomCar.id
-                              ? 'bg-[#1b2e1f] text-[#4ade80] border-2 border-[#22c55e] cursor-default'
-                              : 'bg-[#ff4d2e] hover:bg-[#ff6247] text-white border-2 border-[#fff3b0] cursor-pointer'
-                          }`}
-                        >
-                          {save.activeCarId === showroomCar.id ? (
-                            <>
-                              <Check className="w-4 h-4" /> Active Car
-                            </>
-                          ) : (
-                            'Drive This Car'
-                          )}
-                        </button>
-                      ) : showroomCar.tier > save.highestUnlockedTier ? (
-                        <div className="text-xs font-mono-num text-[#94a3b8] flex items-center gap-1.5 bg-[#120f1e] border border-[#2c2544] px-3.5 py-2">
-                          <Lock className="w-3.5 h-3.5 text-[#f5b82e]" />
-                          <span>Beat Tier {showroomCar.tier - 1} Boss to Unlock</span>
+                      {/* 4-Angle Hi-Bit Showroom Turntable (SIDE R / FRONT / SIDE L / REAR) */}
+                      <div className="w-full aspect-[340/180] arcade-inset overflow-hidden relative">
+                        {mountShowroomTurntable ? (
+                          <HiBitShowcaseCanvas
+                            mode="turntable"
+                            chassis={showroomCar.chassis}
+                            bodyVariant={showroomCar.bodyVariant}
+                            visuals={showroomConfig.visuals}
+                            upgrades={showroomConfig.upgrades}
+                            spinning={turntableSpinning}
+                            snapQuarterTick={snapQuarterTick}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center font-mono-num text-xs text-[#64748b]">
+                            SHOWROOM STANDBY
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Purchase / Select Action Footer */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t-2 border-[#0b1020]">
+                        <div className="led-readout px-3 py-1.5 font-mono-num">
+                          <div className="text-[9px] text-[#94a3b8]">SHOWROOM PRICE</div>
+                          <div className="text-base sm:text-lg font-bold text-[#22c55e] leading-tight">
+                            {showroomOwned
+                              ? 'IN GARAGE'
+                              : showroomCar.price === 0
+                              ? 'STARTER'
+                              : formatCash(showroomCar.price)}
+                          </div>
                         </div>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled={save.cash < showroomCar.price}
-                          onClick={() => {
-                            soundEngine.playShopBuy();
-                            onBuyCar(showroomCar.id);
-                          }}
-                          className={`arcade-btn px-5 py-2.5 text-xs font-bold whitespace-nowrap ${
-                            save.cash >= showroomCar.price
-                              ? 'bg-[#ff4d2e] hover:bg-[#ff6247] text-white border-2 border-[#fff3b0] cursor-pointer'
-                              : 'bg-[#191529] text-[#64748b] border-2 border-[#2c2542] cursor-not-allowed'
-                          }`}
-                        >
-                          {save.cash >= showroomCar.price ? 'Purchase Chassis' : 'Insufficient Cash'}
-                        </button>
-                      )}
+
+                        {showroomOwned ? (
+                          <button
+                            type="button"
+                            disabled={save.activeCarId === showroomCar.id}
+                            onClick={() => {
+                              soundEngine.playUiClick();
+                              onSelectCar(showroomCar.id);
+                            }}
+                            className={`arcade-btn px-5 py-2.5 text-xs font-bold uppercase flex items-center gap-1.5 whitespace-nowrap border-2 ${
+                              save.activeCarId === showroomCar.id
+                                ? 'bg-[#132b23] text-[#4ade80] border-[#22c55e] cursor-default'
+                                : 'bg-[#ef3b2d] hover:bg-[#f45245] text-white border-[#facc15] cursor-pointer'
+                            }`}
+                          >
+                            {save.activeCarId === showroomCar.id ? (
+                              <>
+                                <PixelIcon name="check" className="w-4 h-4" /> Active Car
+                              </>
+                            ) : (
+                              'Drive This Car'
+                            )}
+                          </button>
+                        ) : showroomCar.tier > save.highestUnlockedTier ? (
+                          <div className="text-xs font-mono-num text-[#cbd5e1] flex items-center gap-1.5 arcade-inset px-3 py-2">
+                            <PixelIcon name="lock" className="w-4 h-4" />
+                            <span>Beat Tier {showroomCar.tier - 1} Boss to Unlock</span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={save.cash < showroomCar.price}
+                            onClick={() => {
+                              soundEngine.playShopBuy();
+                              onBuyCar(showroomCar.id);
+                            }}
+                            className={`arcade-btn px-5 py-2.5 text-xs font-bold uppercase whitespace-nowrap border-2 ${
+                              save.cash >= showroomCar.price
+                                ? 'bg-[#ef3b2d] hover:bg-[#f45245] text-white border-[#facc15] cursor-pointer'
+                                : 'bg-[#12182b] text-[#64748b] border-[#1f2947] cursor-not-allowed'
+                            }`}
+                          >
+                            {save.cash >= showroomCar.price
+                              ? 'Purchase Chassis'
+                              : 'Insufficient Cash'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   {/* Right: Detailed Car Stats & Characteristics Side Panel */}
-                  <div className="xl:col-span-5 arcade-panel p-4 flex flex-col justify-between gap-4">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between gap-2 border-b border-[#2a2342] pb-3">
+                  <div className="xl:col-span-5 arcade-panel p-3.5 flex flex-col justify-between gap-3.5">
+                    <div className="space-y-3.5">
+                      <div className="flex items-center justify-between gap-2 border-b-2 border-[#0b1020] pb-2.5">
                         <div>
-                          <h4 className="font-bold text-sm text-[#f4f1e6]">Car Specifications</h4>
-                          <div className="font-mono-num text-[11px] text-[#94a3b8]">
-                            PI {showroomPerf.pi} · Est. {showroomPerf.estimatedEtSec.toFixed(2)}s 1/4 Mi
+                          <h4 className="font-pixel text-[10px] text-[#facc15]">SPECIFICATIONS</h4>
+                          <div className="font-mono-num text-xs text-[#cbd5e1] mt-1">
+                            PI {showroomPerf.pi} · Est. {showroomPerf.estimatedEtSec.toFixed(2)}s
                           </div>
                         </div>
 
-                        {/* Stock/Current vs Maxed Build Inspector Toggle */}
-                        <div className="flex items-center gap-1 bg-[#0c0a14] border border-[#302847] p-0.5 text-[11px] font-mono-num">
+                        {/* Stock/Owned vs Maxed Inspector Toggle */}
+                        <div className="flex items-center gap-1 arcade-inset p-0.5 text-[11px] font-mono-num">
                           <button
                             type="button"
                             onClick={() => setShowroomSpecMode('CURRENT')}
                             className={`px-2 py-1 font-bold cursor-pointer ${
                               showroomSpecMode === 'CURRENT'
-                                ? 'bg-[#ff4d2e] text-white'
+                                ? 'bg-[#ef3b2d] text-white'
                                 : 'text-[#94a3b8] hover:text-white'
                             }`}
                           >
@@ -1509,7 +1574,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                             onClick={() => setShowroomSpecMode('MAXED')}
                             className={`px-2 py-1 font-bold cursor-pointer ${
                               showroomSpecMode === 'MAXED'
-                                ? 'bg-[#f5b82e] text-[#09070f]'
+                                ? 'bg-[#facc15] text-[#090d1a]'
                                 : 'text-[#94a3b8] hover:text-white'
                             }`}
                           >
@@ -1519,17 +1584,17 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                       </div>
 
                       {/* Core Stat Bars */}
-                      <div className="space-y-3 font-mono-num text-xs">
+                      <div className="space-y-2.5 font-mono-num text-xs">
                         <div>
                           <div className="flex justify-between mb-1">
                             <span className="text-[#94a3b8]">POWER OUTPUT</span>
-                            <span className="font-bold text-[#f4f1e6]">
+                            <span className="font-bold text-[#f7f3e3]">
                               {showroomPerf.hp.toLocaleString()} HP
                             </span>
                           </div>
-                          <div className="h-2.5 bg-[#0a0812] border border-[#2c2544]">
+                          <div className="h-3 arcade-inset p-0.5">
                             <div
-                              className="h-full bg-[#ff4d2e]"
+                              className="h-full bg-[#ef3b2d]"
                               style={{ width: `${hpBarPct}%` }}
                             />
                           </div>
@@ -1538,13 +1603,13 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                         <div>
                           <div className="flex justify-between mb-1">
                             <span className="text-[#94a3b8]">1/4 MILE PACE</span>
-                            <span className="font-bold text-[#f5b82e]">
+                            <span className="font-bold text-[#facc15]">
                               {showroomPerf.estimatedEtSec.toFixed(2)}s
                             </span>
                           </div>
-                          <div className="h-2.5 bg-[#0a0812] border border-[#2c2544]">
+                          <div className="h-3 arcade-inset p-0.5">
                             <div
-                              className="h-full bg-[#f5b82e]"
+                              className="h-full bg-[#facc15]"
                               style={{ width: `${paceBarPct}%` }}
                             />
                           </div>
@@ -1557,7 +1622,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                               {showroomPerf.grip.toFixed(2)} G
                             </span>
                           </div>
-                          <div className="h-2.5 bg-[#0a0812] border border-[#2c2544]">
+                          <div className="h-3 arcade-inset p-0.5">
                             <div
                               className="h-full bg-[#22c55e]"
                               style={{ width: `${gripBarPct}%` }}
@@ -1572,7 +1637,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                               {showroomPerf.weightLbs.toLocaleString()} LBS
                             </span>
                           </div>
-                          <div className="h-2.5 bg-[#0a0812] border border-[#2c2544]">
+                          <div className="h-3 arcade-inset p-0.5">
                             <div
                               className="h-full bg-[#38bdf8]"
                               style={{ width: `${agilityBarPct}%` }}
@@ -1583,40 +1648,43 @@ export const GarageHub: React.FC<GarageHubProps> = ({
 
                       {/* Technical Readout Grid */}
                       <div className="grid grid-cols-2 gap-2 font-mono-num text-xs pt-1">
-                        <div className="bg-[#0e0b18] border border-[#292240] px-2.5 py-2">
-                          <div className="text-[10px] text-[#94a3b8]">1/2 MI · 1 MILE</div>
+                        <div className="led-readout px-2.5 py-2">
+                          <div className="text-[9px] text-[#94a3b8]">1/2 MI · 1 MILE</div>
                           <div className="font-bold text-[#38bdf8] mt-0.5">
                             {showroomPerf.estimatedHalfEtSec.toFixed(2)}s ·{' '}
                             {showroomPerf.estimatedMileEtSec.toFixed(2)}s
                           </div>
                         </div>
-                        <div className="bg-[#0e0b18] border border-[#292240] px-2.5 py-2">
-                          <div className="text-[10px] text-[#94a3b8]">TOP SPEED · DRAG</div>
-                          <div className="font-bold text-[#f4f1e6] mt-0.5">
+                        <div className="led-readout px-2.5 py-2">
+                          <div className="text-[9px] text-[#94a3b8]">TOP SPEED · DRAG</div>
+                          <div className="font-bold text-[#f7f3e3] mt-0.5">
                             {showroomPerf.topSpeedMph} MPH · {showroomCar.dragCoeff.toFixed(2)} Cd
                           </div>
                         </div>
-                        <div className="bg-[#0e0b18] border border-[#292240] px-2.5 py-2">
-                          <div className="text-[10px] text-[#94a3b8]">HP / TON · REDLINE</div>
-                          <div className="font-bold text-[#f4f1e6] mt-0.5">
-                            {Math.round(showroomPerf.hp / (showroomPerf.weightLbs / 2000)).toLocaleString()} ·{' '}
-                            {(showroomPerf.redlineRpm / 1000).toFixed(1)}k
+                        <div className="led-readout px-2.5 py-2">
+                          <div className="text-[9px] text-[#94a3b8]">HP / TON · REDLINE</div>
+                          <div className="font-bold text-[#f7f3e3] mt-0.5">
+                            {Math.round(
+                              showroomPerf.hp / (showroomPerf.weightLbs / 2000)
+                            ).toLocaleString()}{' '}
+                            · {(showroomPerf.redlineRpm / 1000).toFixed(1)}k
                           </div>
                         </div>
-                        <div className="bg-[#0e0b18] border border-[#292240] px-2.5 py-2">
-                          <div className="text-[10px] text-[#94a3b8]">LAUNCH · BOOST</div>
+                        <div className="led-readout px-2.5 py-2">
+                          <div className="text-[9px] text-[#94a3b8]">LAUNCH · BOOST</div>
                           <div className="font-bold text-[#22c55e] mt-0.5">
-                            {(showroomCar.launchRpmMin / 1000).toFixed(1)}k–{(showroomCar.launchRpmMax / 1000).toFixed(1)}k · +
+                            {(showroomCar.launchRpmMin / 1000).toFixed(1)}k–
+                            {(showroomCar.launchRpmMax / 1000).toFixed(1)}k · +
                             {Math.round((showroomPerf.shiftBoostMult - 1) * 100)}%
                           </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* Chassis Characteristics (clean unboxed typographic list) */}
-                    <div className="pt-3 border-t border-[#2a2342] space-y-1.5">
-                      <div className="text-[11px] font-semibold text-[#94a3b8]">
-                        Chassis Characteristics
+                    {/* Chassis Characteristics */}
+                    <div className="pt-2.5 border-t-2 border-[#0b1020] space-y-1">
+                      <div className="font-pixel text-[9px] text-[#94a3b8]">
+                        CHASSIS CHARACTERISTICS
                       </div>
                       <div className="text-xs text-[#cbd5e1] leading-relaxed">
                         {getCarCharacteristics(showroomCar).join(' · ')}
@@ -1627,18 +1695,18 @@ export const GarageHub: React.FC<GarageHubProps> = ({
               </div>
             )}
 
-            {/* TAB 6: LOCAL & GLOBAL LEADERBOARDS */}
+            {/* TAB 6: LOCAL & GLOBAL LEADERBOARDS + 3D VOXEL REPLAY THEATER */}
             {activeTab === 'LEADERBOARD' && (
-              <div className="arcade-panel p-4 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="arcade-panel p-3.5 sm:p-4 space-y-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2.5">
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-1 bg-[#0c0a14] border border-[#302847] p-1">
+                    <div className="flex items-center gap-1 arcade-inset p-1">
                       <button
                         type="button"
                         onClick={() => setBoardScope('GLOBAL')}
-                        className={`px-3.5 py-1.5 text-xs font-bold whitespace-nowrap cursor-pointer ${
+                        className={`px-3 py-1.5 text-xs font-bold uppercase whitespace-nowrap cursor-pointer ${
                           boardScope === 'GLOBAL'
-                            ? 'bg-[#ff4d2e] text-white'
+                            ? 'bg-[#ef3b2d] text-white'
                             : 'text-[#94a3b8] hover:text-white'
                         }`}
                       >
@@ -1647,9 +1715,9 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                       <button
                         type="button"
                         onClick={() => setBoardScope('LOCAL')}
-                        className={`px-3.5 py-1.5 text-xs font-bold whitespace-nowrap cursor-pointer ${
+                        className={`px-3 py-1.5 text-xs font-bold uppercase whitespace-nowrap cursor-pointer ${
                           boardScope === 'LOCAL'
-                            ? 'bg-[#ff4d2e] text-white'
+                            ? 'bg-[#ef3b2d] text-white'
                             : 'text-[#94a3b8] hover:text-white'
                         }`}
                       >
@@ -1658,7 +1726,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                     </div>
 
                     {/* Strip Distance Filter */}
-                    <div className="flex items-center gap-1 bg-[#0c0a14] border border-[#302847] p-1 font-mono-num">
+                    <div className="flex items-center gap-1 arcade-inset p-1 font-mono-num">
                       {STRIP_DISTANCES.map((d) => (
                         <button
                           key={d.id}
@@ -1666,7 +1734,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                           onClick={() => setBoardDistanceFilter(d.id)}
                           className={`px-2.5 py-1.5 text-xs font-bold whitespace-nowrap cursor-pointer ${
                             boardDistanceFilter === d.id
-                              ? 'bg-[#38bdf8] text-[#09070f]'
+                              ? 'bg-[#38bdf8] text-[#090d1a]'
                               : 'text-[#94a3b8] hover:text-white'
                           }`}
                         >
@@ -1682,13 +1750,13 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                         key={tf}
                         type="button"
                         onClick={() => setBoardTierFilter(tf)}
-                        className={`px-2.5 py-1 text-xs font-mono-num border whitespace-nowrap cursor-pointer ${
+                        className={`arcade-btn px-2.5 py-1 text-xs font-mono-num font-bold border-2 whitespace-nowrap cursor-pointer ${
                           boardTierFilter === tf
-                            ? 'bg-[#2a2345] text-[#f5b82e] border-[#f5b82e]'
-                            : 'bg-[#120f1e] text-[#94a3b8] border-[#2c2544] hover:text-white'
+                            ? 'bg-[#26355c] text-[#facc15] border-[#facc15]'
+                            : 'bg-[#141d34] text-[#94a3b8] border-[#32446e] hover:text-white'
                         }`}
                       >
-                        {tf === 0 ? 'All' : `T${tf}`}
+                        {tf === 0 ? 'ALL' : `T${tf}`}
                       </button>
                     ))}
                     {boardScope === 'GLOBAL' && (
@@ -1696,23 +1764,27 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                         type="button"
                         onClick={onRefreshGlobal}
                         aria-label="Refresh global leaderboard"
-                        className="h-7 w-7 flex items-center justify-center bg-[#120f1e] border border-[#2c2544] text-[#cbd5e1] hover:border-[#f5b82e] cursor-pointer"
+                        className="arcade-btn h-8 w-8 flex items-center justify-center bg-[#141d34] border-2 border-[#32446e] text-[#cbd5e1] hover:border-[#facc15] cursor-pointer"
                       >
-                        <RefreshCw className={`w-3.5 h-3.5 ${globalLoading ? 'animate-spin' : ''}`} />
+                        <PixelIcon
+                          name="restart"
+                          className={`w-4 h-4 ${globalLoading ? 'animate-spin' : ''}`}
+                        />
                       </button>
                     )}
                   </div>
                 </div>
 
                 {boardScope === 'GLOBAL' && !user && (
-                  <div className="flex flex-wrap items-center justify-between gap-3 bg-[#1b162e] border border-[#3d345c] px-3.5 py-2.5 text-xs text-[#cbd5e1]">
+                  <div className="flex flex-wrap items-center justify-between gap-3 arcade-inset px-3.5 py-2.5 text-xs text-[#cbd5e1]">
                     <span>
-                      Sign in with Google to post your 1/4, 1/2, and 1 Mile ETs to the Global Leaderboard and sync your garage.
+                      Sign in with Google to post your 1/4, 1/2, and 1 Mile ETs to the Global
+                      Leaderboard and sync your garage.
                     </span>
                     <button
                       type="button"
                       onClick={onSignIn}
-                      className="arcade-btn px-3 py-1.5 bg-[#f5b82e] text-[#09070f] font-bold whitespace-nowrap cursor-pointer"
+                      className="arcade-btn px-3 py-1.5 bg-[#facc15] text-[#090d1a] border-2 border-[#fef08a] font-bold uppercase whitespace-nowrap cursor-pointer"
                     >
                       Sign In
                     </button>
@@ -1720,22 +1792,63 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                 )}
 
                 {boardScope === 'GLOBAL' && globalError && (
-                  <div className="bg-[#2c1518] border border-[#ef4444] px-3.5 py-2.5 text-xs text-[#fecaca]">
+                  <div className="bg-[#2c1518] border-2 border-[#ef3b2d] px-3.5 py-2.5 text-xs text-[#fecaca]">
                     {globalError}
                   </div>
                 )}
 
-                <div className="overflow-x-auto">
+                {boardScope === 'LOCAL' && filteredLocal[0]?.replay && (
+                  <div className="arcade-panel-gold p-3 sm:p-3.5 flex flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex items-center gap-2 font-pixel text-[9px] text-[#f5b82e]">
+                        <PixelIcon name="film" className="w-4 h-4 shrink-0" />
+                        <span>
+                          BEST {boardDistSpec.shortLabel.toUpperCase()} REPLAY
+                          {boardTierFilter > 0 ? ` · T${boardTierFilter}` : ''}
+                        </span>
+                      </div>
+                      <div className="text-xs sm:text-sm font-bold text-[#f8fafc] truncate">
+                        {filteredLocal[0].carName} ·{' '}
+                        <span className="font-mono-num text-[#22c55e]">
+                          {formatEt(filteredLocal[0].etMs)}
+                        </span>{' '}
+                        <span className="font-mono-num text-[#cbd5e1]">
+                          @ {filteredLocal[0].trapMph.toFixed(1)} MPH
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-[#94a3b8] font-mono-num">
+                        {filteredLocal[0].perfectShifts} Perfect Shifts ·{' '}
+                        {filteredLocal[0].replay.events.length} Shift &amp; Launch Markers Recorded
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundEngine.playUiClick();
+                        setReplayRecord(filteredLocal[0]);
+                      }}
+                      className="arcade-btn px-3.5 py-2 bg-[#f5b82e] hover:bg-[#fde047] text-[#0e1320] border-2 border-[#fef08a] text-xs font-bold uppercase flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                    >
+                      <PixelIcon name="play" className="w-3.5 h-3.5" />
+                      <span>Watch Replay</span>
+                    </button>
+                  </div>
+                )}
+
+                <div className="overflow-x-auto arcade-inset p-2">
                   <table className="w-full text-left border-collapse font-mono-num text-xs">
                     <thead>
-                      <tr className="border-b border-[#302847] text-[#94a3b8]">
+                      <tr className="border-b-2 border-[#26355c] text-[#facc15]">
                         <th className="py-2 pr-2 sm:pr-3">#</th>
                         <th className="py-2 pr-2 sm:pr-3">DRIVER</th>
                         <th className="py-2 pr-2 sm:pr-3">CLS</th>
                         <th className="py-2 pr-2 sm:pr-3">CAR</th>
-                        <th className="py-2 pr-2 sm:pr-3 text-right">{boardDistSpec.shortLabel} ET</th>
-                        <th className="py-2 pr-0 sm:pr-3 text-right">TRAP</th>
-                        <th className="hidden sm:table-cell py-2 text-right">RT</th>
+                        <th className="py-2 pr-2 sm:pr-3 text-right">
+                          {boardDistSpec.shortLabel} ET
+                        </th>
+                        <th className="py-2 pr-2 sm:pr-3 text-right">TRAP</th>
+                        <th className="hidden sm:table-cell py-2 pr-2 sm:pr-3 text-right">RT</th>
+                        {boardScope === 'LOCAL' && <th className="py-2 text-right">REPLAY</th>}
                       </tr>
                     </thead>
                     <tbody>
@@ -1749,7 +1862,8 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                         ) : filteredGlobal.length === 0 ? (
                           <tr>
                             <td colSpan={7} className="py-8 text-center text-[#94a3b8]">
-                              No global {boardDistSpec.label.toLowerCase()} runs recorded in this class yet. Set the first track record!
+                              No global {boardDistSpec.label.toLowerCase()} runs recorded in this
+                              class yet. Set the first track record!
                             </td>
                           </tr>
                         ) : (
@@ -1758,20 +1872,20 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                             return (
                               <tr
                                 key={entry.id}
-                                className={`border-b border-[#221c36] ${
-                                  isMe ? 'bg-[#261d38]' : 'hover:bg-[#1a152b]'
+                                className={`border-b border-[#19233d] ${
+                                  isMe ? 'bg-[#1f2e52]' : 'hover:bg-[#131b31]'
                                 }`}
                               >
-                                <td className="py-2 pr-2 sm:pr-3 font-bold text-[#f5b82e]">
+                                <td className="py-2 pr-2 sm:pr-3 font-bold text-[#facc15]">
                                   {idx + 1}
                                 </td>
-                                <td className="py-2 pr-2 sm:pr-3 font-semibold text-[#f4f1e6] max-w-[90px] sm:max-w-none truncate">
+                                <td className="py-2 pr-2 sm:pr-3 font-semibold text-[#f7f3e3] max-w-[90px] sm:max-w-none truncate">
                                   {entry.driverName}
                                 </td>
                                 <td className="py-2 pr-2 sm:pr-3 text-[#94a3b8]">T{entry.tier}</td>
                                 <td className="py-2 pr-2 sm:pr-3 text-[#cbd5e1] max-w-[100px] sm:max-w-none truncate">
                                   <span
-                                    className="inline-block w-2 h-2 sm:w-2.5 sm:h-2.5 mr-1.5 sm:mr-2 align-middle border border-white/30"
+                                    className="inline-block w-2.5 h-2.5 mr-1.5 align-middle border border-[#060912]"
                                     style={{ backgroundColor: entry.paintColor }}
                                   />
                                   {entry.carName}
@@ -1779,7 +1893,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                                 <td className="py-2 pr-2 sm:pr-3 text-right font-bold text-[#22c55e]">
                                   {formatEt(entry.etMs)}
                                 </td>
-                                <td className="py-2 pr-0 sm:pr-3 text-right text-[#f4f1e6]">
+                                <td className="py-2 pr-0 sm:pr-3 text-right text-[#f7f3e3]">
                                   {entry.trapMph.toFixed(1)}
                                 </td>
                                 <td className="hidden sm:table-cell py-2 text-right text-[#94a3b8]">
@@ -1791,26 +1905,27 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                         )
                       ) : filteredLocal.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="py-8 text-center text-[#94a3b8]">
-                            Complete a clean {boardDistSpec.label.toLowerCase()} run to log your local track records.
+                          <td colSpan={8} className="py-8 text-center text-[#94a3b8]">
+                            Complete a clean {boardDistSpec.label.toLowerCase()} run to log your
+                            local track records and shift-timing replays.
                           </td>
                         </tr>
                       ) : (
                         filteredLocal.map((entry, idx) => (
                           <tr
                             key={entry.id}
-                            className="border-b border-[#221c36] hover:bg-[#1a152b]"
+                            className="border-b border-[#19233d] hover:bg-[#131b31]"
                           >
-                            <td className="py-2 pr-2 sm:pr-3 font-bold text-[#f5b82e]">
+                            <td className="py-2 pr-2 sm:pr-3 font-bold text-[#facc15]">
                               {idx + 1}
                             </td>
-                            <td className="py-2 pr-2 sm:pr-3 font-semibold text-[#f4f1e6] max-w-[90px] sm:max-w-none truncate">
+                            <td className="py-2 pr-2 sm:pr-3 font-semibold text-[#f7f3e3] max-w-[82px] sm:max-w-none truncate">
                               {entry.driverName}
                             </td>
                             <td className="py-2 pr-2 sm:pr-3 text-[#94a3b8]">T{entry.tier}</td>
-                            <td className="py-2 pr-2 sm:pr-3 text-[#cbd5e1] max-w-[100px] sm:max-w-none truncate">
+                            <td className="py-2 pr-2 sm:pr-3 text-[#cbd5e1] max-w-[92px] sm:max-w-none truncate">
                               <span
-                                className="inline-block w-2 h-2 sm:w-2.5 sm:h-2.5 mr-1.5 sm:mr-2 align-middle border border-white/30"
+                                className="inline-block w-2.5 h-2.5 mr-1.5 align-middle border border-[#060912]"
                                 style={{ backgroundColor: entry.paintColor }}
                               />
                               {entry.carName}
@@ -1818,11 +1933,32 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                             <td className="py-2 pr-2 sm:pr-3 text-right font-bold text-[#22c55e]">
                               {formatEt(entry.etMs)}
                             </td>
-                            <td className="py-2 pr-0 sm:pr-3 text-right text-[#f4f1e6]">
+                            <td className="py-2 pr-2 sm:pr-3 text-right text-[#f7f3e3]">
                               {entry.trapMph.toFixed(1)}
                             </td>
-                            <td className="hidden sm:table-cell py-2 text-right text-[#94a3b8]">
+                            <td className="hidden sm:table-cell py-2 pr-2 sm:pr-3 text-right text-[#94a3b8]">
                               {(entry.reactionMs / 1000).toFixed(3)}s
+                            </td>
+                            <td className="py-1.5 text-right">
+                              {entry.replay ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    soundEngine.playUiClick();
+                                    setReplayRecord(entry);
+                                  }}
+                                  className={`arcade-btn px-2 py-1 text-[11px] font-bold inline-flex items-center gap-1 whitespace-nowrap cursor-pointer border-2 ${
+                                    idx === 0
+                                      ? 'bg-[#facc15] hover:bg-[#fde047] text-[#090d1a] border-[#fef9c3]'
+                                      : 'bg-[#1a2542] hover:bg-[#26355c] text-[#f7f3e3] border-[#4f69a1]'
+                                  }`}
+                                >
+                                  <PixelIcon name="play" className="w-3 h-3" />
+                                  <span>Watch</span>
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-[#64748b]">—</span>
+                              )}
                             </td>
                           </tr>
                         ))
@@ -1836,10 +1972,10 @@ export const GarageHub: React.FC<GarageHubProps> = ({
         </section>
       </div>
 
-      {/* Mobile Fixed Bottom Thumb Navigation Bar (<= 15% combined sticky height, 48px+ targets) */}
+      {/* Mobile Fixed Bottom Thumb Navigation Bar */}
       <nav
         aria-label="Garage sections"
-        className="lg:hidden shrink-0 bg-[#141020] border-t-2 border-[#302847] grid grid-cols-6 pb-[env(safe-area-inset-bottom)]"
+        className="lg:hidden shrink-0 bg-[#192033] border-t-[3px] border-[#3c4d73] grid grid-cols-6 pb-[env(safe-area-inset-bottom)]"
       >
         {tabs.map((tab) => {
           const active = activeTab === tab.id && !mobileDynoOpen;
@@ -1850,11 +1986,11 @@ export const GarageHub: React.FC<GarageHubProps> = ({
               onClick={() => handleSelectTab(tab.id)}
               className={`min-h-[52px] flex flex-col items-center justify-center gap-0.5 px-1 transition-colors cursor-pointer ${
                 active
-                  ? 'bg-[#261c3d] text-[#ff4d2e] border-t-2 border-[#ff4d2e] -mt-[2px]'
-                  : 'text-[#94a3b8] hover:text-[#f4f1e6]'
+                  ? 'bg-[#ff4d3d] text-white border-t-[3px] border-[#f5b82e] -mt-[3px]'
+                  : 'text-[#94a3b8] hover:text-[#f8fafc]'
               }`}
             >
-              {tab.icon}
+              <PixelIcon name={tab.icon} className="w-4 h-4" />
               <span className="text-[10px] font-bold leading-none whitespace-nowrap">
                 {tab.shortLabel}
               </span>
@@ -1862,6 +1998,17 @@ export const GarageHub: React.FC<GarageHubProps> = ({
           );
         })}
       </nav>
+
+      {/* 3D Voxel Race Replay Theater Modal */}
+      {replayRecord && (
+        <RaceReplayModal
+          record={replayRecord}
+          onClose={() => {
+            soundEngine.playUiClick();
+            setReplayRecord(null);
+          }}
+        />
+      )}
     </div>
   );
 };

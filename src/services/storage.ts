@@ -135,14 +135,46 @@ export function addLocalRecord(record: Omit<LocalRecord, 'id' | 'timestamp'>): {
     timestamp: Date.now(),
   };
 
-  const next = [...existing, entry]
+  const sorted = [...existing, entry]
     .sort((a, b) => a.etMs - b.etMs)
     .slice(0, 90);
+
+  // Preserve full replay payloads on every (tier, distance) #1 best run + up to 18 fastest replays overall
+  const bestByBucket = new Set<string>();
+  const keptReplays = new Set<string>();
+  for (const r of sorted) {
+    const key = `${r.tier}_${r.distance ?? 'quarter'}`;
+    if (!bestByBucket.has(key) && r.replay) {
+      bestByBucket.add(key);
+      keptReplays.add(r.id);
+    }
+  }
+  let extraCount = 0;
+  for (const r of sorted) {
+    if (r.replay && !keptReplays.has(r.id) && extraCount < 12) {
+      keptReplays.add(r.id);
+      extraCount++;
+    }
+  }
+
+  const next: LocalRecord[] = sorted.map((r) =>
+    r.replay && !keptReplays.has(r.id) ? { ...r, replay: undefined } : r
+  );
 
   try {
     localStorage.setItem(LOCAL_BOARD_KEY, JSON.stringify(next));
   } catch {
-    // Ignore storage quota errors
+    // Storage quota fallback: keep replays strictly on #1 best per (tier, distance) bucket
+    const compact = next.map((r) =>
+      r.replay && !bestByBucket.has(`${r.tier}_${r.distance ?? 'quarter'}`)
+        ? { ...r, replay: undefined }
+        : r
+    );
+    try {
+      localStorage.setItem(LOCAL_BOARD_KEY, JSON.stringify(compact));
+    } catch {
+      // Ignore storage quota errors
+    }
   }
 
   return { records: next, isNewBestInTier };

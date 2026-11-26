@@ -1,0 +1,168 @@
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  drawHiBitPitBay,
+  drawHiBitShowroomTurntable,
+  getHiBitShowroomAngleLabel,
+  ShowroomAngle,
+} from '../engine/hibitArt';
+import { BodyVariant, CarUpgrades, CarVisuals, ChassisStyle } from '../types/game';
+
+interface HiBitShowcaseCanvasProps {
+  mode: 'pitbay' | 'turntable';
+  chassis: ChassisStyle;
+  bodyVariant?: BodyVariant;
+  visuals: CarVisuals;
+  upgrades: CarUpgrades;
+  spinning?: boolean;
+  snapQuarterTick?: number;
+  className?: string;
+}
+
+const ANGLE_BADGE_LABELS: Record<ShowroomAngle, string> = {
+  'SIDE R': 'RIGHT PROFILE',
+  FRONT: 'FRONT ELEVATION',
+  'SIDE L': 'LEFT PROFILE',
+  REAR: 'REAR ELEVATION',
+};
+
+/**
+ * Pure 2D Hi-Bit Pixel Art Showcase Canvas (Zero 3D / Zero WebGL / Zero Anti-Aliasing):
+ * - 'pitbay': 320×160 logical pixels with spinning dyno rollers & wet-floor pixel reflection
+ * - 'turntable': 340×180 logical pixels with 4-angle pixel rotation (SIDE R / FRONT / SIDE L / REAR)
+ */
+export const HiBitShowcaseCanvas: React.FC<HiBitShowcaseCanvasProps> = ({
+  mode,
+  chassis,
+  bodyVariant,
+  visuals,
+  upgrades,
+  spinning = true,
+  snapQuarterTick = 0,
+  className = '',
+}) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const angleRef = useRef(0);
+  const targetAngleRef = useRef<number | null>(null);
+  const spinningRef = useRef(spinning);
+  spinningRef.current = spinning;
+
+  const [angleLabel, setAngleLabel] = useState<ShowroomAngle>('SIDE R');
+  const lastLabelRef = useRef<ShowroomAngle>('SIDE R');
+  const prevSnapRef = useRef(snapQuarterTick);
+
+  // Trigger clean 90° turntable step when button clicked
+  useEffect(() => {
+    if (mode !== 'turntable') return;
+    if (snapQuarterTick !== prevSnapRef.current) {
+      prevSnapRef.current = snapQuarterTick;
+      const quarter = Math.PI / 2;
+      const curBase = targetAngleRef.current ?? angleRef.current;
+      targetAngleRef.current = Math.round(curBase / quarter) * quarter + quarter;
+    }
+  }, [mode, snapQuarterTick]);
+
+  // Reset angle cleanly when switching chassis/car on turntable
+  useEffect(() => {
+    if (mode !== 'turntable') return;
+    angleRef.current = 0;
+    targetAngleRef.current = null;
+    lastLabelRef.current = 'SIDE R';
+    setAngleLabel('SIDE R');
+  }, [mode, chassis, bodyVariant]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const logicalW = mode === 'turntable' ? 340 : 320;
+    const logicalH = mode === 'turntable' ? 180 : 160;
+    canvas.width = logicalW;
+    canvas.height = logicalH;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.imageSmoothingEnabled = false;
+
+    let alive = true;
+    let rafId = 0;
+    let lastNow = performance.now();
+    const startMs = lastNow;
+
+    const tick = () => {
+      if (!alive) return;
+      const now = performance.now();
+      const dt = Math.min(0.05, Math.max(0.001, (now - lastNow) / 1000));
+      lastNow = now;
+      const timeSec = (now - startMs) / 1000;
+
+      if (mode === 'pitbay') {
+        drawHiBitPitBay(
+          ctx,
+          logicalW,
+          logicalH,
+          chassis,
+          visuals,
+          upgrades,
+          timeSec,
+          bodyVariant
+        );
+      } else {
+        if (targetAngleRef.current !== null) {
+          const diff = targetAngleRef.current - angleRef.current;
+          if (Math.abs(diff) < 0.02) {
+            angleRef.current = targetAngleRef.current;
+            targetAngleRef.current = null;
+          } else {
+            angleRef.current += diff * Math.min(1, dt * 10);
+          }
+        } else if (spinningRef.current) {
+          angleRef.current += dt * 0.62;
+        }
+
+        drawHiBitShowroomTurntable(
+          ctx,
+          logicalW,
+          logicalH,
+          chassis,
+          visuals,
+          upgrades,
+          angleRef.current,
+          timeSec,
+          bodyVariant
+        );
+
+        const nextLabel = getHiBitShowroomAngleLabel(angleRef.current);
+        if (nextLabel !== lastLabelRef.current) {
+          lastLabelRef.current = nextLabel;
+          setAngleLabel(nextLabel);
+        }
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+
+    return () => {
+      alive = false;
+      cancelAnimationFrame(rafId);
+    };
+  }, [mode, chassis, bodyVariant, visuals, upgrades]);
+
+  return (
+    <div className={`relative w-full h-full select-none ${className}`}>
+      <canvas
+        ref={canvasRef}
+        className="pixel-canvas w-full h-full block"
+        aria-label={
+          mode === 'pitbay' ? 'Hi-bit garage pit bay preview' : 'Hi-bit 4-angle showroom turntable'
+        }
+      />
+      {mode === 'turntable' && (
+        <div className="pointer-events-none absolute bottom-1.5 right-2 bg-[#0e1320] border-2 border-[#3c4d73] shadow-[2px_2px_0_#070a12] px-2 py-0.5 font-pixel text-[8px] text-[#f5b82e]">
+          {ANGLE_BADGE_LABELS[angleLabel]}
+        </div>
+      )}
+    </div>
+  );
+};

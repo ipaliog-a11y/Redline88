@@ -19,6 +19,9 @@ export type EnvironmentTheme =
   | 'speedway'
   | 'nationals';
 
+export type TimeOfDay = 'afternoon' | 'sunset' | 'night';
+export type TimeOfDayMode = 'auto' | TimeOfDay;
+
 export type ChassisStyle =
   | 'hatch'
   | 'muscle'
@@ -174,6 +177,63 @@ export interface PlayerSave {
   totalRaces: number;
 }
 
+export interface ReplayShiftEvent {
+  t: number;
+  distFt: number;
+  mph: number;
+  rpm: number;
+  fromGear: number;
+  toGear: number;
+  rating: ShiftRating;
+  color: string;
+  usedClutch?: boolean;
+  kind: 'launch' | 'shift' | 'nitrous';
+}
+
+export interface ReplaySample {
+  t: number;
+  d: number;
+  v: number;
+  r: number;
+  g: number;
+  p: number;
+  rd?: number;
+  b?: 1;
+}
+
+export interface RaceReplayData {
+  tier: TierId;
+  distance: StripDistanceId;
+  distanceFt: number;
+  timeOfDay?: TimeOfDay;
+  carId: string;
+  visuals: CarVisuals;
+  upgrades: CarUpgrades;
+  redlineRpm: number;
+  launchMinRpm: number;
+  launchMaxRpm: number;
+  shiftMinRpm: number;
+  shiftMaxRpm: number;
+  totalEtSec: number;
+  trapMph: number;
+  reactionSec: number;
+  sixtyFtSec: number;
+  quarterSplitSec?: number;
+  halfSplitSec?: number;
+  rival?: {
+    name: string;
+    carName: string;
+    chassis: ChassisStyle;
+    bodyVariant?: BodyVariant;
+    paintColor: string;
+    stripe: StripeStyle;
+    rims: RimStyle;
+    upgrades: CarUpgrades;
+  };
+  events: ReplayShiftEvent[];
+  samples: ReplaySample[];
+}
+
 export interface LocalRecord {
   id: string;
   driverName: string;
@@ -187,6 +247,7 @@ export interface LocalRecord {
   perfectShifts: number;
   paintColor: string;
   timestamp: number;
+  replay?: RaceReplayData;
 }
 
 export interface GlobalLeaderboardEntry {
@@ -283,8 +344,10 @@ export interface RaceResult {
   launchBonusCash: number;
   recordBonusCash: number;
   totalCashEarned: number;
+  isRematch?: boolean;
   unlockedNextTier: boolean;
   isNewPersonalBest: boolean;
+  replay?: RaceReplayData;
 }
 
 export type AppScreen = 'TITLE' | 'GARAGE' | 'RACE';

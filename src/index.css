@@ -5,6 +5,20 @@
     --font-pixel: 'Press Start 2P', monospace;
     --font-ui: 'Chakra Petch', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
+
+    /* Modern Hi-Bit Indie Racing Palette (Golf Story / Diving Club vibe) */
+    --ui-bg: #111623;
+    --ui-surface: #192033;
+    --ui-surface-hi: #222c45;
+    --ui-inset: #0e1320;
+    --ui-border: #3c4d73;
+    --ui-border-bright: #5c73a6;
+    --ui-shadow: #070a12;
+    --ui-coral: #ff4d3d;
+    --ui-amber: #f5b82e;
+    --ui-emerald: #22c55e;
+    --ui-sky: #38bdf8;
+    --ui-cream: #f8f5ea;
   }
 
   html,
@@ -16,8 +30,8 @@
     margin: 0;
     padding: 0;
     font-family: var(--font-ui);
-    background-color: #0d0b14;
-    color: #f4f1e6;
+    background-color: var(--ui-bg);
+    color: var(--ui-cream);
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -46,42 +60,80 @@
   font-variant-numeric: tabular-nums;
 }
 
-.pixel-canvas {
+.pixel-canvas,
+.pixel-sprite {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
 
-/* Crisp retro cabinet bevel borders without neon slop */
+/* Clean Modern Hi-Bit Panels: solid dark fill, thick single-color border, hard 2px drop shadow */
+.pixel-panel,
 .arcade-panel {
-  background-color: #151221;
-  border: 2px solid #352d4d;
-  box-shadow: 0 4px 0 #09070f;
+  background-color: var(--ui-surface);
+  border: 3px solid var(--ui-border);
+  box-shadow: 2px 2px 0 var(--ui-shadow);
 }
 
+.pixel-panel-accent,
+.arcade-panel-gold {
+  background-color: #1f2740;
+  border: 3px solid var(--ui-amber);
+  box-shadow: 2px 2px 0 var(--ui-shadow);
+}
+
+.pixel-inset,
+.arcade-inset,
+.led-readout {
+  background-color: var(--ui-inset);
+  border: 3px solid #2b3754;
+}
+
+/* Crisp Tactile Indie Pixel Buttons: single-color thick border + hard 2px drop shadow */
+.pixel-btn,
 .arcade-btn {
-  transition: transform 90ms cubic-bezier(0.16, 1, 0.3, 1), background-color 120ms ease, border-color 120ms ease;
+  transition: transform 70ms cubic-bezier(0.16, 1, 0.3, 1), background-color 110ms ease, border-color 110ms ease;
+  box-shadow: 2px 2px 0 var(--ui-shadow);
 }
 
+.pixel-btn:active:not(:disabled),
 .arcade-btn:active:not(:disabled) {
-  transform: translateY(2px);
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--ui-shadow);
 }
 
-/* Custom sleek dark scrollbar for shop/leaderboard drawers */
+.pixel-btn:disabled,
+.arcade-btn:disabled {
+  box-shadow: none;
+}
+
+.pixel-shadow-text,
+.arcade-shadow-text {
+  text-shadow: 2px 2px 0 var(--ui-shadow);
+}
+
+.pixel-shadow-text-lg,
+.arcade-shadow-text-lg {
+  text-shadow: 3px 3px 0 var(--ui-shadow);
+}
+
+/* Clean dark scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #120f1c;
+  background: #0e1320;
 }
 ::-webkit-scrollbar-thumb {
-  background: #3a3254;
+  background: #334366;
+  border: 2px solid #0e1320;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #534878;
+  background: #4d6496;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .pixel-btn,
   .arcade-btn {
     transition: none;
   }
