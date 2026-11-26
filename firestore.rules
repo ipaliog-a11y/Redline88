@@ -1,0 +1,187 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: default deny everything
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isVerifiedUser() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidCallsign(val) {
+      return val is string && val.size() >= 2 && val.size() <= 18 && val.matches('^[a-zA-Z0-9 _\\-]+$');
+    }
+
+    function isValidShortId(val) {
+      return val is string && val.size() >= 1 && val.size() <= 32 && val.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidHexColor(val) {
+      return val is string && val.size() == 7 && val.matches('^#[0-9a-fA-F]{6}$');
+    }
+
+    function isValidDistance(val) {
+      return val is string && val in ['quarter', 'half', 'mile'];
+    }
+
+    function isValidBoundedStringList(arr, maxLen) {
+      return arr is list
+        && arr.size() <= maxLen
+        && (arr.size() == 0 || (arr[0] is string && arr[0].size() >= 1 && arr[0].size() <= 32));
+    }
+
+    // --- Entity Validation Blueprints ---
+    function isValidPlayerSave(data, userId) {
+      return data.keys().hasAll([
+          'ownerId', 'callsign', 'cash', 'activeCarId', 'highestUnlockedTier',
+          'ownedCars', 'defeatedRivals', 'carConfigs', 'totalWins', 'totalRaces',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'callsign', 'cash', 'activeCarId', 'highestUnlockedTier',
+          'ownedCars', 'defeatedRivals', 'carConfigs', 'totalWins', 'totalRaces',
+          'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.ownerId)
+        && data.ownerId == request.auth.uid
+        && data.ownerId == userId
+        && isValidCallsign(data.callsign)
+        && data.cash is number && data.cash >= 0 && data.cash <= 99999999
+        && isValidShortId(data.activeCarId)
+        && data.highestUnlockedTier is int && data.highestUnlockedTier >= 1 && data.highestUnlockedTier <= 5
+        && isValidBoundedStringList(data.ownedCars, 30)
+        && isValidBoundedStringList(data.defeatedRivals, 80)
+        && data.carConfigs is map && data.carConfigs.size() <= 30
+        && data.totalWins is int && data.totalWins >= 0 && data.totalWins <= 1000000
+        && data.totalRaces is int && data.totalRaces >= 0 && data.totalRaces <= 1000000
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLeaderboardEntry(data) {
+      return data.keys().hasAll([
+          'uid', 'driverName', 'tier', 'carId', 'carName', 'etMs', 'trapMph',
+          'reactionMs', 'perfectShifts', 'paintColor', 'isPublic', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'driverName', 'tier', 'distance', 'carId', 'carName', 'etMs', 'trapMph',
+          'reactionMs', 'perfectShifts', 'paintColor', 'isPublic', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.uid == request.auth.uid
+        && isValidCallsign(data.driverName)
+        && data.tier is int && data.tier >= 1 && data.tier <= 5
+        && (!('distance' in data) || isValidDistance(data.distance))
+        && isValidShortId(data.carId)
+        && data.carName is string && data.carName.size() >= 2 && data.carName.size() <= 40
+        && data.etMs is int && data.etMs >= 3200 && data.etMs <= 90000
+        && data.trapMph is number && data.trapMph >= 50 && data.trapMph <= 480
+        && data.reactionMs is int && data.reactionMs >= 0 && data.reactionMs <= 5000
+        && data.perfectShifts is int && data.perfectShifts >= 0 && data.perfectShifts <= 20
+        && isValidHexColor(data.paintColor)
+        && data.isPublic is bool && data.isPublic == true
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidLeaderboardEntryId(entryId, data) {
+      return (
+        entryId == (request.auth.uid + '_t' + string(data.tier))
+        && (!('distance' in data) || data.distance == 'quarter')
+      ) || (
+        'distance' in data
+        && isValidDistance(data.distance)
+        && entryId == (request.auth.uid + '_t' + string(data.tier) + '_' + data.distance)
+      );
+    }
+
+    // --- Collection: /playerSaves/{userId} ---
+    match /playerSaves/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false;
+
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidPlayerSave(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidPlayerSave(incoming(), userId)
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action: Sync Garage, Drivetrain Tuning & Career Progress
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'callsign', 'cash', 'activeCarId', 'highestUnlockedTier',
+            'ownedCars', 'defeatedRivals', 'carConfigs', 'totalWins', 'totalRaces',
+            'updatedAt'
+          ])
+        );
+
+      allow delete: if isValidId(userId) && isOwner(userId);
+    }
+
+    // --- Collection: /leaderboardEntries/{entryId} ---
+    match /leaderboardEntries/{entryId} {
+      allow get: if isValidId(entryId) && existing().isPublic == true;
+      allow list: if existing().isPublic == true;
+
+      allow create: if isValidId(entryId)
+        && isVerifiedUser()
+        && isValidLeaderboardEntry(incoming())
+        && isValidLeaderboardEntryId(entryId, incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isValidId(entryId)
+        && isVerifiedUser()
+        && isValidLeaderboardEntry(incoming())
+        && existing().uid == request.auth.uid
+        && incoming().uid == existing().uid
+        && incoming().tier == existing().tier
+        && (!('distance' in existing()) || incoming().distance == existing().distance)
+        && incoming().isPublic == existing().isPublic
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          // Action: Update Personal Best Record
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'driverName', 'carId', 'carName', 'etMs', 'trapMph',
+            'reactionMs', 'perfectShifts', 'paintColor', 'distance', 'updatedAt'
+          ])
+        );
+
+      allow delete: if isValidId(entryId)
+        && isVerifiedUser()
+        && existing().uid == request.auth.uid;
+    }
+  }
+}

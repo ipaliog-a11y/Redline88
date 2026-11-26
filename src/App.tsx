@@ -1,0 +1,456 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { User } from 'firebase/auth';
+import { soundEngine } from './audio/soundEngine';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { GarageHub } from './components/GarageHub';
+import { RaceView } from './components/RaceView';
+import { TitleScreen } from './components/TitleScreen';
+import {
+  createDefaultCarConfig,
+  getCarById,
+  getCarConfig,
+  getUpgradeCost,
+  RIVALS,
+} from './data/gameData';
+import {
+  fetchGlobalLeaderboard,
+  loadCloudSave,
+  sanitizeCallsign,
+  signInWithGoogle,
+  signOutUser,
+  submitGlobalRecord,
+  subscribeAuth,
+  syncCloudSave,
+} from './services/firebase';
+import {
+  addLocalRecord,
+  loadLocalRecords,
+  loadLocalSave,
+  mergeSaves,
+  saveLocalSave,
+} from './services/storage';
+import {
+  AppScreen,
+  DrivetrainTuning,
+  GlobalLeaderboardEntry,
+  LocalRecord,
+  PlayerSave,
+  RaceResult,
+  RimStyle,
+  RivalSpec,
+  StripDistanceId,
+  StripeStyle,
+  TierId,
+  UpgradeKey,
+} from './types/game';
+
+function GameApp() {
+  const [screen, setScreen] = useState<AppScreen>('TITLE');
+  const [save, setSave] = useState<PlayerSave>(() => loadLocalSave());
+  const [localRecords, setLocalRecords] = useState<LocalRecord[]>(() => loadLocalRecords());
+  const [globalRecords, setGlobalRecords] = useState<GlobalLeaderboardEntry[]>([]);
+  const [globalLoading, setGlobalLoading] = useState(false);
+  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [muted, setMuted] = useState<boolean>(() => soundEngine.isMuted());
+
+  // Active race matchup
+  const [raceTier, setRaceTier] = useState<TierId>(1);
+  const [raceDistance, setRaceDistance] = useState<StripDistanceId>('quarter');
+  const [raceRival, setRaceRival] = useState<RivalSpec | null>(null);
+
+  const saveRef = useRef(save);
+  saveRef.current = save;
+
+  const syncTimerRef = useRef<number | null>(null);
+
+  const persistSave = useCallback(
+    (next: PlayerSave, currentUser: User | null) => {
+      saveLocalSave(next);
+      if (currentUser && currentUser.emailVerified) {
+        if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = window.setTimeout(() => {
+          syncCloudSave(currentUser.uid, next).catch((err) => {
+            console.warn('Cloud save sync deferred:', err);
+          });
+        }, 450);
+      }
+    },
+    []
+  );
+
+  const refreshGlobal = useCallback(async () => {
+    setGlobalLoading(true);
+    setGlobalError(null);
+    try {
+      const entries = await fetchGlobalLeaderboard();
+      setGlobalRecords(entries);
+    } catch (err) {
+      setGlobalError(err instanceof Error ? err.message : 'Unable to load global leaderboard.');
+    } finally {
+      setGlobalLoading(false);
+    }
+  }, []);
+
+  // Auth listener + automatic cloud garage merge
+  useEffect(() => {
+    const unsub = subscribeAuth((authUser) => {
+      setUser(authUser);
+      if (authUser && authUser.emailVerified) {
+        loadCloudSave(authUser.uid)
+          .then((cloud) => {
+            if (cloud) {
+              const merged = mergeSaves(saveRef.current, cloud);
+              setSave(merged);
+              saveLocalSave(merged);
+              void syncCloudSave(authUser.uid, merged);
+            } else {
+              // Seed cloud save with local progress + default callsign from display name if untouched
+              const seeded: PlayerSave = {
+                ...saveRef.current,
+                callsign:
+                  saveRef.current.callsign === 'ROOKIE_88' && authUser.displayName
+                    ? sanitizeCallsign(authUser.displayName)
+                    : saveRef.current.callsign,
+              };
+              setSave(seeded);
+              saveLocalSave(seeded);
+              void syncCloudSave(authUser.uid, seeded);
+            }
+          })
+          .catch((err) => {
+            console.warn('Cloud garage load failed:', err);
+          });
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  // Fetch global leaderboard on initial mount
+  useEffect(() => {
+    void refreshGlobal();
+  }, [refreshGlobal]);
+
+  const handleToggleMute = useCallback(() => {
+    const next = soundEngine.toggleMute();
+    setMuted(next);
+  }, []);
+
+  const handleSignIn = useCallback(() => {
+    signInWithGoogle().catch((err) => {
+      console.warn('Google sign-in dismissed or failed:', err);
+    });
+  }, []);
+
+  const handleSignOut = useCallback(() => {
+    void signOutUser();
+  }, []);
+
+  const updateSave = useCallback(
+    (updater: (prev: PlayerSave) => PlayerSave) => {
+      setSave((prev) => {
+        const next = updater(prev);
+        persistSave(next, user);
+        return next;
+      });
+    },
+    [persistSave, user]
+  );
+
+  const handleUpdateCallsign = useCallback(
+    (callsign: string) => {
+      const cleaned = sanitizeCallsign(callsign);
+      updateSave((prev) => ({ ...prev, callsign: cleaned }));
+    },
+    [updateSave]
+  );
+
+  const handleSelectCar = useCallback(
+    (carId: string) => {
+      updateSave((prev) => {
+        if (!prev.ownedCars.includes(carId)) return prev;
+        return { ...prev, activeCarId: carId };
+      });
+    },
+    [updateSave]
+  );
+
+  const handleBuyCar = useCallback(
+    (carId: string) => {
+      const spec = getCarById(carId);
+      updateSave((prev) => {
+        if (prev.ownedCars.includes(carId)) return prev;
+        if (spec.tier > prev.highestUnlockedTier) return prev;
+        if (prev.cash < spec.price) return prev;
+        return {
+          ...prev,
+          cash: prev.cash - spec.price,
+          ownedCars: [...prev.ownedCars, carId],
+          activeCarId: carId,
+          carConfigs: {
+            ...prev.carConfigs,
+            [carId]: prev.carConfigs[carId] ?? createDefaultCarConfig(carId),
+          },
+        };
+      });
+    },
+    [updateSave]
+  );
+
+  const handleBuyUpgrade = useCallback(
+    (carId: string, key: UpgradeKey) => {
+      const car = getCarById(carId);
+      updateSave((prev) => {
+        const cfg = getCarConfig(prev, carId);
+        const curLvl = cfg.upgrades[key];
+        if (curLvl >= 5) return prev;
+        const cost = getUpgradeCost(car, key, curLvl + 1);
+        if (prev.cash < cost) return prev;
+        return {
+          ...prev,
+          cash: prev.cash - cost,
+          carConfigs: {
+            ...prev.carConfigs,
+            [carId]: {
+              ...cfg,
+              upgrades: {
+                ...cfg.upgrades,
+                [key]: curLvl + 1,
+              },
+            },
+          },
+        };
+      });
+    },
+    [updateSave]
+  );
+
+  const handleBuyVisual = useCallback(
+    (
+      carId: string,
+      patch: { paintColor?: string; stripe?: StripeStyle; rims?: RimStyle },
+      cost: number
+    ) => {
+      updateSave((prev) => {
+        if (prev.cash < cost) return prev;
+        const cfg = getCarConfig(prev, carId);
+        return {
+          ...prev,
+          cash: prev.cash - cost,
+          carConfigs: {
+            ...prev.carConfigs,
+            [carId]: {
+              ...cfg,
+              visuals: {
+                ...cfg.visuals,
+                ...patch,
+              },
+            },
+          },
+        };
+      });
+    },
+    [updateSave]
+  );
+
+  const handleUpdateTuning = useCallback(
+    (carId: string, tuning: DrivetrainTuning) => {
+      updateSave((prev) => {
+        const cfg = getCarConfig(prev, carId);
+        return {
+          ...prev,
+          carConfigs: {
+            ...prev.carConfigs,
+            [carId]: {
+              ...cfg,
+              tuning,
+            },
+          },
+        };
+      });
+    },
+    [updateSave]
+  );
+
+  const handleStartRace = useCallback(
+    (tierId: TierId, distanceId: StripDistanceId, rival: RivalSpec | null) => {
+      soundEngine.playUiClick();
+      setRaceTier(tierId);
+      setRaceDistance(rival ? rival.distance : distanceId);
+      setRaceRival(rival);
+      setScreen('RACE');
+    },
+    []
+  );
+
+  const handleRaceFinished = useCallback(
+    (rawResult: RaceResult): RaceResult => {
+      const currentSave = saveRef.current;
+      let isNewBest = false;
+      let recordBonusCash = 0;
+
+      // 1. Log Local Leaderboard if valid non-foul finish
+      if (!rawResult.foul && rawResult.playerEtMs > 0) {
+        const { records, isNewBestInTier } = addLocalRecord({
+          driverName: currentSave.callsign,
+          tier: rawResult.tier,
+          distance: rawResult.distance,
+          carId: rawResult.carId,
+          carName: rawResult.carName,
+          etMs: rawResult.playerEtMs,
+          trapMph: rawResult.playerTrapMph,
+          reactionMs: rawResult.reactionMs,
+          perfectShifts: rawResult.perfectShifts,
+          paintColor: rawResult.paintColor,
+        });
+        setLocalRecords(records);
+        isNewBest = isNewBestInTier;
+        if (isNewBest) {
+          recordBonusCash = Math.round(120 * [1, 1.8, 3, 5.2, 9][rawResult.tier - 1]);
+        }
+
+        // 2. Submit to Global Firestore Leaderboard if signed in
+        if (user && user.emailVerified) {
+          submitGlobalRecord({
+            uid: user.uid,
+            driverName: currentSave.callsign,
+            tier: rawResult.tier,
+            distance: rawResult.distance,
+            carId: rawResult.carId,
+            carName: rawResult.carName,
+            etMs: rawResult.playerEtMs,
+            trapMph: rawResult.playerTrapMph,
+            reactionMs: rawResult.reactionMs,
+            perfectShifts: rawResult.perfectShifts,
+            paintColor: rawResult.paintColor,
+          })
+            .then((res) => {
+              if (res.submitted) void refreshGlobal();
+            })
+            .catch((err) => {
+              console.warn('Global leaderboard submit error:', err);
+            });
+        }
+      }
+
+      // 3. Apply Career Progression & Cash Economy
+      const totalEarned = rawResult.totalCashEarned + recordBonusCash;
+      let unlockedNextTier = false;
+      let nextTier = currentSave.highestUnlockedTier;
+      const nextDefeated = [...currentSave.defeatedRivals];
+
+      if (rawResult.won && rawResult.rival) {
+        if (!nextDefeated.includes(rawResult.rival.id)) {
+          nextDefeated.push(rawResult.rival.id);
+        }
+        if (rawResult.rival.isBoss && rawResult.tier >= nextTier && nextTier < 5) {
+          nextTier = (nextTier + 1) as TierId;
+          unlockedNextTier = true;
+        }
+      }
+
+      const updatedSave: PlayerSave = {
+        ...currentSave,
+        cash: currentSave.cash + totalEarned,
+        highestUnlockedTier: nextTier,
+        defeatedRivals: nextDefeated,
+        totalWins: currentSave.totalWins + (rawResult.won && !rawResult.isTimeTrial ? 1 : 0),
+        totalRaces: currentSave.totalRaces + 1,
+      };
+      setSave(updatedSave);
+      persistSave(updatedSave, user);
+
+      return {
+        ...rawResult,
+        recordBonusCash,
+        totalCashEarned: totalEarned,
+        isNewPersonalBest: isNewBest,
+        unlockedNextTier,
+      };
+    },
+    [persistSave, refreshGlobal, user]
+  );
+
+  // Determine Next Rival in same strip distance ladder
+  const nextRival = useMemo(() => {
+    if (!raceRival) return null;
+    const sameDistanceRivals = RIVALS.filter((r) => r.distance === raceRival.distance);
+    const idx = sameDistanceRivals.findIndex((r) => r.id === raceRival.id);
+    if (idx < 0 || idx >= sameDistanceRivals.length - 1) return null;
+    const candidate = sameDistanceRivals[idx + 1];
+    if (candidate.tier <= save.highestUnlockedTier) {
+      return candidate;
+    }
+    return null;
+  }, [raceRival, save.highestUnlockedTier]);
+
+  if (screen === 'TITLE') {
+    return (
+      <TitleScreen
+        save={save}
+        muted={muted}
+        onToggleMute={handleToggleMute}
+        onStart={() => {
+          soundEngine.playUiClick();
+          setScreen('GARAGE');
+        }}
+      />
+    );
+  }
+
+  if (screen === 'RACE') {
+    return (
+      <RaceView
+        save={save}
+        tierId={raceTier}
+        distanceId={raceDistance}
+        rival={raceRival}
+        muted={muted}
+        onToggleMute={handleToggleMute}
+        onRaceFinished={handleRaceFinished}
+        onExitToGarage={() => {
+          soundEngine.playUiClick();
+          setScreen('GARAGE');
+        }}
+        nextRival={nextRival}
+        onNextRival={(nr) => {
+          soundEngine.playUiClick();
+          setRaceTier(nr.tier);
+          setRaceDistance(nr.distance);
+          setRaceRival(nr);
+        }}
+      />
+    );
+  }
+
+  return (
+    <GarageHub
+      save={save}
+      user={user}
+      muted={muted}
+      localRecords={localRecords}
+      globalRecords={globalRecords}
+      globalLoading={globalLoading}
+      globalError={globalError}
+      onToggleMute={handleToggleMute}
+      onSignIn={handleSignIn}
+      onSignOut={handleSignOut}
+      onRefreshGlobal={() => void refreshGlobal()}
+      onUpdateCallsign={handleUpdateCallsign}
+      onSelectCar={handleSelectCar}
+      onBuyCar={handleBuyCar}
+      onBuyUpgrade={handleBuyUpgrade}
+      onUpdateTuning={handleUpdateTuning}
+      onBuyVisual={handleBuyVisual}
+      onStartRace={handleStartRace}
+    />
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <GameApp />
+    </ErrorBoundary>
+  );
+}

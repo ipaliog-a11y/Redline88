@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-pixel: 'Press Start 2P', monospace;
+    --font-ui: 'Chakra Petch', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-ui);
+    background-color: #0d0b14;
+    color: #f4f1e6;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
+.font-pixel {
+  font-family: var(--font-pixel);
+}
+
+.font-ui {
+  font-family: var(--font-ui);
+}
+
+.font-mono-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.pixel-canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Crisp retro cabinet bevel borders without neon slop */
+.arcade-panel {
+  background-color: #151221;
+  border: 2px solid #352d4d;
+  box-shadow: 0 4px 0 #09070f;
+}
+
+.arcade-btn {
+  transition: transform 90ms cubic-bezier(0.16, 1, 0.3, 1), background-color 120ms ease, border-color 120ms ease;
+}
+
+.arcade-btn:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+/* Custom sleek dark scrollbar for shop/leaderboard drawers */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #120f1c;
+}
+::-webkit-scrollbar-thumb {
+  background: #3a3254;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #534878;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arcade-btn {
+    transition: none;
+  }
+}

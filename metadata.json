@@ -1,0 +1,6 @@
+{
+  "name": "REDLINE '88 — 8-Bit Drag Racing",
+  "description": "Nostalgic 8-bit side-view drag racing with manual throttle, clutch, precision gearshifts, custom pixel-art car builds from street beaters to Top-Fuel dragsters, parts shop economy, and local and global leaderboards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
