@@ -6,9 +6,12 @@ import { GarageHub } from './components/GarageHub';
 import { RaceView } from './components/RaceView';
 import { TitleScreen } from './components/TitleScreen';
 import {
+  computeRaceEngineWear,
   createDefaultCarConfig,
   getCarById,
   getCarConfig,
+  getEngineHealth,
+  getEngineRepairCost,
   getUpgradeCost,
   resolveTimeOfDay,
   RIVALS,
@@ -42,7 +45,6 @@ import {
   StripDistanceId,
   StripeStyle,
   TierId,
-  TimeOfDayMode,
   UpgradeKey,
 } from './types/game';
 
@@ -55,17 +57,6 @@ function GameApp() {
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [muted, setMuted] = useState<boolean>(() => soundEngine.isMuted());
-  const [timeOfDayMode, setTimeOfDayMode] = useState<TimeOfDayMode>(() => {
-    try {
-      const stored = localStorage.getItem('redline88_tod_v1');
-      if (stored === 'afternoon' || stored === 'sunset' || stored === 'night' || stored === 'auto') {
-        return stored;
-      }
-      return 'auto';
-    } catch {
-      return 'auto';
-    }
-  });
 
   // Active race matchup
   const [raceTier, setRaceTier] = useState<TierId>(1);
@@ -169,15 +160,6 @@ function GameApp() {
     setMuted(next);
   }, []);
 
-  const handleChangeTimeOfDayMode = useCallback((mode: TimeOfDayMode) => {
-    setTimeOfDayMode(mode);
-    try {
-      localStorage.setItem('redline88_tod_v1', mode);
-    } catch {
-      // ignore storage errors
-    }
-  }, []);
-
   const handleSignIn = useCallback(() => {
     signInWithGoogle().catch((err) => {
       console.warn('Google sign-in dismissed or failed:', err);
@@ -256,6 +238,31 @@ function GameApp() {
                 ...cfg.upgrades,
                 [key]: curLvl + 1,
               },
+              engineHealth: key === 'engine' ? 100 : getEngineHealth(cfg),
+            },
+          },
+        };
+      });
+    },
+    [updateSave]
+  );
+
+  const handleRepairEngine = useCallback(
+    (carId: string) => {
+      const car = getCarById(carId);
+      updateSave((prev) => {
+        const cfg = getCarConfig(prev, carId);
+        if (getEngineHealth(cfg) >= 100) return prev;
+        const cost = getEngineRepairCost(car, cfg);
+        if (prev.cash < cost) return prev;
+        return {
+          ...prev,
+          cash: prev.cash - cost,
+          carConfigs: {
+            ...prev.carConfigs,
+            [carId]: {
+              ...cfg,
+              engineHealth: 100,
             },
           },
         };
@@ -405,11 +412,29 @@ function GameApp() {
         }
       }
 
+      const wearApplied = computeRaceEngineWear({
+        tier: rawResult.tier,
+        distance: rawResult.distance,
+        isTimeTrial: rawResult.isTimeTrial,
+        foul: rawResult.foul,
+        overRevCount: rawResult.overRevCount ?? 0,
+        nitrousUsedCount: rawResult.nitrousUsedCount ?? 0,
+      });
+      const activeCfg = getCarConfig(currentSave, rawResult.carId);
+      const nextEngineHealth = Math.max(15, getEngineHealth(activeCfg) - wearApplied);
+
       const updatedSave: PlayerSave = {
         ...currentSave,
         cash: currentSave.cash + totalEarned,
         highestUnlockedTier: nextTier,
         defeatedRivals: nextDefeated,
+        carConfigs: {
+          ...currentSave.carConfigs,
+          [rawResult.carId]: {
+            ...activeCfg,
+            engineHealth: nextEngineHealth,
+          },
+        },
         totalWins: currentSave.totalWins + (rawResult.won && !rawResult.isTimeTrial ? 1 : 0),
         totalRaces: currentSave.totalRaces + 1,
         updatedAtMs: Date.now(),
@@ -424,6 +449,8 @@ function GameApp() {
         isNewPersonalBest: isNewBest,
         unlockedNextTier,
         isRematch,
+        engineWearApplied: wearApplied,
+        engineHealthAfter: nextEngineHealth,
       };
     },
     [refreshGlobal, user]
@@ -442,10 +469,7 @@ function GameApp() {
     return null;
   }, [raceRival, save.highestUnlockedTier]);
 
-  const activeRaceTimeOfDay = useMemo(
-    () => resolveTimeOfDay(raceTier, timeOfDayMode),
-    [raceTier, timeOfDayMode]
-  );
+  const activeRaceTimeOfDay = useMemo(() => resolveTimeOfDay(raceTier, 'auto'), [raceTier]);
 
   let activeView: ReactNode;
   if (screen === 'TITLE') {
@@ -490,13 +514,11 @@ function GameApp() {
         save={save}
         user={user}
         muted={muted}
-        timeOfDayMode={timeOfDayMode}
         localRecords={localRecords}
         globalRecords={globalRecords}
         globalLoading={globalLoading}
         globalError={globalError}
         onToggleMute={handleToggleMute}
-        onChangeTimeOfDayMode={handleChangeTimeOfDayMode}
         onSignIn={handleSignIn}
         onSignOut={handleSignOut}
         onRefreshGlobal={() => void refreshGlobal()}
@@ -504,6 +526,7 @@ function GameApp() {
         onSelectCar={handleSelectCar}
         onBuyCar={handleBuyCar}
         onBuyUpgrade={handleBuyUpgrade}
+        onRepairEngine={handleRepairEngine}
         onUpdateTuning={handleUpdateTuning}
         onBuyVisual={handleBuyVisual}
         onStartRace={handleStartRace}

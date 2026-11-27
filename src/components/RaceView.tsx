@@ -4,6 +4,7 @@ import {
   formatEt,
   getCarById,
   getCarConfig,
+  getEngineHealthStatus,
   getStripDistanceSpec,
   getTierById,
   QUARTER_MILE_FT,
@@ -36,10 +37,10 @@ interface RaceViewProps {
 }
 
 const INITIAL_TELEMETRY: RaceTelemetry = {
-  phase: 'STAGING',
+  phase: 'BURNOUT',
   distance: 'quarter',
   distanceFt: QUARTER_MILE_FT,
-  treeStep: 0,
+  treeStep: -2,
   elapsedSec: 0,
   playerDistFt: 0,
   rivalDistFt: 0,
@@ -55,6 +56,13 @@ const INITIAL_TELEMETRY: RaceTelemetry = {
   maxGears: 5,
   throttle: false,
   clutch: false,
+  brake: false,
+  burnoutTimeLeft: 5.0,
+  burnoutDuration: 5.0,
+  burnoutTemp: 0,
+  burnoutEfficiency: 15,
+  burnoutGripBonusPct: -2,
+  burnoutSkipped: false,
   boostTimer: 0,
   nitrousLeft: 0,
   nitrousMax: 0,
@@ -64,7 +72,7 @@ const INITIAL_TELEMETRY: RaceTelemetry = {
   inShiftZone: false,
   calloutText: '',
   calloutTimer: 0,
-  calloutColor: '#22c55e',
+  calloutColor: '#2ee66b',
   foul: false,
 };
 
@@ -92,6 +100,8 @@ export const RaceView: React.FC<RaceViewProps> = ({
 
   const car = getCarById(save.activeCarId);
   const carConfig = getCarConfig(save, save.activeCarId);
+  const carConfigRef = useRef(carConfig);
+  carConfigRef.current = carConfig;
   const tierSpec = getTierById(tierId);
   const activeDistance: StripDistanceId = rival ? rival.distance : distanceId;
   const distSpec = getStripDistanceSpec(activeDistance);
@@ -107,7 +117,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
     const sim = new RaceSimulation(
       container,
       save.activeCarId,
-      carConfig,
+      carConfigRef.current,
       tierId,
       timeOfDay,
       activeDistance,
@@ -134,6 +144,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
     setResult(null);
     setPaused(false);
     simRef.current?.setPaused(false);
+    simRef.current?.updateConfig(carConfigRef.current);
     simRef.current?.reset();
   }, []);
 
@@ -172,10 +183,14 @@ export const RaceView: React.FC<RaceViewProps> = ({
         e.code === 'ShiftLeft' ||
         e.code === 'ShiftRight' ||
         e.code === 'KeyS' ||
+        e.code === 'ArrowDown' ||
         e.code === 'KeyC'
       ) {
         e.preventDefault();
         sim.setClutch(true);
+      } else if (e.code === 'Tab') {
+        e.preventDefault();
+        if (!e.repeat) sim.skipBurnout();
       } else if (e.code === 'Space' || e.code === 'KeyE' || e.code === 'ArrowRight') {
         e.preventDefault();
         if (!e.repeat) sim.triggerShiftUp();
@@ -197,6 +212,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
         e.code === 'ShiftLeft' ||
         e.code === 'ShiftRight' ||
         e.code === 'KeyS' ||
+        e.code === 'ArrowDown' ||
         e.code === 'KeyC'
       ) {
         sim.setClutch(false);
@@ -217,6 +233,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
     };
   }, [paused, result, togglePause, handleRestart]);
 
+  const isBurnoutPhase = hud.phase === 'BURNOUT';
   const isStagingPhase =
     hud.phase === 'STAGING' ||
     hud.phase === 'COUNTDOWN' ||
@@ -224,6 +241,24 @@ export const RaceView: React.FC<RaceViewProps> = ({
   const stripFt = hud.distanceFt || distSpec.feet;
   const playerPct = Math.min(100, (hud.playerDistFt / stripFt) * 100);
   const rivalPct = Math.min(100, (hud.rivalDistFt / stripFt) * 100);
+
+  const burnoutZone =
+    hud.burnoutTemp > 92
+      ? { label: 'OVERHEAT', color: '#e83b24' }
+      : hud.burnoutTemp >= 75
+      ? { label: 'OPTIMAL', color: '#2ee66b' }
+      : hud.burnoutTemp >= 35
+      ? { label: 'WARMING', color: '#f7b519' }
+      : { label: 'COLD', color: '#19d4e6' };
+
+  const burnoutHint =
+    hud.burnoutTemp > 92
+      ? 'EASE OFF GAS TO COOL BACK INTO GREEN!'
+      : hud.burnoutTemp >= 75
+      ? 'HOLD STEADY IN THE GREEN ZONE!'
+      : hud.throttle && !hud.brake
+      ? 'HOLD BRAKE TO LOCK FRONT WHEELS!'
+      : 'HOLD BRAKE + GAS TO HEAT REAR SLICKS';
 
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden bg-[#141218] flex flex-col select-none">
@@ -327,19 +362,111 @@ export const RaceView: React.FC<RaceViewProps> = ({
           </div>
         )}
 
+        {/* Pre-Race Burnout Mini-Game Panel (Neo-Geo Style) */}
+        {isBurnoutPhase && !paused && !result && (
+          <div className="absolute top-[86px] md:top-[76px] left-1/2 -translate-x-1/2 z-10 w-[min(94%,490px)] ng-plate-gold overflow-hidden">
+            <div className="ng-hazard-bar h-1.5 w-full" />
+            <div className="px-3.5 sm:px-4 py-2.5 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-pixel text-[9px] sm:text-[10px] text-[#f7b519] whitespace-nowrap">
+                    BURNOUT BOX
+                  </span>
+                  <span className="ng-vfd px-2 py-0.5 font-mono-num text-xs font-bold text-[#f4ecd8] whitespace-nowrap">
+                    {hud.burnoutTimeLeft.toFixed(1)}s
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => simRef.current?.skipBurnout()}
+                  className="ng-keycap px-2.5 py-1 bg-[#2c2935] hover:bg-[#3a3647] border-2 border-[#525866] text-[10px] font-mono-num font-bold text-[#f4ecd8] whitespace-nowrap shrink-0 cursor-pointer"
+                >
+                  SKIP (20–80%) <span className="hidden sm:inline opacity-70">[TAB]</span>
+                </button>
+              </div>
+
+              {/* Tire Temperature Bar with Optimal 75–92% Sweet Spot Window */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px] font-mono-num">
+                  <span className="text-[#b8c0cc]">
+                    TIRE TEMP:{' '}
+                    <span className="font-bold" style={{ color: burnoutZone.color }}>
+                      {hud.burnoutTemp}% · {burnoutZone.label}
+                    </span>
+                  </span>
+                  <span className="font-bold text-[#f4ecd8] whitespace-nowrap">
+                    {hud.burnoutEfficiency}% EFF{' '}
+                    <span
+                      className={
+                        hud.burnoutGripBonusPct >= 0 ? 'text-[#2ee66b]' : 'text-[#f7b519]'
+                      }
+                    >
+                      ({hud.burnoutGripBonusPct >= 0 ? '+' : ''}
+                      {hud.burnoutGripBonusPct}% GRIP)
+                    </span>
+                  </span>
+                </div>
+
+                <div className="relative w-full h-3.5 ng-vfd overflow-hidden">
+                  <div
+                    className="absolute top-0 bottom-0 bg-[#2ee66b]/30 border-x border-[#2ee66b]"
+                    style={{ left: '75%', width: '17%' }}
+                  />
+                  <div
+                    className="absolute top-0 bottom-0 bg-[#e83b24]/25"
+                    style={{ left: '92%', width: '8%' }}
+                  />
+                  <div
+                    className="h-full transition-[width] duration-75"
+                    style={{
+                      width: `${hud.burnoutTemp}%`,
+                      backgroundColor: burnoutZone.color,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 text-[10px] sm:text-[11px] font-mono-num">
+                <span
+                  className="font-bold truncate"
+                  style={{
+                    color:
+                      hud.throttle && !hud.brake
+                        ? '#f7b519'
+                        : hud.burnoutTemp > 92
+                        ? '#e83b24'
+                        : hud.burnoutTemp >= 75
+                        ? '#2ee66b'
+                        : '#ffd557',
+                  }}
+                >
+                  {burnoutHint}
+                </span>
+                <span className="hidden sm:inline text-[#b8c0cc] whitespace-nowrap shrink-0">
+                  [S/SHIFT] + [W]
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Staging Instruction Banner */}
         {isStagingPhase && !hud.foul && (
           <div className="pointer-events-none absolute top-[92px] md:top-[78px] left-1/2 -translate-x-1/2 z-10 max-w-[94%] ng-plate-gold px-4 sm:px-5 py-1.5 text-center">
             <p className="font-mono-num text-[10px] sm:text-xs text-[#ffd557] font-bold tracking-wide">
+              <span className="text-[#19d4e6] mr-2">
+                TIRES {hud.burnoutEfficiency}% ({hud.burnoutGripBonusPct >= 0 ? '+' : ''}
+                {hud.burnoutGripBonusPct}% GRIP)
+              </span>
               <span className="sm:hidden">
                 {hud.treeStep < 5
-                  ? 'HOLD CLUTCH + GAS INTO GREEN · RELEASE ON GO!'
-                  : 'GO! RELEASE CLUTCH & HOLD GAS!'}
+                  ? '· CLUTCH + GAS INTO GREEN!'
+                  : '· GO! RELEASE CLUTCH!'}
               </span>
               <span className="hidden sm:inline whitespace-nowrap">
                 {hud.treeStep < 5
-                  ? 'HOLD CLUTCH (SHIFT) + REV INTO GREEN ARC · RELEASE CLUTCH ON GREEN!'
-                  : 'GO! RELEASE CLUTCH & FLOOR THROTTLE!'}
+                  ? '· HOLD CLUTCH (SHIFT) + REV INTO GREEN ARC · RELEASE ON GREEN!'
+                  : '· GO! RELEASE CLUTCH & FLOOR THROTTLE!'}
               </span>
             </p>
           </div>
@@ -360,7 +487,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
             gear={hud.gear}
             maxGears={hud.maxGears}
             mph={hud.playerMph}
-            isStaging={isStagingPhase}
+            isStaging={isStagingPhase || isBurnoutPhase}
             boostActive={hud.boostTimer > 0}
             wheelspin={hud.wheelspin}
           />
@@ -387,13 +514,19 @@ export const RaceView: React.FC<RaceViewProps> = ({
               }}
               onPointerCancel={() => simRef.current?.setClutch(false)}
               className={`ng-keycap touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-4 border-2 font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
-                hud.clutch
+                isBurnoutPhase
+                  ? hud.brake
+                    ? 'bg-[#e83b24] border-[#141218] text-[#ffffff]'
+                    : 'bg-[#361b1d] border-[#e83b24] text-[#fecaca] hover:bg-[#472226]'
+                  : hud.clutch
                   ? 'bg-[#f7b519] border-[#141218] text-[#141218]'
                   : 'bg-[#2c2935] border-[#525866] text-[#f4ecd8] hover:bg-[#3a3647]'
               }`}
             >
-              CLUTCH
-              <span className="hidden lg:block font-mono-num text-[10px] opacity-80 mt-1">[SHIFT]</span>
+              {isBurnoutPhase ? 'BRAKE' : 'CLUTCH'}
+              <span className="hidden lg:block font-mono-num text-[10px] opacity-80 mt-1">
+                {isBurnoutPhase ? '[S / SHIFT]' : '[SHIFT]'}
+              </span>
             </button>
 
             <button
@@ -423,13 +556,16 @@ export const RaceView: React.FC<RaceViewProps> = ({
 
             <button
               type="button"
+              disabled={isBurnoutPhase}
               onContextMenu={(e) => e.preventDefault()}
               onPointerDown={(e) => {
                 e.preventDefault();
                 simRef.current?.triggerShiftUp();
               }}
               className={`ng-keycap touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-5 border-2 font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
-                hud.inShiftZone
+                isBurnoutPhase
+                  ? 'bg-[#141218] border-[#323642] text-[#64748b] cursor-not-allowed'
+                  : hud.inShiftZone
                   ? 'bg-[#f7b519] border-[#141218] text-[#141218]'
                   : 'bg-[#e83b24] border-[#141218] text-[#ffffff] hover:bg-[#ff563f]'
               }`}
@@ -441,14 +577,16 @@ export const RaceView: React.FC<RaceViewProps> = ({
             {hud.nitrousMax > 0 && (
               <button
                 type="button"
-                disabled={hud.nitrousLeft <= 0 || hud.nitrousActive}
+                disabled={isBurnoutPhase || hud.nitrousLeft <= 0 || hud.nitrousActive}
                 onContextMenu={(e) => e.preventDefault()}
                 onPointerDown={(e) => {
                   e.preventDefault();
                   simRef.current?.triggerNitrous();
                 }}
                 className={`ng-keycap touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-3.5 border-2 font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
-                  hud.nitrousActive
+                  isBurnoutPhase
+                    ? 'bg-[#141218] border-[#323642] text-[#64748b] cursor-not-allowed'
+                    : hud.nitrousActive
                     ? 'bg-[#19d4e6] border-[#141218] text-[#141218]'
                     : hud.nitrousLeft > 0
                     ? 'bg-[#0e4f63] border-[#19d4e6] text-[#e0f2fe] hover:bg-[#136a85]'
@@ -545,7 +683,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
               </div>
             </div>
 
-            <div className="p-4 sm:p-5 space-y-4">
+            <div className="p-4 sm:p-5 space-y-3.5">
               {/* Official VFD Time-Slip Comparison Table */}
               <div className="ng-vfd p-4 font-mono-num text-sm space-y-2 text-[#f4ecd8]">
                 <div className="grid grid-cols-3 text-xs text-[#94a3b8] pb-1.5 border-b border-[#323642]">
@@ -591,6 +729,25 @@ export const RaceView: React.FC<RaceViewProps> = ({
                     {result.perfectShifts} Perfect ({result.perfectClutchShifts} Clutch)
                   </span>
                 </div>
+                {typeof result.burnoutEfficiency === 'number' && (
+                  <div className="grid grid-cols-3 items-center">
+                    <span className="text-xs text-[#94a3b8]">BURNOUT</span>
+                    <span
+                      className={`text-right font-semibold ${
+                        result.burnoutEfficiency >= 85
+                          ? 'text-[#2ee66b]'
+                          : result.burnoutEfficiency >= 55
+                          ? 'text-[#19d4e6]'
+                          : 'text-[#f7b519]'
+                      }`}
+                    >
+                      {result.burnoutEfficiency}% Efficiency
+                    </span>
+                    <span className="text-right text-[#94a3b8]">
+                      {result.burnoutSkipped ? 'Skipped Roll' : 'Manual Heat'}
+                    </span>
+                  </div>
+                )}
                 {!result.foul && (result.quarterSplitSec || result.halfSplitSec) && (
                   <div className="grid grid-cols-3 items-center pt-1 border-t border-[#323642] text-xs">
                     <span className="text-[#94a3b8]">SPLITS</span>
@@ -646,6 +803,30 @@ export const RaceView: React.FC<RaceViewProps> = ({
                   </>
                 )}
               </div>
+
+              {/* Engine Health Post-Run Status */}
+              {typeof result.engineHealthAfter === 'number' && (() => {
+                const postStatus = getEngineHealthStatus(result.engineHealthAfter);
+                return (
+                  <div className="ng-vfd px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 text-xs font-mono-num text-[#f4ecd8]">
+                    <div className="flex items-center gap-2">
+                      <PixelIcon name="wrench" className="w-3.5 h-3.5 shrink-0" />
+                      <span className="text-[#94a3b8]">ENGINE HEALTH</span>
+                      <span className="font-bold" style={{ color: postStatus.color }}>
+                        {result.engineHealthAfter}% · {postStatus.label}
+                      </span>
+                      {typeof result.engineWearApplied === 'number' && result.engineWearApplied > 0 && (
+                        <span className="text-[#94a3b8]">(-{result.engineWearApplied}% wear)</span>
+                      )}
+                    </div>
+                    {result.engineHealthAfter < 80 && (
+                      <span className="font-bold" style={{ color: postStatus.color }}>
+                        Power reduced — repair in Paddock
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
 
               {result.unlockedNextTier && (
                 <div className="bg-[#141218] border-2 border-[#2ee66b] px-4 py-2.5 text-xs font-mono-num font-bold text-[#2ee66b]">

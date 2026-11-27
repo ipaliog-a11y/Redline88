@@ -6,6 +6,9 @@ import {
   formatCash,
   getCarById,
   getCarConfig,
+  getEngineHealth,
+  getEngineHealthStatus,
+  getEngineRepairCost,
   getUpgradeImpactPreview,
   PAINT_COLORS,
   RIM_OPTIONS,
@@ -24,7 +27,6 @@ import {
   StripDistanceId,
   StripeStyle,
   TierId,
-  TimeOfDayMode,
   UpgradeKey,
 } from '../types/game';
 import { DrivetrainTuningPanel } from './DrivetrainTuningPanel';
@@ -41,13 +43,11 @@ interface GarageHubProps {
   save: PlayerSave;
   user: User | null;
   muted: boolean;
-  timeOfDayMode: TimeOfDayMode;
   localRecords: LocalRecord[];
   globalRecords: GlobalLeaderboardEntry[];
   globalLoading: boolean;
   globalError: string | null;
   onToggleMute: () => void;
-  onChangeTimeOfDayMode: (mode: TimeOfDayMode) => void;
   onSignIn: () => void;
   onSignOut: () => void;
   onRefreshGlobal: () => void;
@@ -55,6 +55,7 @@ interface GarageHubProps {
   onSelectCar: (carId: string) => void;
   onBuyCar: (carId: string) => void;
   onBuyUpgrade: (carId: string, key: UpgradeKey) => void;
+  onRepairEngine: (carId: string) => void;
   onUpdateTuning: (carId: string, tuning: DrivetrainTuning) => void;
   onBuyVisual: (
     carId: string,
@@ -140,13 +141,11 @@ export const GarageHub: React.FC<GarageHubProps> = ({
   save,
   user,
   muted,
-  timeOfDayMode,
   localRecords,
   globalRecords,
   globalLoading,
   globalError,
   onToggleMute,
-  onChangeTimeOfDayMode,
   onSignIn,
   onSignOut,
   onRefreshGlobal,
@@ -154,6 +153,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
   onSelectCar,
   onBuyCar,
   onBuyUpgrade,
+  onRepairEngine,
   onUpdateTuning,
   onBuyVisual,
   onStartRace,
@@ -201,6 +201,10 @@ export const GarageHub: React.FC<GarageHubProps> = ({
 
   const car = getCarById(save.activeCarId);
   const config = getCarConfig(save, save.activeCarId);
+  const engineHealth = getEngineHealth(config);
+  const healthStatus = getEngineHealthStatus(engineHealth);
+  const repairCost = getEngineRepairCost(car, config);
+  const canAffordRepair = save.cash >= repairCost;
   const perf = useMemo(
     () => computeCarPerformance(save.activeCarId, config),
     [save.activeCarId, config]
@@ -230,6 +234,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
       upgrades: nextUpgrades,
       visuals: nextVisuals,
       tuning: config.tuning,
+      engineHealth: config.engineHealth,
     };
   }, [activeTab, activeUpgradePreview, hoveredUpgrade, config, visualDraft]);
 
@@ -452,7 +457,10 @@ export const GarageHub: React.FC<GarageHubProps> = ({
             <div className="text-xs font-bold text-[#f4ecd8] truncate">
               {car.name}
               <span className="font-mono-num text-[11px] font-normal text-[#b8c0cc] ml-1.5">
-                T{car.tier} · {perf.hp.toLocaleString()} HP · {perf.estimatedEtSec.toFixed(2)}s
+                T{car.tier} · {perf.hp.toLocaleString()} HP ·{' '}
+                <span style={{ color: healthStatus.color }} className="font-bold">
+                  {engineHealth}% ENG
+                </span>
               </span>
             </div>
           </div>
@@ -487,7 +495,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
             )}
 
             {/* Floating Left Steel VFD Telemetry Monitor */}
-            <div className="pointer-events-none absolute top-2.5 left-2.5 sm:left-4 ng-vfd border-2 border-[#b8c0cc] px-2.5 sm:px-3 py-1.5 sm:py-2 min-w-[138px] sm:min-w-[172px] shadow-[3px_3px_0_#07060a]">
+            <div className="pointer-events-none absolute top-2.5 left-2.5 sm:left-4 ng-vfd border-2 border-[#b8c0cc] px-2.5 sm:px-3 py-1.5 sm:py-2 min-w-[142px] sm:min-w-[180px] shadow-[3px_3px_0_#07060a]">
               <div className="flex items-center justify-between gap-2 border-b border-[#323642] pb-1 mb-1">
                 <span className="font-pixel text-[8px] sm:text-[9px] text-[#f4ecd8] truncate">
                   {car.name.toUpperCase()}
@@ -500,8 +508,15 @@ export const GarageHub: React.FC<GarageHubProps> = ({
               </div>
               <div className="font-mono-num text-xs sm:text-sm font-bold text-[#19d4e6] flex items-baseline justify-between gap-2">
                 <span>{shownHp.toLocaleString()} HP</span>
-                {previewHpDiff > 0 && (
+                {previewHpDiff > 0 ? (
                   <span className="text-[11px] text-[#2ee66b]">+{previewHpDiff}</span>
+                ) : (
+                  !activeUpgradePreview &&
+                  perf.wearPenaltyPct > 0 && (
+                    <span className="text-[11px] font-bold" style={{ color: healthStatus.color }}>
+                      -{perf.wearPenaltyPct}%
+                    </span>
+                  )
                 )}
               </div>
               <div className="font-mono-num text-xs sm:text-sm font-bold text-[#f7b519] flex items-baseline justify-between gap-2">
@@ -513,7 +528,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
             </div>
 
             {/* Floating Right Steel VFD Telemetry Monitor */}
-            <div className="pointer-events-none absolute top-2.5 right-2.5 sm:right-4 ng-vfd border-2 border-[#b8c0cc] px-2.5 sm:px-3 py-1.5 sm:py-2 min-w-[132px] sm:min-w-[172px] shadow-[3px_3px_0_#07060a] text-right">
+            <div className="pointer-events-none absolute top-2.5 right-2.5 sm:right-4 ng-vfd border-2 border-[#b8c0cc] px-2.5 sm:px-3 py-1.5 sm:py-2 min-w-[136px] sm:min-w-[180px] shadow-[3px_3px_0_#07060a] text-right">
               <div className="font-pixel text-[7px] sm:text-[8px] text-[#b8c0cc] border-b border-[#323642] pb-1 mb-1">
                 TIER {car.tier} · {shownTopSpd} MPH TOP
               </div>
@@ -539,9 +554,51 @@ export const GarageHub: React.FC<GarageHubProps> = ({
             </div>
           </div>
 
-          {/* Bottom Pit-Bay License-Plate Car Switcher Strip (shown when player owns > 1 car or mobile drawer open) */}
-          {(save.ownedCars.length > 1 || mobileDynoOpen) && (
-            <div className="bg-[#1b1822] border-t-2 border-[#323642] px-3 py-1.5 flex flex-wrap items-center justify-between gap-2">
+          {/* Bottom Pit-Bay Service Strip: Engine Health Bar & Repair Keycap + License-Plate Car Switcher */}
+          <div className="bg-[#1b1822] border-t-2 border-[#323642] px-3 py-1.5 flex flex-wrap items-center justify-between gap-2.5">
+            {/* Engine Health & Repair Module */}
+            <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+              <div className="flex items-center gap-2 ng-vfd px-2.5 py-1">
+                <PixelIcon name="wrench" className="w-3.5 h-3.5 shrink-0" />
+                <span className="font-pixel text-[8px] text-[#b8c0cc]">ENG</span>
+                <div className="w-20 sm:w-24 h-2.5 bg-[#141218] border border-[#525866] overflow-hidden">
+                  <div
+                    className="h-full transition-[width] duration-150"
+                    style={{
+                      width: `${engineHealth}%`,
+                      backgroundColor: healthStatus.color,
+                    }}
+                  />
+                </div>
+                <span
+                  className="font-mono-num text-[11px] font-bold"
+                  style={{ color: healthStatus.color }}
+                >
+                  {engineHealth}% {healthStatus.label.toUpperCase()}
+                </span>
+              </div>
+
+              {engineHealth < 100 && (
+                <button
+                  type="button"
+                  disabled={!canAffordRepair}
+                  onClick={() => {
+                    soundEngine.playShopBuy();
+                    onRepairEngine(car.id);
+                  }}
+                  className={`ng-keycap px-2.5 py-1 font-mono-num text-[11px] font-bold border-2 whitespace-nowrap cursor-pointer ${
+                    canAffordRepair
+                      ? 'bg-[#2ee66b] hover:bg-[#4ff588] text-[#141218] border-[#141218]'
+                      : 'bg-[#18161e] text-[#64748b] border-[#323642] cursor-not-allowed'
+                  }`}
+                >
+                  REPAIR ENGINE · {formatCash(repairCost)}
+                </button>
+              )}
+            </div>
+
+            {/* License-Plate Car Switcher */}
+            {save.ownedCars.length > 1 && (
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
                 <span className="font-pixel text-[8px] text-[#f7b519] shrink-0 mr-1">GARAGE:</span>
                 {save.ownedCars.map((cid) => {
@@ -555,7 +612,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                         soundEngine.playUiClick();
                         onSelectCar(cid);
                       }}
-                      className={`px-2.5 py-1 text-[11px] font-mono-num font-bold whitespace-nowrap cursor-pointer transition-transform active:translate-y-0.5 ${
+                      className={`px-2.5 py-0.5 text-[11px] font-mono-num font-bold whitespace-nowrap cursor-pointer transition-transform active:translate-y-0.5 ${
                         active
                           ? 'ng-plate-tag border-[#e83b24] text-[#141218]'
                           : 'bg-[#26232e] text-[#b8c0cc] border-2 border-[#525866] hover:border-[#f7b519] hover:text-[#f4ecd8]'
@@ -566,35 +623,35 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                   );
                 })}
               </div>
+            )}
 
-              {/* Mobile Callsign Edit inside open Pit Bay drawer */}
-              {mobileDynoOpen && (
-                <form onSubmit={handleSaveCallsign} className="lg:hidden flex items-center gap-1.5">
-                  <input
-                    type="text"
-                    maxLength={18}
-                    value={callsignDraft}
-                    onChange={(e) => setCallsignDraft(e.target.value)}
-                    aria-label="Driver callsign"
-                    className="ng-vfd px-2 py-1 text-xs font-mono-num text-[#f7b519] w-28"
-                  />
-                  <button
-                    type="submit"
-                    className="ng-keycap px-2.5 py-1 bg-[#f7b519] text-[#141218] border-2 border-[#141218] text-[10px] font-bold cursor-pointer"
-                  >
-                    SAVE ID
-                  </button>
-                </form>
-              )}
-            </div>
-          )}
+            {/* Mobile Callsign Edit inside open Pit Bay drawer */}
+            {mobileDynoOpen && (
+              <form onSubmit={handleSaveCallsign} className="lg:hidden flex items-center gap-1.5">
+                <input
+                  type="text"
+                  maxLength={18}
+                  value={callsignDraft}
+                  onChange={(e) => setCallsignDraft(e.target.value)}
+                  aria-label="Driver callsign"
+                  className="ng-vfd px-2 py-1 text-xs font-mono-num text-[#f7b519] w-28"
+                />
+                <button
+                  type="submit"
+                  className="ng-keycap px-2.5 py-1 bg-[#f7b519] text-[#141218] border-2 border-[#141218] text-[10px] font-bold cursor-pointer"
+                >
+                  SAVE ID
+                </button>
+              </form>
+            )}
+          </div>
         </div>
       </div>
 
       {/* LOWER NEO-GEO PADDOCK COMMAND DECK: SKEWED RIVETED RIBBONS LEFT · STATION VIEWPORT RIGHT */}
-      <div className="flex-1 min-h-0 max-w-[1440px] w-full mx-auto flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:gap-4 p-2.5 sm:p-3 lg:p-4 overflow-hidden">
+      <div className="flex-1 min-h-0 max-w-[1440px] w-full mx-auto flex flex-col lg:grid lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)] gap-3 lg:gap-4 p-2.5 sm:p-3 lg:p-4 overflow-hidden">
         {/* LEFT COLUMN (Desktop): SKEWED RIVETED STEEL SPEED-RIBBON NAVIGATION */}
-        <aside className="hidden lg:flex lg:col-span-3 flex-col justify-between gap-3 min-h-0 overflow-y-auto pr-1">
+        <aside className="hidden lg:flex lg:col-span-3 flex-col justify-between gap-3 min-h-0 h-full overflow-y-auto overscroll-y-contain pr-1 pb-2">
           <nav aria-label="Paddock stations" className="flex flex-col gap-2.5 px-1.5 pt-0.5">
             {RIBBON_NAV.map((item) => {
               const active = activeTab === item.id;
@@ -630,13 +687,13 @@ export const GarageHub: React.FC<GarageHubProps> = ({
           </nav>
 
           {/* Compact Arcade Cabinet Controls Plaque */}
-          <div className="ng-plate p-3 space-y-1.5">
+          <div className="ng-plate shrink-0 p-3 space-y-1.5">
             <div className="flex items-center justify-between border-b border-[#323642] pb-1">
               <span className="font-pixel text-[8px] text-[#f7b519]">CABINET CONTROLS</span>
               <span className="font-mono-num text-[10px] text-[#19d4e6]">MANUAL</span>
             </div>
             <div className="text-[11px] font-mono-num text-[#b8c0cc] leading-relaxed">
-              <span className="text-[#f7b519] font-bold">SHIFT</span> Clutch ·{' '}
+              <span className="text-[#f7b519] font-bold">SHIFT/S</span> Brake &amp; Clutch ·{' '}
               <span className="text-[#2ee66b] font-bold">W</span> Gas ·{' '}
               <span className="text-[#e83b24] font-bold">SPACE</span> Shift+ ·{' '}
               <span className="text-[#19d4e6] font-bold">N</span> NOS
@@ -648,18 +705,53 @@ export const GarageHub: React.FC<GarageHubProps> = ({
         <section
           className={`${
             mobileDynoOpen ? 'hidden' : 'flex flex-1'
-          } lg:flex lg:col-span-9 flex-col min-h-0`}
+          } lg:flex lg:col-span-9 flex-col min-h-0 h-full`}
         >
-          <div className="flex-1 min-h-0 overflow-y-auto pr-0.5 lg:pr-1 space-y-3">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pr-0.5 lg:pr-1 pb-2 space-y-3">
+            {/* Mechanic's Warning Note when Engine Health < 50% */}
+            {engineHealth < 50 && (
+              <section
+                aria-label="Mechanic's Note"
+                className="bg-[#331618] border-2 border-[#e83b24] p-3 space-y-1.5 shadow-[3px_3px_0_#07060a]"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 font-pixel text-[9px] text-[#ffd557]">
+                    <PixelIcon name="wrench" className="w-3.5 h-3.5 shrink-0" />
+                    <span>MECHANIC&apos;S NOTE · {engineHealth}% ENG</span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!canAffordRepair}
+                    onClick={() => {
+                      soundEngine.playShopBuy();
+                      onRepairEngine(car.id);
+                    }}
+                    className={`ng-keycap px-2.5 py-1 font-mono-num text-[10px] font-bold border-2 whitespace-nowrap shrink-0 cursor-pointer ${
+                      canAffordRepair
+                        ? 'bg-[#2ee66b] text-[#141218] border-[#141218]'
+                        : 'bg-[#18161e] text-[#64748b] border-[#323642] cursor-not-allowed'
+                    }`}
+                  >
+                    REPAIR · {formatCash(repairCost)}
+                  </button>
+                </div>
+                <p className="text-xs font-mono-num text-[#f4ecd8] leading-snug">
+                  Drive gently until repaired: shift before redline,{' '}
+                  {perf.nitrousShots > 0
+                    ? 'save Nitrous for close rivals, '
+                    : 'feather launches in the green RPM arc, '}
+                  and run shorter 1/4-mile passes to minimize engine wear.
+                </p>
+              </section>
+            )}
+
             {activeTab === 'RACES' && (
               <RaceStripTab
                 save={save}
                 selectedTier={selectedTier}
                 selectedDistance={selectedDistance}
-                timeOfDayMode={timeOfDayMode}
                 onSelectTier={setSelectedTier}
                 onSelectDistance={setSelectedDistance}
-                onChangeTimeOfDayMode={onChangeTimeOfDayMode}
                 onOpenTuning={() => handleSelectTab('TUNING')}
                 onStartRace={onStartRace}
               />

@@ -367,7 +367,7 @@ function drawPaintedBodyShell(
   }
 }
 
-/** Draw a curved wheel-arch cutout + raised fender lip flare hugging a wheel. */
+/** Draw a tight, factory-proportioned curved wheel-arch cutout + subtle fender lip flare hugging a wheel. */
 function drawWheelArchCutout(
   ctx: CanvasRenderingContext2D,
   ax: number,
@@ -378,23 +378,25 @@ function drawWheelArchCutout(
 ): void {
   const icx = Math.round(ax);
   const icy = Math.round(ay);
-  const archR = wheelR + 2;
+  const archR = wheelR + 1;
 
-  // Recessed dark wheel-well cavity (upper half-arch)
-  for (let dy = -archR; dy <= 2; dy++) {
+  // Tight recessed dark wheel-well cavity (upper arch only — keeps rocker & fender metal intact!)
+  for (let dy = -archR; dy <= 1; dy++) {
     const span = Math.floor(Math.sqrt(Math.max(0, (archR + 0.35) * (archR + 0.35) - dy * dy)));
     px(ctx, icx - span, icy + dy, span * 2 + 1, 1, '#111623');
   }
 
-  // Sculpted fender flare rim highlight hugging the top of the arch
-  for (let deg = 205; deg <= 335; deg += 8) {
+  // Crisp 1px sculpted fender lip outline + upper specular rim strictly hugging the arch
+  for (let deg = 200; deg <= 340; deg += 9) {
     const rad = (deg * Math.PI) / 180;
-    const fx = Math.round(icx + Math.cos(rad) * (archR + 1));
-    const fy = Math.round(icy + Math.sin(rad) * (archR + 1));
+    const fx = Math.round(icx + Math.cos(rad) * (archR + 0.8));
+    const fy = Math.round(icy + Math.sin(rad) * (archR + 0.8));
     px(ctx, fx, fy, 1, 1, paintOut);
-    const hx = Math.round(icx + Math.cos(rad) * (archR + 2));
-    const hy = Math.round(icy + Math.sin(rad) * (archR + 2));
-    px(ctx, hx, hy, 1, 1, paintHi);
+    if (deg >= 220 && deg <= 320) {
+      const hx = Math.round(icx + Math.cos(rad) * (archR + 1.8));
+      const hy = Math.round(icy + Math.sin(rad) * (archR + 1.8));
+      px(ctx, hx, hy, 1, 1, paintHi);
+    }
   }
 }
 
@@ -528,12 +530,12 @@ function drawHiBitWheel(
   }
 
   // Iconic white sidewall slick lettering dashes (rotates cleanly with wheel!)
-  if (isRearSlick && r >= 10) {
+  if (isRearSlick && r >= 8) {
     const textR = (r + rimR) * 0.52;
     for (let k = 0; k < 2; k++) {
       const baseA = angle + k * Math.PI;
       for (let d = -2; d <= 2; d++) {
-        const a = baseA + d * 0.14;
+        const a = baseA + d * 0.16;
         px(ctx, icx + Math.cos(a) * textR, icy + Math.sin(a) * textR, 1, 1, '#e8eef7');
       }
     }
@@ -561,8 +563,8 @@ function drawHiBitWheel(
   // Rim dish + brake rotor interior
   drawPixelDisc(ctx, icx, icy, rimR, '#1f283b', rimOuter);
   // Subtle red brake caliper peek inside larger rims
-  if (rimR >= 5) {
-    px(ctx, icx + Math.round(rimR * 0.35), icy - 2, 2, 3, '#dc2626');
+  if (rimR >= 4) {
+    px(ctx, icx + Math.round(rimR * 0.35), icy - 1, 2, 2, '#dc2626');
   }
 
   // Bright lip ring
@@ -585,10 +587,10 @@ function drawHiBitWheel(
   }
 
   // Beadlock rivets on pro drag slicks
-  if (isRearSlick && rimR >= 5) {
+  if (isRearSlick && rimR >= 4) {
     for (let b = 0; b < 6; b++) {
       const a = angle + (b / 6) * Math.PI * 2;
-      px(ctx, icx + Math.cos(a) * (rimR + 0.8), icy + Math.sin(a) * (rimR + 0.8), 1, 1, '#dbeafe');
+      px(ctx, icx + Math.cos(a) * (rimR + 0.7), icy + Math.sin(a) * (rimR + 0.7), 1, 1, '#dbeafe');
     }
   }
 
@@ -620,21 +622,23 @@ export function getHiBitCarMetrics(
 ): HiBitCarMetrics {
   const slickExtra = upgrades.tires >= 3 ? 1 : 0;
 
+  // Real-life automotive wheel-to-body ratios (~13.5%–16% of body length on street/muscle/JDM,
+  // massive 36" rear slicks + skinny front runners on NHRA Funny Car & Top Fuel Dragsters!)
   if (chassis === 'hatch') {
     const hasWB = upgrades.chassis >= 4 && upgrades.tires >= 4;
     return {
       rearAxleX: -27,
       frontAxleX: 29,
-      rearWheelR: 10 + slickExtra,
-      frontWheelR: 10,
+      rearWheelR: 7 + slickExtra,
+      frontWheelR: 7,
       minX: -43,
       maxX: 46,
       exhaustX: -44,
-      exhaustY: -7,
+      exhaustY: -5,
       hasWheelieBar: hasWB,
       wheelieCasterX: -62,
       chuteX: -45,
-      chuteY: -16,
+      chuteY: -14,
       shadowHalfW: 45,
       shadowCenterX: 1,
     };
@@ -642,18 +646,18 @@ export function getHiBitCarMetrics(
   if (chassis === 'muscle') {
     const hasWB = upgrades.chassis >= 3 || upgrades.tires >= 4;
     return {
-      rearAxleX: -34,
+      rearAxleX: -33,
       frontAxleX: 35,
-      rearWheelR: 12 + slickExtra,
-      frontWheelR: 10,
+      rearWheelR: 8 + slickExtra,
+      frontWheelR: 7,
       minX: -54,
       maxX: 56,
       exhaustX: -55,
-      exhaustY: -7,
+      exhaustY: -5,
       hasWheelieBar: hasWB,
       wheelieCasterX: -74,
       chuteX: -56,
-      chuteY: -18,
+      chuteY: -16,
       shadowHalfW: 55,
       shadowCenterX: 1,
     };
@@ -661,18 +665,18 @@ export function getHiBitCarMetrics(
   if (chassis === 'jdm') {
     const hasWB = upgrades.chassis >= 4;
     return {
-      rearAxleX: -33,
+      rearAxleX: -32,
       frontAxleX: 34,
-      rearWheelR: 11 + slickExtra,
-      frontWheelR: 10,
+      rearWheelR: 7 + slickExtra,
+      frontWheelR: 7,
       minX: -52,
       maxX: 55,
       exhaustX: -54,
-      exhaustY: -7,
+      exhaustY: -5,
       hasWheelieBar: hasWB,
       wheelieCasterX: -72,
       chuteX: -54,
-      chuteY: -17,
+      chuteY: -15,
       shadowHalfW: 53,
       shadowCenterX: 1,
     };
@@ -681,34 +685,34 @@ export function getHiBitCarMetrics(
     return {
       rearAxleX: -38,
       frontAxleX: 44,
-      rearWheelR: 15,
-      frontWheelR: 9,
+      rearWheelR: 10,
+      frontWheelR: 6,
       minX: -58,
       maxX: 66,
       exhaustX: 12,
-      exhaustY: -17,
+      exhaustY: -15,
       hasWheelieBar: true,
       wheelieCasterX: -82,
       chuteX: -61,
-      chuteY: -22,
+      chuteY: -20,
       shadowHalfW: 62,
       shadowCenterX: 3,
     };
   }
-  // Top Fuel Dragster — unmistakable ultra-long needle rail!
+  // Top Fuel Dragster — unmistakable ultra-long 300" needle rail with 36" slicks & skinny front wire runners!
   return {
     rearAxleX: -48,
     frontAxleX: 62,
-    rearWheelR: 16,
-    frontWheelR: 7,
+    rearWheelR: 11,
+    frontWheelR: 5,
     minX: -66,
     maxX: 84,
     exhaustX: -44,
-    exhaustY: -24,
+    exhaustY: -22,
     hasWheelieBar: true,
     wheelieCasterX: -94,
     chuteX: -69,
-    chuteY: -24,
+    chuteY: -21,
     shadowHalfW: 74,
     shadowCenterX: 6,
   };
@@ -803,11 +807,13 @@ export function drawHiBitCarProfile(p: DrawHiBitCarParams): void {
     ctx.scale(-1, 1);
   }
 
-  // Subtle launch pitch / squat pivot around the rear tire contact patch!
+  // Realistic launch pitch / weight transfer around the rear tire contact patch!
+  // In Canvas 2D (+X right, +Y down), negative pitchDeg rotates counter-clockwise -> lifts the nose UP!
   if (Math.abs(pitchDeg) > 0.05 || Math.abs(squatPx) > 0.05) {
+    const clampedSquat = Math.round(Math.max(0, Math.min(1.2, squatPx)));
     ctx.translate(m.rearAxleX, 0);
-    ctx.rotate((-pitchDeg * Math.PI) / 180);
-    ctx.translate(-m.rearAxleX, Math.round(squatPx));
+    ctx.rotate((pitchDeg * Math.PI) / 180);
+    ctx.translate(-m.rearAxleX, clampedSquat);
   }
 
   // ==================== 1. WHEELIE BAR (behind body & rear tire) ====================
@@ -815,15 +821,15 @@ export function drawHiBitCarProfile(p: DrawHiBitCarParams): void {
     const barEnd = m.wheelieCasterX;
     const rearX = m.rearAxleX - 4;
     // Upper + lower tubular chromoly triangulated struts
-    drawPixelLine(ctx, rearX, -15, barEnd, -4, '#94a3b8');
-    drawPixelLine(ctx, rearX, -14, barEnd, -3, '#1e293b');
-    drawPixelLine(ctx, rearX, -8, barEnd, -4, '#cbd5e1');
-    drawPixelLine(ctx, rearX, -7, barEnd, -3, '#334155');
+    drawPixelLine(ctx, rearX, -13, barEnd, -3, '#94a3b8');
+    drawPixelLine(ctx, rearX, -12, barEnd, -2, '#1e293b');
+    drawPixelLine(ctx, rearX, -7, barEnd, -3, '#cbd5e1');
+    drawPixelLine(ctx, rearX, -6, barEnd, -2, '#334155');
     // Vertical cross-brace
-    px(ctx, Math.round((rearX + barEnd) * 0.5), -11, 2, 7, '#64748b');
+    px(ctx, Math.round((rearX + barEnd) * 0.5), -9, 2, 6, '#64748b');
     // Tiny hard-rubber caster wheel
-    drawPixelDisc(ctx, barEnd, -3, 2, '#f59e0b', '#271e09');
-    px(ctx, barEnd, -3, 1, 1, '#fef9c3');
+    drawPixelDisc(ctx, barEnd, -2, 2, '#f59e0b', '#271e09');
+    px(ctx, barEnd, -2, 1, 1, '#fef9c3');
   }
 
   // ==================== 2. SCULPTED REAL-LIFE CHASSIS BODIES ====================
@@ -831,56 +837,56 @@ export function drawHiBitCarProfile(p: DrawHiBitCarParams): void {
     const isCRX = bodyVariant === 'compact';
     const isGTI = bodyVariant === 'boxy';
 
-    // Real-life Civic Si '86 / CRX '88 / Golf GTI Mk2 sculpted side profiles
+    // Real-life Civic Si '86 / CRX '88 / Golf GTI Mk2 sculpted side profiles (planted low stance over 14-15" wheels!)
     const bodyPts: Pt[] = isCRX
       ? [
           // CR-Pocket '88: Iconic sloping kammback glass coupe, super sleek tapered nose
-          [-42, -9],
-          [-43, -15],
-          [-41, -21], // high chopped kammback tail
-          [-26, -29], // long sloping fastback rear hatch glass
-          [-9, -32], // curved roof peak
-          [6, -31], // windshield header
-          [20, -21], // sloped A-pillar base / cowl
-          [38, -18], // gently sloping low hood
-          [45, -14], // tapered front bumper nose
-          [45, -9],
-          [42, -7], // lower chin valance
-          [-38, -7],
+          [-42, -7],
+          [-43, -13],
+          [-41, -19], // high chopped kammback tail
+          [-26, -27], // long sloping fastback rear hatch glass
+          [-9, -30], // curved roof peak
+          [6, -29], // windshield header
+          [20, -19], // sloped A-pillar base / cowl
+          [38, -16], // gently sloping low hood
+          [45, -12], // tapered front bumper nose
+          [45, -7],
+          [42, -5], // lower chin valance
+          [-38, -5],
         ]
       : isGTI
       ? [
           // Euro GT-16V '85 (Golf GTI Mk2): Sporty rally hatch with raked windshield & distinct rear C-pillar
-          [-41, -9],
-          [-42, -16],
-          [-38, -28], // crisp angled Euro hatchback tailgate
-          [-28, -32], // roof rear
-          [3, -32], // roof front
-          [16, -21], // raked windshield cowl
-          [36, -19], // sporty sloped hood
-          [44, -16], // front grille header
-          [44, -9],
-          [41, -7],
-          [-37, -7],
+          [-41, -7],
+          [-42, -14],
+          [-38, -26], // crisp angled Euro hatchback tailgate
+          [-28, -30], // roof rear
+          [3, -30], // roof front
+          [16, -19], // raked windshield cowl
+          [36, -17], // sporty sloped hood
+          [44, -14], // front grille header
+          [44, -7],
+          [41, -5],
+          [-37, -5],
         ]
       : [
           // Civic GT '86 ('86 Honda Civic Si): Sleek long-roof wonder-hatch with raked windshield & sloped hood
-          [-42, -9],
-          [-43, -16],
-          [-37, -28], // angled Civic Si hatchback glass
-          [-27, -32], // roof rear
-          [5, -32], // roof crown
-          [19, -21], // raked 42-deg windshield
-          [39, -18], // low sloping Honda hood
-          [45, -14], // rounded aero nose bumper
-          [45, -9],
-          [42, -7],
-          [-38, -7],
+          [-42, -7],
+          [-43, -14],
+          [-37, -26], // angled Civic Si hatchback glass
+          [-27, -30], // roof rear
+          [5, -30], // roof crown
+          [19, -19], // raked 42-deg windshield
+          [39, -16], // low sloping Honda hood
+          [45, -12], // rounded aero nose bumper
+          [45, -7],
+          [42, -5],
+          [-38, -5],
         ];
 
     drawPaintedBodyShell(ctx, bodyPts, paint, paintHi, paintShad, paintOut, {
-      beltY: -20,
-      lowerShadY: -11,
+      beltY: -18,
+      lowerShadY: -9,
       stripe: visuals.stripe,
       stripeStartX: -39,
       stripeEndX: 40,
@@ -889,170 +895,167 @@ export function drawHiBitCarProfile(p: DrawHiBitCarParams): void {
     // Sculpted side glass greenhouse (sloped A-pillar + B-pillar + C-pillar)
     const winPts: Pt[] = isCRX
       ? [
-          [-35, -21],
-          [-25, -28],
-          [-8, -30],
-          [5, -29],
-          [17, -21],
+          [-35, -19],
+          [-25, -26],
+          [-8, -28],
+          [5, -27],
+          [17, -19],
         ]
       : isGTI
       ? [
-          [-34, -21],
-          [-36, -26],
-          [-27, -30],
-          [2, -30],
-          [13, -21],
+          [-34, -19],
+          [-36, -24],
+          [-27, -28],
+          [2, -28],
+          [13, -19],
         ]
       : [
-          [-35, -21],
-          [-33, -27],
-          [-25, -30],
-          [4, -30],
-          [16, -21],
+          [-35, -19],
+          [-33, -25],
+          [-25, -28],
+          [4, -28],
+          [16, -19],
         ];
     drawSculptedWindow(ctx, winPts, paintOut, timeOfDay, isCRX ? [-11] : [-15, -2]);
 
     // Front & rear wraparound sporty dark bumpers + GTI red accent strip
-    drawSculptedPoly(ctx, [[37, -11], [46, -11], [46, -8], [39, -7]], trimDark, trimOut);
-    drawSculptedPoly(ctx, [[-43, -11], [-36, -11], [-36, -7], [-41, -7]], trimDark, trimOut);
+    drawSculptedPoly(ctx, [[37, -9], [46, -9], [46, -6], [39, -5]], trimDark, trimOut);
+    drawSculptedPoly(ctx, [[-43, -9], [-36, -9], [-36, -5], [-41, -5]], trimDark, trimOut);
     if (isGTI) {
-      px(ctx, -42, -10, 6, 1, '#ff4d3d');
-      px(ctx, 38, -10, 7, 1, '#ff4d3d');
-      px(ctx, -18, -14, 34, 1, '#1e293b'); // classic side rub strip
+      px(ctx, -42, -8, 6, 1, '#ff4d3d');
+      px(ctx, 38, -8, 7, 1, '#ff4d3d');
+      px(ctx, -18, -12, 34, 1, '#1e293b'); // classic side rub strip
     } else {
       // Side rub molding & rocker skirt
-      px(ctx, -16, -12, 32, 2, trimDark);
-      px(ctx, -16, -12, 32, 1, '#3b4a69');
+      px(ctx, -16, -10, 32, 2, trimDark);
+      px(ctx, -16, -10, 32, 1, '#3b4a69');
     }
 
     // Door seam, flush handle, and A-pillar side mirror!
-    px(ctx, -4, -19, 1, 10, paintOut);
-    px(ctx, -10, -18, 4, 1, trimOut);
-    px(ctx, -10, -17, 4, 1, paintHi);
-    pxBox(ctx, isCRX ? 11 : 9, -23, 4, 3, paint, paintOut); // wing mirror
+    px(ctx, -4, -17, 1, 10, paintOut);
+    px(ctx, -10, -16, 4, 1, trimOut);
+    px(ctx, -10, -15, 4, 1, paintHi);
+    pxBox(ctx, isCRX ? 11 : 9, -21, 4, 3, paint, paintOut); // wing mirror
 
     // Subtle roof-edge hatch spoiler
     drawSculptedPoly(
       ctx,
       [
-        [isCRX ? -43 : -41, isCRX ? -22 : -30],
-        [isCRX ? -35 : -30, isCRX ? -22 : -32],
+        [isCRX ? -43 : -41, isCRX ? -20 : -28],
         [isCRX ? -35 : -30, isCRX ? -20 : -30],
-        [isCRX ? -42 : -40, isCRX ? -20 : -28],
+        [isCRX ? -35 : -30, isCRX ? -18 : -28],
+        [isCRX ? -42 : -40, isCRX ? -18 : -26],
       ],
       trimDark,
       trimOut
     );
 
     // Recessed angled headlight + amber corner blinker + taillight cluster
-    pxBox(ctx, 39, -17, 6, 4, '#fef08a', chromeOut);
-    px(ctx, 41, -16, 3, 2, '#ffffff');
-    px(ctx, 37, -15, 2, 2, '#fb923c'); // amber side marker
-    pxBox(ctx, -43, -18, 5, 5, '#ff3b30', '#5e1414');
-    px(ctx, -42, -17, 2, 2, '#fda4af');
-    px(ctx, -42, -14, 2, 1, '#fb923c');
+    pxBox(ctx, 39, -15, 6, 4, '#fef08a', chromeOut);
+    px(ctx, 41, -14, 3, 2, '#ffffff');
+    px(ctx, 37, -13, 2, 2, '#fb923c'); // amber side marker
+    pxBox(ctx, -43, -16, 5, 5, '#ff3b30', '#5e1414');
+    px(ctx, -42, -15, 2, 2, '#fda4af');
+    px(ctx, -42, -12, 2, 1, '#fb923c');
 
     // Bolt-on upgrades (intercooler, hood scoop, rear drag wing, exhaust)
     if (upgrades.induction >= 2) {
-      pxBox(ctx, 41, -10, 5, 4, chromeMid, chromeOut);
-      px(ctx, 42, -9, 3, 1, chromeHi);
+      pxBox(ctx, 41, -8, 5, 4, chromeMid, chromeOut);
+      px(ctx, 42, -7, 3, 1, chromeHi);
     }
     if (upgrades.induction >= 3) {
-      drawSculptedPoly(ctx, [[22, -21], [31, -22], [33, -19], [22, -19]], paintShad, paintOut);
-      px(ctx, 31, -21, 2, 2, trimOut);
+      drawSculptedPoly(ctx, [[22, -19], [31, -20], [33, -17], [22, -17]], paintShad, paintOut);
+      px(ctx, 31, -19, 2, 2, trimOut);
     }
     if (upgrades.chassis >= 2) {
       // Sleek aluminum street-drag wing on rear hatch
-      px(ctx, -38, -32, 2, 4, trimOut);
-      drawSculptedPoly(ctx, [[-47, -36], [-35, -34], [-35, -32], [-46, -33]], trimDark, trimOut);
-      px(ctx, -45, -35, 9, 1, paintHi);
+      px(ctx, -38, -30, 2, 4, trimOut);
+      drawSculptedPoly(ctx, [[-47, -34], [-35, -32], [-35, -30], [-46, -31]], trimDark, trimOut);
+      px(ctx, -45, -33, 9, 1, paintHi);
     }
     if (upgrades.chassis >= 3) {
       // Front carbon splitter
-      px(ctx, 39, -7, 10, 2, trimOut);
-      px(ctx, 42, -7, 6, 1, '#64748b');
+      px(ctx, 39, -5, 10, 2, trimOut);
+      px(ctx, 42, -5, 6, 1, '#64748b');
     }
     // Exhaust tip
-    pxBox(ctx, -45, -9, 5, 3, chromeMid, chromeOut);
-    px(ctx, -44, -8, 3, 1, chromeHi);
+    pxBox(ctx, -45, -7, 5, 3, chromeMid, chromeOut);
+    px(ctx, -44, -6, 3, 1, chromeHi);
   } else if (chassis === 'muscle') {
     const isFastback = bodyVariant === 'fastback';
     const isNotch = bodyVariant === 'notch';
     const isAero = bodyVariant === 'aero';
 
-    // Real-life sculpted muscle silhouettes:
-    // - standard: '84 IROC-Z Camaro (long low wedge nose, sweeping glass hatch)
-    // - fastback: '70 Chevelle SS / '92 Viper (long sculpted hood, Coke-bottle rear haunch, sweeping fastback)
-    // - notch: '87 Fox 5.0 / '87 Buick GNX / '68 Pro-Mod Nova (classic sculpted coupe roof & trunk deck)
+    // Real-life sculpted muscle silhouettes (sleek planted proportions over 15" wheels / rear slicks):
     const bodyPts: Pt[] = isFastback
       ? [
           // Flowing muscular fastback ('70 Chevelle / Viper V10)
-          [-53, -9],
-          [-54, -17],
-          [-51, -22], // upturned muscular tail lip
-          [-38, -23], // raised Coke-bottle rear fender haunch
-          [-26, -30], // sweeping fastback C-pillar
-          [-13, -33], // curved coupe roof crown
-          [4, -32], // windshield header
-          [18, -22], // deeply raked windshield cowl
-          [45, -19], // long muscular sloping hood
-          [55, -15], // sculpted pointed front nose
-          [55, -9],
-          [51, -7], // recessed chin spoiler
-          [-49, -7],
+          [-53, -7],
+          [-54, -15],
+          [-51, -20], // upturned muscular tail lip
+          [-38, -21], // raised Coke-bottle rear fender haunch
+          [-26, -28], // sweeping fastback C-pillar
+          [-13, -31], // curved coupe roof crown
+          [4, -30], // windshield header
+          [18, -20], // deeply raked windshield cowl
+          [45, -17], // long muscular sloping hood
+          [55, -13], // sculpted pointed front nose
+          [55, -7],
+          [51, -5], // recessed chin spoiler
+          [-49, -5],
         ]
       : isNotch
       ? [
           // Sleek notchback drag coupe ('87 Fox 5.0 / '87 GNX / '68 Nova)
-          [-52, -9],
-          [-53, -17],
-          [-51, -21], // crisp trunk deck edge
-          [-31, -22], // rear trunk deck
-          [-23, -32], // clean angled coupe C-pillar
-          [-12, -33], // roof crown
-          [6, -32], // windshield header
-          [18, -22], // raked windshield cowl
-          [44, -19], // sloped hood
-          [54, -16], // front fascia
-          [54, -9],
-          [50, -7],
-          [-48, -7],
+          [-52, -7],
+          [-53, -15],
+          [-51, -19], // crisp trunk deck edge
+          [-31, -20], // rear trunk deck
+          [-23, -30], // clean angled coupe C-pillar
+          [-12, -31], // roof crown
+          [6, -30], // windshield header
+          [18, -20], // raked windshield cowl
+          [44, -17], // sloped hood
+          [54, -14], // front fascia
+          [54, -7],
+          [50, -5],
+          [-48, -5],
         ]
       : isAero
       ? [
           // Aero Daytona/Superbird sloped nose cone muscle
-          [-53, -9],
-          [-54, -18],
-          [-50, -22],
-          [-35, -23],
-          [-24, -31],
-          [-10, -32],
-          [6, -31],
-          [20, -21],
-          [48, -17],
-          [58, -12], // aerodynamic pointed nose cone
-          [55, -8],
-          [-49, -7],
+          [-53, -7],
+          [-54, -16],
+          [-50, -20],
+          [-35, -21],
+          [-24, -29],
+          [-10, -30],
+          [6, -29],
+          [20, -19],
+          [48, -15],
+          [58, -10], // aerodynamic pointed nose cone
+          [55, -6],
+          [-49, -5],
         ]
       : [
           // Classic '84 IROC-Z Camaro: Low pointed wedge nose + long sweeping rear hatch
-          [-52, -9],
-          [-54, -17],
-          [-50, -21], // rear deck spoiler lip
-          [-34, -24], // sweeping Camaro rear hatch glass
-          [-16, -31], // sleek low roof
-          [3, -31],
-          [19, -21], // deeply raked windshield
-          [46, -18], // long low Camaro hood
-          [56, -13], // iconic recessed IROC pointed nose
-          [54, -8],
-          [49, -7],
-          [-48, -7],
+          [-52, -7],
+          [-54, -15],
+          [-50, -19], // rear deck spoiler lip
+          [-34, -22], // sweeping Camaro rear hatch glass
+          [-16, -29], // sleek low roof
+          [3, -29],
+          [19, -19], // deeply raked windshield
+          [46, -16], // long low Camaro hood
+          [56, -11], // iconic recessed IROC pointed nose
+          [54, -6],
+          [49, -5],
+          [-48, -5],
         ];
 
     drawPaintedBodyShell(ctx, bodyPts, paint, paintHi, paintShad, paintOut, {
-      beltY: -21,
-      lowerShadY: -11,
+      beltY: -19,
+      lowerShadY: -9,
       stripe: visuals.stripe,
       stripeStartX: -50,
       stripeEndX: 49,
@@ -1061,140 +1064,137 @@ export function drawHiBitCarProfile(p: DrawHiBitCarParams): void {
     // Sculpted side glass greenhouse
     const winPts: Pt[] = isFastback
       ? [
-          [-33, -23],
-          [-24, -29],
-          [-12, -31],
-          [3, -30],
-          [15, -22],
+          [-33, -21],
+          [-24, -27],
+          [-12, -29],
+          [3, -28],
+          [15, -20],
         ]
       : isNotch
       ? [
-          [-28, -22],
-          [-22, -30],
-          [-11, -31],
-          [4, -30],
-          [15, -22],
+          [-28, -20],
+          [-22, -28],
+          [-11, -29],
+          [4, -28],
+          [15, -20],
         ]
       : [
-          [-40, -22],
-          [-32, -25],
-          [-16, -29],
-          [2, -29],
-          [16, -21],
+          [-40, -20],
+          [-32, -23],
+          [-16, -27],
+          [2, -27],
+          [16, -19],
         ];
     drawSculptedWindow(ctx, winPts, paintOut, timeOfDay, isNotch ? [-7] : [-12, -1]);
 
     // Sculpted front chin air dam, rear diffuser valance & side rocker trim
-    drawSculptedPoly(ctx, [[46, -9], [55, -9], [52, -6], [45, -7]], trimDark, trimOut);
-    px(ctx, -20, -10, 42, 2, trimDark);
-    px(ctx, -20, -10, 42, 1, '#3b4a69');
+    drawSculptedPoly(ctx, [[46, -7], [55, -7], [52, -4], [45, -5]], trimDark, trimOut);
+    px(ctx, -20, -8, 42, 2, trimDark);
+    px(ctx, -20, -8, 42, 1, '#3b4a69');
 
     // Muscular rear fender haunch highlight line + door seam & aero mirror
-    drawPixelLine(ctx, -45, -20, -25, -21, paintHi);
-    px(ctx, -5, -20, 1, 10, paintOut);
-    px(ctx, -11, -19, 4, 1, trimOut);
-    pxBox(ctx, 8, -24, 4, 3, paint, paintOut); // wing mirror
+    drawPixelLine(ctx, -45, -18, -25, -19, paintHi);
+    px(ctx, -5, -18, 1, 10, paintOut);
+    px(ctx, -11, -17, 4, 1, trimOut);
+    pxBox(ctx, 8, -22, 4, 3, paint, paintOut); // wing mirror
 
     // Subtle integrated rear decklip spoiler
-    drawSculptedPoly(ctx, [[-55, -23], [-48, -22], [-48, -20], [-54, -20]], paintShad, paintOut);
+    drawSculptedPoly(ctx, [[-55, -21], [-48, -20], [-48, -18], [-54, -18]], paintShad, paintOut);
 
     // Recessed quad/bar headlights + glowing amber marker + sculpted taillights
-    pxBox(ctx, 49, -16, 6, 4, '#fef08a', chromeOut);
-    px(ctx, 51, -15, 3, 2, '#ffffff');
-    px(ctx, 45, -13, 3, 2, '#fb923c');
-    pxBox(ctx, -54, -19, 6, 5, '#ff3b30', '#5e1414');
-    px(ctx, -53, -18, 2, 2, '#fda4af');
-    px(ctx, -53, -15, 2, 1, '#fb923c');
+    pxBox(ctx, 49, -14, 6, 4, '#fef08a', chromeOut);
+    px(ctx, 51, -13, 3, 2, '#ffffff');
+    px(ctx, 45, -11, 3, 2, '#fb923c');
+    pxBox(ctx, -54, -17, 6, 5, '#ff3b30', '#5e1414');
+    px(ctx, -53, -16, 2, 2, '#fda4af');
+    px(ctx, -53, -13, 2, 1, '#fb923c');
 
     // Bolt-on Induction: Cowl hood bulge (lvl 1-2) -> Towering Chrome 6-71 Blower (lvl 3+)
     if (upgrades.induction >= 3) {
       // Sculpted chrome supercharger rising cleanly from the long V8 hood
-      drawSculptedPoly(ctx, [[22, -21], [23, -29], [36, -29], [37, -20]], chromeMid, chromeOut);
-      px(ctx, 24, -27, 11, 2, chromeHi);
-      px(ctx, 25, -24, 9, 1, chromeOut);
+      drawSculptedPoly(ctx, [[22, -19], [23, -27], [36, -27], [37, -18]], chromeMid, chromeOut);
+      px(ctx, 24, -25, 11, 2, chromeHi);
       px(ctx, 25, -22, 9, 1, chromeOut);
+      px(ctx, 25, -20, 9, 1, chromeOut);
       // Red anodized butterfly injector scoop
-      drawSculptedPoly(ctx, [[21, -33], [37, -34], [39, -30], [22, -29]], '#ff4d3d', '#6b1616');
-      px(ctx, 24, -32, 11, 1, '#ffada6');
-      px(ctx, 36, -32, 3, 2, '#1e293b'); // butterfly mouth
+      drawSculptedPoly(ctx, [[21, -31], [37, -32], [39, -28], [22, -27]], '#ff4d3d', '#6b1616');
+      px(ctx, 24, -30, 11, 1, '#ffada6');
+      px(ctx, 36, -30, 3, 2, '#1e293b'); // butterfly mouth
     } else if (upgrades.induction >= 1) {
       // Sleek cowl-induction power dome
-      drawSculptedPoly(ctx, [[21, -23], [34, -21], [37, -19], [20, -20]], paintHi, paintOut);
-      px(ctx, 20, -22, 2, 2, trimOut);
+      drawSculptedPoly(ctx, [[21, -21], [34, -19], [37, -17], [20, -18]], paintHi, paintOut);
+      px(ctx, 20, -20, 2, 2, trimOut);
     }
 
     // Pro-Street aluminum drag spoiler on trunk deck
     if (upgrades.chassis >= 2) {
-      drawSculptedPoly(ctx, [[-61, -24], [-47, -22], [-48, -20], [-60, -21]], chromeMid, chromeOut);
-      px(ctx, -58, -23, 10, 1, chromeHi);
-      drawPixelLine(ctx, -56, -21, -52, -16, chromeOut);
+      drawSculptedPoly(ctx, [[-61, -22], [-47, -20], [-48, -18], [-60, -19]], chromeMid, chromeOut);
+      px(ctx, -58, -21, 10, 1, chromeHi);
+      drawPixelLine(ctx, -56, -19, -52, -14, chromeOut);
     }
 
     // Twin chrome exhaust tip / side dump
-    pxBox(ctx, -56, -9, 6, 3, chromeMid, chromeOut);
-    px(ctx, -55, -8, 4, 1, chromeHi);
+    pxBox(ctx, -56, -7, 6, 3, chromeMid, chromeOut);
+    px(ctx, -55, -6, 4, 1, chromeHi);
   } else if (chassis === 'jdm') {
     const isWedge = bodyVariant === 'wedge';
     const isAero = bodyVariant === 'aero';
 
-    // Real-life Japanese Sports Icons:
-    // - wedge: '91 NSX / '88 RX-7 FC / '89 Prelude (ultra-low wedge nose, fighter canopy, side intake)
-    // - aero: '93 Supra MK4 / '89 Corvette ZR (curvaceous bubble coupe, rounded bullet nose, iconic hoop wing)
-    // - standard: '89 Skyline R32 GT-R (sleek sculpted GT coupe, twin-round tail, front intercooler mouth)
+    // Real-life Japanese Sports Icons (low-slung sleek sports proportions over 16" wheels):
     const bodyPts: Pt[] = isWedge
       ? [
           // Ultra-low wedge exotic ('91 NSX / '88 RX-7 FC)
-          [-51, -9],
-          [-52, -17],
-          [-49, -21], // crisp sculpted rear deck
-          [-34, -22], // long mid-engine / hatch deck
-          [-20, -29], // deeply raked rear canopy glass
-          [-6, -30], // low sleek teardrop roof
-          [8, -29],
-          [23, -19], // super-raked fighter-jet windshield
-          [46, -15], // razor-low wedge hood
-          [55, -11], // pointed aerodynamic nose
-          [54, -8],
-          [49, -7],
-          [-47, -7],
+          [-51, -7],
+          [-52, -15],
+          [-49, -19], // crisp sculpted rear deck
+          [-34, -20], // long mid-engine / hatch deck
+          [-20, -27], // deeply raked rear canopy glass
+          [-6, -28], // low sleek teardrop roof
+          [8, -27],
+          [23, -17], // super-raked fighter-jet windshield
+          [46, -13], // razor-low wedge hood
+          [55, -9], // pointed aerodynamic nose
+          [54, -6],
+          [49, -5],
+          [-47, -5],
         ]
       : isAero
       ? [
           // Curvaceous aero GT ('93 Supra MK4 / '89 Corvette ZR)
-          [-51, -9],
-          [-52, -17],
-          [-48, -21], // rounded Supra rear haunch
-          [-35, -23],
-          [-23, -30], // sweeping fastback rear glass
-          [-9, -31], // smooth bubble roof crown
-          [6, -30],
-          [21, -20], // deeply raked windshield
-          [45, -17], // sculpted curved long hood
-          [55, -13], // rounded wind-tunnel nose
-          [54, -8],
-          [49, -7],
-          [-47, -7],
+          [-51, -7],
+          [-52, -15],
+          [-48, -19], // rounded Supra rear haunch
+          [-35, -21],
+          [-23, -28], // sweeping fastback rear glass
+          [-9, -29], // smooth bubble roof crown
+          [6, -28],
+          [21, -18], // deeply raked windshield
+          [45, -15], // sculpted curved long hood
+          [55, -11], // rounded wind-tunnel nose
+          [54, -6],
+          [49, -5],
+          [-47, -5],
         ]
       : [
           // Iconic '89 Skyline R32 GT-R coupe
-          [-50, -9],
-          [-51, -17],
-          [-48, -21], // crisp R32 trunk edge
-          [-33, -22],
-          [-24, -31], // clean angled C-pillar
-          [-10, -32], // curved roof
-          [7, -31],
-          [20, -21], // raked windshield
-          [44, -18], // sleek sloping hood
-          [54, -14], // sculpted GT-R front bumper nose
-          [54, -8],
-          [49, -7],
-          [-46, -7],
+          [-50, -7],
+          [-51, -15],
+          [-48, -19], // crisp R32 trunk edge
+          [-33, -20],
+          [-24, -29], // clean angled C-pillar
+          [-10, -30], // curved roof
+          [7, -29],
+          [20, -19], // raked windshield
+          [44, -16], // sleek sloping hood
+          [54, -12], // sculpted GT-R front bumper nose
+          [54, -6],
+          [49, -5],
+          [-46, -5],
         ];
 
     drawPaintedBodyShell(ctx, bodyPts, paint, paintHi, paintShad, paintOut, {
-      beltY: -20,
-      lowerShadY: -10,
+      beltY: -18,
+      lowerShadY: -8,
       stripe: visuals.stripe,
       stripeStartX: -48,
       stripeEndX: 48,
@@ -1203,132 +1203,130 @@ export function drawHiBitCarProfile(p: DrawHiBitCarParams): void {
     // Sculpted side glass canopy
     const winPts: Pt[] = isWedge
       ? [
-          [-28, -21],
-          [-19, -27],
-          [-5, -28],
-          [7, -27],
-          [20, -19],
+          [-28, -19],
+          [-19, -25],
+          [-5, -26],
+          [7, -25],
+          [20, -17],
         ]
       : isAero
       ? [
-          [-34, -22],
-          [-22, -28],
-          [-8, -29],
-          [5, -28],
-          [18, -20],
+          [-34, -20],
+          [-22, -26],
+          [-8, -27],
+          [5, -26],
+          [18, -18],
         ]
       : [
-          [-30, -22],
-          [-23, -29],
-          [-9, -30],
-          [6, -29],
-          [17, -21],
+          [-30, -20],
+          [-23, -27],
+          [-9, -28],
+          [6, -27],
+          [17, -19],
         ];
     drawSculptedWindow(ctx, winPts, paintOut, timeOfDay, isWedge ? [-2] : [-8]);
 
     // Front bumper intercooler mouth + aero side skirt + sculpted side vent (on wedge)
-    drawSculptedPoly(ctx, [[45, -11], [54, -11], [53, -7], [46, -7]], trimDark, trimOut);
+    drawSculptedPoly(ctx, [[45, -9], [54, -9], [53, -5], [46, -5]], trimDark, trimOut);
     if (upgrades.induction >= 1) {
       // Gleaming front-mount intercooler core tucked inside front bumper air dam!
-      px(ctx, 47, -10, 6, 3, chromeMid);
-      px(ctx, 48, -10, 4, 1, chromeHi);
-      px(ctx, 48, -8, 4, 1, chromeOut);
+      px(ctx, 47, -8, 6, 3, chromeMid);
+      px(ctx, 48, -8, 4, 1, chromeHi);
+      px(ctx, 48, -6, 4, 1, chromeOut);
     }
-    px(ctx, -20, -9, 42, 2, trimDark);
+    px(ctx, -20, -7, 42, 2, trimDark);
     if (isWedge) {
       // Mid-engine / RX-7 sculpted side air scoop behind door
-      drawSculptedPoly(ctx, [[-17, -17], [-9, -18], [-10, -13], [-18, -13]], trimDark, paintOut);
-      px(ctx, -16, -16, 5, 1, '#475569');
+      drawSculptedPoly(ctx, [[-17, -15], [-9, -16], [-10, -11], [-18, -11]], trimDark, paintOut);
+      px(ctx, -16, -14, 5, 1, '#475569');
     }
 
     // Door seam, flush handle, and sleek aero teardrop mirror
-    px(ctx, -3, -19, 1, 9, paintOut);
-    px(ctx, -9, -18, 4, 1, trimOut);
-    pxBox(ctx, 10, -23, 4, 3, paint, paintOut);
+    px(ctx, -3, -17, 1, 9, paintOut);
+    px(ctx, -9, -16, 4, 1, trimOut);
+    pxBox(ctx, 10, -21, 4, 3, paint, paintOut);
 
     // Sculpted headlights (sleek flush aero lens or pop-up seam on wedge) + iconic taillights
     if (isWedge) {
       // Pop-up headlight seam + lower bumper fog/running light
-      drawPixelLine(ctx, 41, -16, 48, -15, paintOut);
-      pxBox(ctx, 48, -13, 6, 3, '#e0f2fe', chromeOut);
-      px(ctx, 50, -12, 3, 1, '#ffffff');
+      drawPixelLine(ctx, 41, -14, 48, -13, paintOut);
+      pxBox(ctx, 48, -11, 6, 3, '#e0f2fe', chromeOut);
+      px(ctx, 50, -10, 3, 1, '#ffffff');
     } else {
-      drawSculptedPoly(ctx, [[46, -16], [54, -14], [54, -12], [46, -13]], '#e0f2fe', chromeOut);
-      px(ctx, 48, -14, 4, 1, '#ffffff');
+      drawSculptedPoly(ctx, [[46, -14], [54, -12], [54, -10], [46, -11]], '#e0f2fe', chromeOut);
+      px(ctx, 48, -12, 4, 1, '#ffffff');
     }
-    pxBox(ctx, -52, -18, 6, 4, '#ff3b30', '#5e1414');
-    px(ctx, -51, -17, 2, 2, '#fda4af');
-    px(ctx, -48, -17, 1, 2, '#ff8073'); // twin-lamp hint
+    pxBox(ctx, -52, -16, 6, 4, '#ff3b30', '#5e1414');
+    px(ctx, -51, -15, 2, 2, '#fda4af');
+    px(ctx, -48, -15, 1, 2, '#ff8073'); // twin-lamp hint
 
     // Iconic curved Supra hoop wing (aero) / GT-R factory wing (standard) / Carbon GT wing (upgraded)
     if (upgrades.chassis >= 2) {
       // High-downforce carbon GT wing on twin aluminum uprights
-      px(ctx, -46, -32, 2, 11, trimOut);
-      px(ctx, -45, -31, 1, 9, chromeMid);
-      drawSculptedPoly(ctx, [[-56, -35], [-42, -33], [-42, -31], [-55, -32]], trimDark, trimOut);
-      px(ctx, -54, -34, 10, 1, '#94a3b8');
+      px(ctx, -46, -30, 2, 11, trimOut);
+      px(ctx, -45, -29, 1, 9, chromeMid);
+      drawSculptedPoly(ctx, [[-56, -33], [-42, -31], [-42, -29], [-55, -30]], trimDark, trimOut);
+      px(ctx, -54, -32, 10, 1, '#94a3b8');
     } else if (isAero) {
       // Iconic curved Mk4 Supra / Corvette hoop wing
-      drawSculptedPoly(ctx, [[-51, -26], [-43, -27], [-41, -21], [-44, -21], [-45, -24], [-50, -24]], paint, paintOut);
-      px(ctx, -50, -25, 6, 1, paintHi);
+      drawSculptedPoly(ctx, [[-51, -24], [-43, -25], [-41, -19], [-44, -19], [-45, -22], [-50, -22]], paint, paintOut);
+      px(ctx, -50, -23, 6, 1, paintHi);
     } else {
       // Sleek factory R32 / NSX rear spoiler
-      drawSculptedPoly(ctx, [[-52, -24], [-42, -23], [-42, -21], [-51, -22]], paint, paintOut);
-      px(ctx, -50, -23, 7, 1, paintHi);
+      drawSculptedPoly(ctx, [[-52, -22], [-42, -21], [-42, -19], [-51, -20]], paint, paintOut);
+      px(ctx, -50, -21, 7, 1, paintHi);
     }
 
     if (upgrades.chassis >= 3) {
       // Carbon front splitter lip
-      px(ctx, 47, -7, 10, 2, trimOut);
-      px(ctx, 50, -7, 6, 1, '#64748b');
+      px(ctx, 47, -5, 10, 2, trimOut);
+      px(ctx, 50, -5, 6, 1, '#64748b');
     }
     // Titanium cannon exhaust tip
-    pxBox(ctx, -55, -9, 6, 3, chromeMid, chromeOut);
-    px(ctx, -54, -8, 2, 1, '#60a5fa'); // titanium heat-blued tip!
+    pxBox(ctx, -55, -7, 6, 3, chromeMid, chromeOut);
+    px(ctx, -54, -6, 2, 1, '#60a5fa'); // titanium heat-blued tip!
   } else if (chassis === 'funny') {
     const isWedge = bodyVariant === 'wedge';
     const isNotch = bodyVariant === 'notch';
     const isAero = bodyVariant === 'aero';
 
-    // Real NHRA Nitro Funny Car / Carbon Pro-Mod Flip-Body:
-    // Massive long tapering bullet nose, curved wheel blisters, swept laid-back canopy,
-    // integrated spill-plate rear drag wing, and sculpted fender line.
+    // Real NHRA Nitro Funny Car / Carbon Pro-Mod Flip-Body (low ground-scraping stance over 36" slicks & skinny front runners):
     const bodyPts: Pt[] = isNotch
       ? [
           // Outlaw Pro-Mod Z: Sleek extended-nose carbon door-slammer with rear trunk deck
-          [-58, -11],
-          [-57, -23], // tall integrated spill-plate rear spoiler
-          [-45, -23],
-          [-34, -24],
-          [-23, -32], // fastback-Pro-Mod roofline
-          [-7, -33],
-          [8, -30], // deeply laid-back windshield
-          [24, -21],
-          [55, -16], // extended carbon aerodynamic nose
-          [66, -10], // low ground-scraping splitter tip
-          [65, -6],
-          [54, -6],
-          [-54, -7],
+          [-58, -9],
+          [-57, -21], // tall integrated spill-plate rear spoiler
+          [-45, -21],
+          [-34, -22],
+          [-23, -30], // fastback-Pro-Mod roofline
+          [-7, -31],
+          [8, -28], // deeply laid-back windshield
+          [24, -19],
+          [55, -14], // extended carbon aerodynamic nose
+          [66, -8], // low ground-scraping splitter tip
+          [65, -4],
+          [54, -4],
+          [-54, -5],
         ]
       : [
           // Authentic NHRA Nitro Funny Car sweeping teardrop flip-body
-          [-58, -11],
-          [-59, -27], // iconic high integrated rear spill-plate wing
-          [-48, -26],
-          [-32, -28], // smooth sweeping aerodynamic tail deck
-          [-16, -33], // low laid-back teardrop roof
-          [0, -32],
-          [16, -22], // ultra-raked windshield
-          [48, isWedge ? -15 : -17], // razor-long sloped carbon nose
-          [66, isAero ? -9 : -10], // bullet-pointed chin nose
-          [65, -6],
-          [52, -6],
-          [-53, -7],
+          [-58, -9],
+          [-59, -25], // iconic high integrated rear spill-plate wing
+          [-48, -24],
+          [-32, -26], // smooth sweeping aerodynamic tail deck
+          [-16, -31], // low laid-back teardrop roof
+          [0, -30],
+          [16, -20], // ultra-raked windshield
+          [48, isWedge ? -13 : -15], // razor-long sloped carbon nose
+          [66, isAero ? -7 : -8], // bullet-pointed chin nose
+          [65, -4],
+          [52, -4],
+          [-53, -5],
         ];
 
     drawPaintedBodyShell(ctx, bodyPts, paint, paintHi, paintShad, paintOut, {
-      beltY: -22,
-      lowerShadY: -11,
+      beltY: -20,
+      lowerShadY: -9,
       stripe: visuals.stripe,
       stripeStartX: -54,
       stripeEndX: 56,
@@ -1337,50 +1335,50 @@ export function drawHiBitCarProfile(p: DrawHiBitCarParams): void {
     // Ultra-raked Funny Car lexan cockpit side window + carbon spill-plate trim
     const winPts: Pt[] = isNotch
       ? [
-          [-26, -24],
-          [-19, -30],
-          [-6, -31],
-          [6, -28],
-          [18, -22],
+          [-26, -22],
+          [-19, -28],
+          [-6, -29],
+          [6, -26],
+          [18, -20],
         ]
       : [
-          [-28, -24],
-          [-15, -31],
-          [-1, -30],
-          [13, -22],
+          [-28, -22],
+          [-15, -29],
+          [-1, -28],
+          [13, -20],
         ];
     drawSculptedWindow(ctx, winPts, paintOut, timeOfDay, [-6]);
 
     // Rear spill-plate carbon side panel & aluminum flap
-    drawSculptedPoly(ctx, [[-59, -27], [-48, -26], [-50, -21], [-58, -21]], trimDark, trimOut);
-    px(ctx, -58, -26, 9, 1, chromeMid);
+    drawSculptedPoly(ctx, [[-59, -25], [-48, -24], [-50, -19], [-58, -19]], trimDark, trimOut);
+    px(ctx, -58, -24, 9, 1, chromeMid);
 
     // Sculpted carbon chin ground-effects skirt
-    px(ctx, -20, -8, 46, 2, trimOut);
-    px(ctx, 54, -7, 13, 2, trimOut);
-    px(ctx, 56, -7, 10, 1, '#64748b');
+    px(ctx, -20, -6, 46, 2, trimOut);
+    px(ctx, 54, -5, 13, 2, trimOut);
+    px(ctx, 56, -5, 10, 1, '#64748b');
 
     // Painted decoy headlight decal on carbon nose (classic NHRA Funny Car detail!)
-    drawSculptedPoly(ctx, [[54, -14], [63, -11], [62, -9], [54, -11]], '#e2e8f0', chromeOut);
-    px(ctx, 56, -12, 4, 1, '#ffffff');
+    drawSculptedPoly(ctx, [[54, -12], [63, -9], [62, -7], [54, -9]], '#e2e8f0', chromeOut);
+    px(ctx, 56, -10, 4, 1, '#ffffff');
 
     // Towering Chrome 14-71 Nitro Blower & Triple-Butterfly Hat rising out of the sloped nose!
-    drawSculptedPoly(ctx, [[22, -20], [23, -31], [37, -31], [38, -19]], chromeMid, chromeOut);
-    px(ctx, 24, -29, 12, 2, chromeHi);
-    px(ctx, 25, -26, 10, 1, chromeOut);
-    px(ctx, 25, -23, 10, 1, chromeOut);
+    drawSculptedPoly(ctx, [[22, -18], [23, -29], [37, -29], [38, -17]], chromeMid, chromeOut);
+    px(ctx, 24, -27, 12, 2, chromeHi);
+    px(ctx, 25, -24, 10, 1, chromeOut);
+    px(ctx, 25, -21, 10, 1, chromeOut);
     // Anodized injector scoop hat
-    drawSculptedPoly(ctx, [[21, -35], [38, -36], [40, -32], [22, -31]], '#ff4d3d', '#6b1616');
-    px(ctx, 24, -34, 12, 1, '#ffb3ab');
-    px(ctx, 37, -34, 3, 2, '#1e293b');
+    drawSculptedPoly(ctx, [[21, -33], [38, -34], [40, -30], [22, -29]], '#ff4d3d', '#6b1616');
+    px(ctx, 24, -32, 12, 1, '#ffb3ab');
+    px(ctx, 37, -32, 3, 2, '#1e293b');
 
     // Iconic 4-pipe swept chrome nitro zoomie headers poking cleanly out of the side fender cutout!
-    pxBox(ctx, 9, -18, 17, 7, '#141926', trimOut);
+    pxBox(ctx, 9, -16, 17, 7, '#141926', trimOut);
     for (let z = 0; z < 4; z++) {
       const zx = 11 + z * 4;
-      drawPixelLine(ctx, zx + 2, -13, zx - 2, -18, chromeOut);
-      drawPixelLine(ctx, zx + 1, -13, zx - 3, -18, chromeMid);
-      px(ctx, zx - 3, -18, 2, 1, chromeHi);
+      drawPixelLine(ctx, zx + 2, -11, zx - 2, -16, chromeOut);
+      drawPixelLine(ctx, zx + 1, -11, zx - 3, -16, chromeMid);
+      px(ctx, zx - 3, -16, 2, 1, chromeHi);
     }
   } else {
     // ==================== TOP FUEL DRAGSTER (Real 300" Tapered Needle Rail!) ====================
@@ -1389,41 +1387,41 @@ export function drawHiBitCarProfile(p: DrawHiBitCarParams): void {
     const isTwin = bodyVariant === 'twin';
 
     // Tall Twin-Strut Rear Downforce Wing with Sculpted Curved Carbon Endplates
-    drawPixelLine(ctx, -56, -24, -62, -41, chromeOut);
-    drawPixelLine(ctx, -55, -24, -61, -41, chromeMid);
-    drawPixelLine(ctx, -47, -24, -52, -40, chromeOut);
-    drawPixelLine(ctx, -46, -24, -51, -40, chromeMid);
+    drawPixelLine(ctx, -56, -21, -62, -38, chromeOut);
+    drawPixelLine(ctx, -55, -21, -61, -38, chromeMid);
+    drawPixelLine(ctx, -47, -21, -52, -37, chromeOut);
+    drawPixelLine(ctx, -46, -21, -51, -37, chromeMid);
     // Sculpted wing endplate & dual airfoil blades
     drawSculptedPoly(
       ctx,
       [
-        [-68, -44],
-        [-47, -41],
-        [-48, -34],
-        [-65, -35],
+        [-68, -41],
+        [-47, -38],
+        [-48, -31],
+        [-65, -32],
       ],
       paint,
       paintOut
     );
-    px(ctx, -66, -42, 17, 2, paintHi);
-    px(ctx, -64, -37, 14, 2, trimDark);
+    px(ctx, -66, -39, 17, 2, paintHi);
+    px(ctx, -64, -34, 14, 2, trimDark);
 
     // Continuous Smoothly-Tapered Razor Needle Fuselage (from rear cowl all the way to x=84 tip!)
     const bodyPts: Pt[] = [
-      [-64, -10],
-      [-64, -22], // rear engine cowling
-      [-34, -22], // sidepod shoulder
-      [-10, -21], // cockpit cowling
-      [20, -16], // smooth tapered upper fuselage
-      [54, -11], // razor needle taper
-      [84, -7], // sharp aerodynamic needle tip
-      [82, -5],
-      [52, -6],
-      [-58, -7],
+      [-64, -8],
+      [-64, -19], // rear engine cowling
+      [-34, -19], // sidepod shoulder
+      [-10, -18], // cockpit cowling
+      [20, -14], // smooth tapered upper fuselage
+      [54, -9], // razor needle taper
+      [84, -6], // sharp aerodynamic needle tip
+      [82, -4],
+      [52, -4],
+      [-58, -5],
     ];
     drawPaintedBodyShell(ctx, bodyPts, paint, paintHi, paintShad, paintOut, {
-      beltY: -18,
-      lowerShadY: -9,
+      beltY: -15,
+      lowerShadY: -7,
       stripe: visuals.stripe,
       stripeStartX: -60,
       stripeEndX: 74,
@@ -1432,20 +1430,20 @@ export function drawHiBitCarProfile(p: DrawHiBitCarParams): void {
     // Exposed Billet Nitro Hemi Engine(s) + 14-71 Supercharger(s) + Swept Vertical Headers
     const drawHemiEngine = (ex: number) => {
       // Billet aluminum Hemi block & valve cover
-      drawSculptedPoly(ctx, [[ex - 9, -21], [ex - 8, -28], [ex + 8, -28], [ex + 9, -21]], '#94a3b8', chromeOut);
-      px(ctx, ex - 7, -27, 14, 2, chromeHi);
+      drawSculptedPoly(ctx, [[ex - 9, -18], [ex - 8, -25], [ex + 8, -25], [ex + 9, -18]], '#94a3b8', chromeOut);
+      px(ctx, ex - 7, -24, 14, 2, chromeHi);
       // Chrome blower & injector hat
-      drawSculptedPoly(ctx, [[ex - 7, -28], [ex - 6, -35], [ex + 7, -35], [ex + 8, -28]], chromeMid, chromeOut);
-      px(ctx, ex - 5, -34, 10, 2, chromeHi);
-      drawSculptedPoly(ctx, [[ex - 6, -38], [ex + 8, -39], [ex + 10, -35], [ex - 5, -35]], '#ff4d3d', '#6b1616');
-      px(ctx, ex - 4, -37, 11, 1, '#ffb3ab');
-      px(ctx, ex + 8, -37, 2, 2, '#1e293b');
+      drawSculptedPoly(ctx, [[ex - 7, -25], [ex - 6, -32], [ex + 7, -32], [ex + 8, -25]], chromeMid, chromeOut);
+      px(ctx, ex - 5, -31, 10, 2, chromeHi);
+      drawSculptedPoly(ctx, [[ex - 6, -35], [ex + 8, -36], [ex + 10, -32], [ex - 5, -32]], '#ff4d3d', '#6b1616');
+      px(ctx, ex - 4, -34, 11, 1, '#ffb3ab');
+      px(ctx, ex + 8, -34, 2, 2, '#1e293b');
       // 4 angled vertical chrome nitro header pipes!
       for (let h = 0; h < 4; h++) {
         const hx = ex - 6 + h * 4;
-        drawPixelLine(ctx, hx + 1, -22, hx - 3, -29, chromeOut);
-        drawPixelLine(ctx, hx, -22, hx - 4, -29, chromeMid);
-        px(ctx, hx - 4, -29, 2, 1, chromeHi);
+        drawPixelLine(ctx, hx + 1, -19, hx - 3, -26, chromeOut);
+        drawPixelLine(ctx, hx, -19, hx - 4, -26, chromeMid);
+        px(ctx, hx - 4, -26, 2, 1, chromeHi);
       }
     };
 
@@ -1453,21 +1451,21 @@ export function drawHiBitCarProfile(p: DrawHiBitCarParams): void {
       // Front-engine cacklefest slingshot: Hemi sits AHEAD of the cockpit!
       drawHemiEngine(10);
       // Rear-mounted roll cage & driver helmet right behind rear slicks
-      drawPixelLine(ctx, -36, -21, -28, -32, chromeOut);
-      drawPixelLine(ctx, -28, -32, -16, -32, chromeMid);
-      drawPixelLine(ctx, -16, -32, -10, -21, chromeOut);
-      drawPixelDisc(ctx, -23, -25, 4, '#f8fafc', '#1e293b');
-      px(ctx, -22, -26, 4, 2, '#38bdf8');
+      drawPixelLine(ctx, -36, -18, -28, -29, chromeOut);
+      drawPixelLine(ctx, -28, -29, -16, -29, chromeMid);
+      drawPixelLine(ctx, -16, -29, -10, -18, chromeOut);
+      drawPixelDisc(ctx, -23, -22, 4, '#f8fafc', '#1e293b');
+      px(ctx, -22, -23, 4, 2, '#38bdf8');
     } else if (isTwin) {
       // Dual-Blower Twin-Hemi Goliath!
       drawHemiEngine(-36);
       drawHemiEngine(-14);
       // Forward cockpit behind sleek windscreen
-      drawPixelLine(ctx, -2, -20, 6, -30, chromeMid);
-      drawPixelLine(ctx, 6, -30, 17, -29, chromeMid);
-      drawPixelLine(ctx, 17, -29, 24, -17, chromeOut);
-      drawPixelDisc(ctx, 11, -24, 4, '#f8fafc', '#1e293b');
-      px(ctx, 12, -25, 4, 2, '#facc15');
+      drawPixelLine(ctx, -2, -17, 6, -27, chromeMid);
+      drawPixelLine(ctx, 6, -27, 17, -26, chromeMid);
+      drawPixelLine(ctx, 17, -26, 24, -14, chromeOut);
+      drawPixelDisc(ctx, 11, -21, 4, '#f8fafc', '#1e293b');
+      px(ctx, 12, -22, 4, 2, '#facc15');
     } else {
       // Modern rear-engine Top Fuel dragster (standard open cage OR fighter-jet canopy)
       drawHemiEngine(-32);
@@ -1476,33 +1474,33 @@ export function drawHiBitCarProfile(p: DrawHiBitCarParams): void {
         drawSculptedWindow(
           ctx,
           [
-            [-18, -21],
-            [-11, -30],
-            [6, -29],
-            [26, -16],
+            [-18, -18],
+            [-11, -27],
+            [6, -26],
+            [26, -13],
           ],
           paintOut,
           timeOfDay,
           [2]
         );
         // Subtle helmet silhouette inside canopy
-        drawPixelDisc(ctx, -4, -24, 3, '#e2e8f0', '#1e3a5f');
+        drawPixelDisc(ctx, -4, -21, 3, '#e2e8f0', '#1e3a5f');
       } else {
         // Chromoly roll cage + helmeted driver + angled lexan windscreen
-        drawPixelLine(ctx, -18, -21, -10, -31, chromeMid);
-        drawPixelLine(ctx, -10, -31, 4, -30, chromeMid);
-        drawPixelLine(ctx, 4, -30, 14, -18, chromeOut);
-        drawPixelDisc(ctx, -3, -25, 4, '#f8fafc', '#1e293b');
-        px(ctx, -2, -26, 4, 2, '#38bdf8');
+        drawPixelLine(ctx, -18, -18, -10, -28, chromeMid);
+        drawPixelLine(ctx, -10, -28, 4, -27, chromeMid);
+        drawPixelLine(ctx, 4, -27, 14, -15, chromeOut);
+        drawPixelDisc(ctx, -3, -22, 4, '#f8fafc', '#1e293b');
+        px(ctx, -2, -23, 4, 2, '#38bdf8');
         // Swept windscreen fairing
-        drawSculptedPoly(ctx, [[4, -25], [17, -18], [13, -17], [3, -21]], '#7cc9f7', chromeOut);
+        drawSculptedPoly(ctx, [[4, -22], [17, -15], [13, -14], [3, -18]], '#7cc9f7', chromeOut);
       }
     }
 
     // Front Canard Aero Wing mounted cleanly above tiny front wire runners!
-    drawSculptedPoly(ctx, [[56, -14], [70, -12], [69, -10], [56, -11]], paint, paintOut);
-    px(ctx, 57, -13, 11, 1, paintHi);
-    px(ctx, 62, -11, 2, 5, chromeOut); // front axle strut
+    drawSculptedPoly(ctx, [[56, -12], [70, -10], [69, -8], [56, -9]], paint, paintOut);
+    px(ctx, 57, -11, 11, 1, paintHi);
+    px(ctx, 62, -9, 2, 4, chromeOut); // front axle strut
   }
 
   // ==================== 3. PARACHUTE PACK (Rear Tail) ====================
@@ -1573,7 +1571,7 @@ export function drawHiBitCarProfile(p: DrawHiBitCarParams): void {
       const len = Math.round((10 + flameIntensity * 16) * flicker);
       const count = chassis === 'topfuel' ? 4 : 3;
       const baseX = chassis === 'topfuel' ? (bodyVariant === 'slingshot' ? 5 : -37) : 10;
-      const baseY = chassis === 'topfuel' ? -29 : -18;
+      const baseY = chassis === 'topfuel' ? -26 : -16;
       for (let f = 0; f < count; f++) {
         const fx = baseX + f * 4;
         for (let step = 0; step < len; step++) {
@@ -1633,9 +1631,9 @@ export function drawHiBitCarEndView(
 
   if (chassis === 'topfuel') {
     const isRear = view === 'REAR';
-    const tireW = isRear ? 13 : 5;
-    const tireH = isRear ? 26 : 13;
-    const trackHalf = isRear ? 23 : 20;
+    const tireW = isRear ? 11 : 4;
+    const tireH = isRear ? 21 : 10;
+    const trackHalf = isRear ? 22 : 19;
 
     // Tall rear downforce wing on sculpted twin struts
     pxBox(ctx, icx - 13, igy - 46, 3, 24, chromeMid, chromeOut);
@@ -1735,10 +1733,10 @@ export function drawHiBitCarEndView(
   const halfW = isFunny ? 30 : isHatch ? 24 : 28;
   const roofHalfW = isFunny ? 14 : isHatch ? 17 : isJdm ? 15 : 17;
   const shoulderHalfW = halfW - 2;
-  const bodyTopY = isFunny ? -22 : isHatch ? -23 : isJdm ? -21 : -23;
-  const roofTopY = isFunny ? -33 : isHatch ? -37 : isJdm ? -33 : -35;
-  const tireW = view === 'REAR' && (upgrades.tires >= 2 || isFunny) ? 10 : 7;
-  const tireH = isFunny ? 16 : 13;
+  const bodyTopY = isFunny ? -20 : isHatch ? -21 : isJdm ? -19 : -21;
+  const roofTopY = isFunny ? -31 : isHatch ? -35 : isJdm ? -31 : -33;
+  const tireW = view === 'REAR' && (upgrades.tires >= 2 || isFunny) ? 9 : 6;
+  const tireH = isFunny ? 13 : 10;
 
   // Tires tucked cleanly beneath sculpted wide fender arches
   pxBox(ctx, icx - halfW + 1, igy - tireH, tireW, tireH, '#232b3d', '#131824');

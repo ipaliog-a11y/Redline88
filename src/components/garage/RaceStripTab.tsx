@@ -4,18 +4,15 @@ import {
   formatCash,
   getStripDistanceSpec,
   getTierById,
-  resolveTimeOfDay,
   RIVALS,
   STRIP_DISTANCES,
   TIERS,
-  TIME_OF_DAY_OPTIONS,
 } from '../../data/gameData';
 import {
   PlayerSave,
   RivalSpec,
   StripDistanceId,
   TierId,
-  TimeOfDayMode,
 } from '../../types/game';
 import { PixelIcon, PixelRivalPortrait } from '../PixelSpritesUI';
 
@@ -23,10 +20,8 @@ interface RaceStripTabProps {
   save: PlayerSave;
   selectedTier: TierId;
   selectedDistance: StripDistanceId;
-  timeOfDayMode: TimeOfDayMode;
   onSelectTier: (tier: TierId) => void;
   onSelectDistance: (distance: StripDistanceId) => void;
-  onChangeTimeOfDayMode: (mode: TimeOfDayMode) => void;
   onOpenTuning: () => void;
   onStartRace: (tierId: TierId, distanceId: StripDistanceId, rival: RivalSpec | null) => void;
 }
@@ -35,17 +30,13 @@ export const RaceStripTab: React.FC<RaceStripTabProps> = ({
   save,
   selectedTier,
   selectedDistance,
-  timeOfDayMode,
   onSelectTier,
   onSelectDistance,
-  onChangeTimeOfDayMode,
   onOpenTuning,
   onStartRace,
 }) => {
   const tierSpec = getTierById(selectedTier);
   const distSpec = getStripDistanceSpec(selectedDistance);
-  const resolvedTod = resolveTimeOfDay(selectedTier, timeOfDayMode);
-  const todAutoLabel = resolveTimeOfDay(selectedTier, 'auto').toUpperCase();
 
   const tierRivals = useMemo(
     () => RIVALS.filter((r) => r.tier === selectedTier && r.distance === selectedDistance),
@@ -65,7 +56,7 @@ export const RaceStripTab: React.FC<RaceStripTabProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* TOP CONTROL RACK: DIP-SWITCH TIER BANK + STRIP DISTANCE ROCKERS + LIGHTING */}
+      {/* TOP CONTROL RACK: DIP-SWITCH TIER BANK + STRIP DISTANCE ROCKERS */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
         {/* Left/Main: Strip Distance Hardware Rockers + Venue Event Header */}
         <div className="xl:col-span-9 space-y-2.5">
@@ -161,43 +152,6 @@ export const RaceStripTab: React.FC<RaceStripTabProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Lighting Selector Strip */}
-          <div className="ng-plate px-3 py-2 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2 font-mono-num text-[11px]">
-              <span className="bg-[#f7b519] text-[#141218] font-pixel text-[7px] px-1.5 py-0.5">
-                SKY
-              </span>
-              <span className="text-[#b8c0cc]">
-                <span className="text-[#f4ecd8] font-bold uppercase">{resolvedTod}</span>
-                {timeOfDayMode === 'auto' && (
-                  <span className="text-[#19d4e6]"> (T{selectedTier} DEFAULT)</span>
-                )}
-              </span>
-            </div>
-            <div className="grid grid-cols-4 sm:flex items-center gap-1.5 w-full sm:w-auto">
-              {TIME_OF_DAY_OPTIONS.map((opt) => {
-                const active = timeOfDayMode === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => {
-                      soundEngine.playUiClick();
-                      onChangeTimeOfDayMode(opt.id);
-                    }}
-                    className={`ng-keycap px-2.5 py-1 border-2 text-[10px] font-mono-num font-bold whitespace-nowrap cursor-pointer ${
-                      active
-                        ? 'bg-[#f7b519] border-[#141218] text-[#141218]'
-                        : 'bg-[#1c1a22] border-[#525866] text-[#b8c0cc] hover:border-[#f7b519]'
-                    }`}
-                  >
-                    {opt.id === 'auto' ? `AUTO(${todAutoLabel.slice(0, 3)})` : opt.shortLabel.toUpperCase()}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </div>
 
         {/* Right: Physical Arcade Dip-Switch Bank for Tiers T1–T5 */}
@@ -233,7 +187,6 @@ export const RaceStripTab: React.FC<RaceStripTabProps> = ({
                     <span className="font-pixel text-[8px]">T{t.id}</span>
                     <span className="hidden xl:inline text-[10px] truncate">{t.className}</span>
                   </span>
-                  {/* Physical Dip-Switch Track + Sliding Metallic Cap */}
                   {!unlocked ? (
                     <PixelIcon name="lock" className="w-3 h-3 shrink-0" />
                   ) : (
