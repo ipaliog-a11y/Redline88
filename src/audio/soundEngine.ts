@@ -302,6 +302,30 @@ class SoundEngine {
     this.playTone(540, 0.04, 'square', 0.12);
   }
 
+  public playBurnoutScrub(intensity = 1): void {
+    const vol = Math.min(0.24, 0.1 + intensity * 0.12);
+    const cutoff = 1250 + intensity * 950;
+    this.playNoise(0.11, vol, cutoff);
+  }
+
+  public playBurnoutComplete(efficiency: number, skipped: boolean): void {
+    if (skipped) {
+      this.playTone(460, 0.08, 'triangle', 0.18);
+      this.playTone(580, 0.11, 'triangle', 0.18, undefined, 0.06);
+      return;
+    }
+    if (efficiency >= 88) {
+      this.playTone(587.33, 0.08, 'square', 0.22);
+      this.playTone(880, 0.1, 'square', 0.24, undefined, 0.06);
+      this.playTone(1174.66, 0.18, 'square', 0.24, undefined, 0.12);
+    } else if (efficiency >= 60) {
+      this.playTone(523.25, 0.08, 'square', 0.2);
+      this.playTone(783.99, 0.14, 'square', 0.2, undefined, 0.07);
+    } else {
+      this.playTone(320, 0.14, 'sawtooth', 0.18, 240);
+    }
+  }
+
   public playVictory(): void {
     const notes = [523.25, 659.25, 783.99, 1046.5];
     notes.forEach((n, i) => {

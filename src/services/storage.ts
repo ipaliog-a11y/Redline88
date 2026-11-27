@@ -153,6 +153,9 @@ export function mergeSaves(local: PlayerSave, cloud: PlayerSave): PlayerSave {
         tuning: cloudIsNewer
           ? getEffectiveTuning(carId, cloudCfg)
           : getEffectiveTuning(carId, localCfg),
+        engineHealth: cloudIsNewer
+          ? (cloudCfg.engineHealth ?? 100)
+          : (localCfg.engineHealth ?? 100),
       };
     } else {
       mergedConfigs[carId] = sanitizeCarConfig(carId, null);

@@ -4,18 +4,15 @@ import {
   formatCash,
   getStripDistanceSpec,
   getTierById,
-  resolveTimeOfDay,
   RIVALS,
   STRIP_DISTANCES,
   TIERS,
-  TIME_OF_DAY_OPTIONS,
 } from '../../data/gameData';
 import {
   PlayerSave,
   RivalSpec,
   StripDistanceId,
   TierId,
-  TimeOfDayMode,
 } from '../../types/game';
 import { PixelIcon, PixelRivalPortrait } from '../PixelSpritesUI';
 
@@ -23,10 +20,8 @@ interface RaceStripTabProps {
   save: PlayerSave;
   selectedTier: TierId;
   selectedDistance: StripDistanceId;
-  timeOfDayMode: TimeOfDayMode;
   onSelectTier: (tier: TierId) => void;
   onSelectDistance: (distance: StripDistanceId) => void;
-  onChangeTimeOfDayMode: (mode: TimeOfDayMode) => void;
   onOpenTuning: () => void;
   onStartRace: (tierId: TierId, distanceId: StripDistanceId, rival: RivalSpec | null) => void;
 }
@@ -35,17 +30,13 @@ export const RaceStripTab: React.FC<RaceStripTabProps> = ({
   save,
   selectedTier,
   selectedDistance,
-  timeOfDayMode,
   onSelectTier,
   onSelectDistance,
-  onChangeTimeOfDayMode,
   onOpenTuning,
   onStartRace,
 }) => {
   const tierSpec = getTierById(selectedTier);
   const distSpec = getStripDistanceSpec(selectedDistance);
-  const resolvedTod = resolveTimeOfDay(selectedTier, timeOfDayMode);
-  const todAutoLabel = resolveTimeOfDay(selectedTier, 'auto').toUpperCase();
 
   const tierRivals = useMemo(
     () => RIVALS.filter((r) => r.tier === selectedTier && r.distance === selectedDistance),
@@ -125,41 +116,6 @@ export const RaceStripTab: React.FC<RaceStripTabProps> = ({
             </button>
           );
         })}
-      </div>
-
-      {/* Race-Day Time-of-Day Lighting Selector */}
-      <div className="arcade-panel px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 font-mono-num text-[11px]">
-          <span className="font-pixel text-[8px] text-[#f5b82e]">LIGHTING</span>
-          <span className="text-[#94a3b8]">
-            Active: <span className="text-[#f8fafc] font-bold uppercase">{resolvedTod}</span>
-            {timeOfDayMode === 'auto' && (
-              <span className="text-[#38bdf8]"> (Tier {selectedTier} Default)</span>
-            )}
-          </span>
-        </div>
-        <div className="grid grid-cols-4 sm:flex items-center gap-1.5 w-full sm:w-auto">
-          {TIME_OF_DAY_OPTIONS.map((opt) => {
-            const active = timeOfDayMode === opt.id;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => {
-                  soundEngine.playUiClick();
-                  onChangeTimeOfDayMode(opt.id);
-                }}
-                className={`arcade-btn rounded-full px-3 py-1.5 border text-[11px] font-mono-num font-bold whitespace-nowrap cursor-pointer ${
-                  active
-                    ? 'bg-[#263457] border-[#f5b82e] text-[#f5b82e]'
-                    : 'bg-[#141b2d] border-[#425582]/65 text-[#cbd5e1] hover:border-[#6884bf]'
-                }`}
-              >
-                {opt.id === 'auto' ? `Auto (${todAutoLabel.slice(0, 3)})` : opt.shortLabel}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       {/* Venue Event Header & Solo Test Bar */}

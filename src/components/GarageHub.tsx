@@ -6,6 +6,9 @@ import {
   formatCash,
   getCarById,
   getCarConfig,
+  getEngineHealth,
+  getEngineHealthStatus,
+  getEngineRepairCost,
   getUpgradeImpactPreview,
   PAINT_COLORS,
   RIM_OPTIONS,
@@ -24,7 +27,6 @@ import {
   StripDistanceId,
   StripeStyle,
   TierId,
-  TimeOfDayMode,
   UpgradeKey,
 } from '../types/game';
 import { DrivetrainTuningPanel } from './DrivetrainTuningPanel';
@@ -41,13 +43,11 @@ interface GarageHubProps {
   save: PlayerSave;
   user: User | null;
   muted: boolean;
-  timeOfDayMode: TimeOfDayMode;
   localRecords: LocalRecord[];
   globalRecords: GlobalLeaderboardEntry[];
   globalLoading: boolean;
   globalError: string | null;
   onToggleMute: () => void;
-  onChangeTimeOfDayMode: (mode: TimeOfDayMode) => void;
   onSignIn: () => void;
   onSignOut: () => void;
   onRefreshGlobal: () => void;
@@ -55,6 +55,7 @@ interface GarageHubProps {
   onSelectCar: (carId: string) => void;
   onBuyCar: (carId: string) => void;
   onBuyUpgrade: (carId: string, key: UpgradeKey) => void;
+  onRepairEngine: (carId: string) => void;
   onUpdateTuning: (carId: string, tuning: DrivetrainTuning) => void;
   onBuyVisual: (
     carId: string,
@@ -77,13 +78,11 @@ export const GarageHub: React.FC<GarageHubProps> = ({
   save,
   user,
   muted,
-  timeOfDayMode,
   localRecords,
   globalRecords,
   globalLoading,
   globalError,
   onToggleMute,
-  onChangeTimeOfDayMode,
   onSignIn,
   onSignOut,
   onRefreshGlobal,
@@ -91,6 +90,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
   onSelectCar,
   onBuyCar,
   onBuyUpgrade,
+  onRepairEngine,
   onUpdateTuning,
   onBuyVisual,
   onStartRace,
@@ -137,6 +137,10 @@ export const GarageHub: React.FC<GarageHubProps> = ({
 
   const car = getCarById(save.activeCarId);
   const config = getCarConfig(save, save.activeCarId);
+  const engineHealth = getEngineHealth(config);
+  const healthStatus = getEngineHealthStatus(engineHealth);
+  const repairCost = getEngineRepairCost(car, config);
+  const canAffordRepair = save.cash >= repairCost;
   const perf = useMemo(
     () => computeCarPerformance(save.activeCarId, config),
     [save.activeCarId, config]
@@ -167,6 +171,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
       upgrades: nextUpgrades,
       visuals: nextVisuals,
       tuning: config.tuning,
+      engineHealth: config.engineHealth,
     };
   }, [activeTab, activeUpgradePreview, hoveredUpgrade, config, visualDraft]);
 
@@ -339,7 +344,10 @@ export const GarageHub: React.FC<GarageHubProps> = ({
               <div className="text-xs font-bold text-[#f8fafc] truncate">
                 {car.name}
                 <span className="font-mono-num text-[11px] font-normal text-[#94a3b8] ml-1.5">
-                  T{car.tier} · {perf.hp.toLocaleString()} HP · {perf.estimatedEtSec.toFixed(2)}s
+                  T{car.tier} · {perf.hp.toLocaleString()} HP · {perf.estimatedEtSec.toFixed(2)}s ·{' '}
+                  <span style={{ color: healthStatus.color }} className="font-bold">
+                    {engineHealth}% ENG
+                  </span>
                 </span>
               </div>
             </div>
@@ -351,14 +359,14 @@ export const GarageHub: React.FC<GarageHubProps> = ({
       </div>
 
       {/* Main Split Paddock Layout */}
-      <div className="flex-1 min-h-0 max-w-[1440px] w-full mx-auto flex flex-col lg:grid lg:grid-cols-12 gap-3 lg:gap-4 p-2.5 sm:p-3 lg:p-4 overflow-hidden">
+      <div className="flex-1 min-h-0 max-w-[1440px] w-full mx-auto flex flex-col lg:grid lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)] gap-3 lg:gap-4 p-2.5 sm:p-3 lg:p-4 overflow-hidden">
         {/* LEFT COLUMN: HI-BIT PIT GARAGE & DYNO TELEMETRY */}
         <aside
           className={`${
             mobileDynoOpen ? 'flex flex-1' : 'hidden'
-          } lg:flex lg:col-span-4 flex-col gap-3 min-h-0 overflow-y-auto pr-0.5 lg:pr-1`}
+          } lg:flex lg:col-span-4 flex-col gap-3 min-h-0 h-full overflow-y-auto overscroll-y-contain pr-0.5 lg:pr-1 pb-2`}
         >
-          <div className="arcade-panel overflow-hidden">
+          <div className="arcade-panel shrink-0 overflow-hidden">
             <div className="p-3.5 sm:p-4 space-y-3.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -412,6 +420,128 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                 </div>
               </div>
 
+              {/* Engine Health Indicator & Repair Bay */}
+              <div
+                className={`led-readout p-2.5 space-y-2 ${
+                  engineHealth < 50
+                    ? 'border-[#ff4d3d]/70'
+                    : engineHealth < 80
+                    ? 'border-[#f5b82e]/65'
+                    : ''
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2 font-mono-num">
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-wide text-[#94a3b8]">
+                    <PixelIcon name="wrench" className="w-3.5 h-3.5" />
+                    <span>ENGINE HEALTH</span>
+                  </div>
+                  <div
+                    className="text-xs font-bold whitespace-nowrap"
+                    style={{ color: healthStatus.color }}
+                  >
+                    {engineHealth}% · {healthStatus.label}
+                  </div>
+                </div>
+
+                <div
+                  role="progressbar"
+                  aria-label="Engine health"
+                  aria-valuenow={engineHealth}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  className="w-full h-2 rounded-full bg-[#090d18] border border-[#2c3a59]/80 overflow-hidden"
+                >
+                  <div
+                    className="h-full rounded-full transition-[width] duration-300"
+                    style={{
+                      width: `${engineHealth}%`,
+                      backgroundColor: healthStatus.color,
+                    }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-2 font-mono-num">
+                  <div className="text-[11px] leading-tight min-w-0">
+                    {perf.wearPenaltyPct > 0 ? (
+                      <span style={{ color: healthStatus.color }} className="font-bold">
+                        -{perf.wearPenaltyPct}% HP ({perf.hp - perf.rawHp} HP wear)
+                      </span>
+                    ) : (
+                      <span className="text-[#94a3b8]">
+                        {engineHealth < 100 ? 'Full Power · Minor Wear' : 'Peak Compression'}
+                      </span>
+                    )}
+                  </div>
+
+                  {engineHealth < 100 ? (
+                    <button
+                      type="button"
+                      disabled={!canAffordRepair}
+                      onClick={() => {
+                        soundEngine.playShopBuy();
+                        onRepairEngine(car.id);
+                      }}
+                      className={`arcade-btn rounded-full min-h-[32px] px-3 py-1 text-[11px] font-bold border whitespace-nowrap shrink-0 cursor-pointer ${
+                        canAffordRepair
+                          ? engineHealth < 80
+                            ? 'bg-gradient-to-b from-[#22c55e] to-[#16a34a] text-[#09120c] border-[#bbf7d0]'
+                            : 'bg-[#1e2d4a] hover:bg-[#273a5e] text-[#f8fafc] border-[#5b76b0]/80'
+                          : 'bg-[#121828] text-[#64748b] border-[#2a3654] cursor-not-allowed'
+                      }`}
+                    >
+                      Repair · {formatCash(repairCost)}
+                    </button>
+                  ) : (
+                    <span className="text-[10px] font-bold text-[#22c55e] uppercase whitespace-nowrap">
+                      Fresh
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Mechanic's Note (shown when Engine Health < 50%) */}
+              {engineHealth < 50 && (
+                <section
+                  aria-label="Mechanic's Note"
+                  className="rounded-2xl bg-[#24141b] border border-[#ff4d3d]/60 p-3 space-y-2 shadow-[0_6px_16px_rgba(8,10,20,0.35)]"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 font-pixel text-[9px] text-[#fca5a5]">
+                      <PixelIcon name="wrench" className="w-3.5 h-3.5 shrink-0" />
+                      <span>MECHANIC&apos;S NOTE</span>
+                    </div>
+                    <span className="font-mono-num text-[10px] font-bold text-[#ff4d3d] whitespace-nowrap">
+                      UNDER 50%
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#f1d5d9] leading-relaxed">
+                    Your block is running hot and losing compression. Take it easy on the strip until
+                    we can rebuild it:
+                  </p>
+                  <ul className="space-y-1 text-[11px] text-[#e2cbd0] leading-snug list-disc pl-4">
+                    <li>
+                      Shift right in the target RPM window—bouncing off redline adds heavy extra wear
+                      each gear.
+                    </li>
+                    {perf.nitrousShots > 0 ? (
+                      <li>
+                        Hold off on Nitrous shots unless a rival forces your hand; bottle blasts
+                        accelerate cylinder wear.
+                      </li>
+                    ) : (
+                      <li>
+                        Feather the throttle into the green launch arc instead of holding full
+                        redline on the starting tree.
+                      </li>
+                    )}
+                    <li>
+                      Stick to shorter 1/4-mile passes while saving for a repair—or install an Engine
+                      upgrade to reset health to 100%.
+                    </li>
+                  </ul>
+                </section>
+              )}
+
               {/* LED Performance Telemetry Grid */}
               <div className="grid grid-cols-2 gap-2 font-mono-num text-xs">
                 <div className="led-readout p-2">
@@ -424,10 +554,20 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                       ).toLocaleString()}{' '}
                       HP
                     </span>
-                    {previewHpDiff > 0 && (
+                    {previewHpDiff > 0 ? (
                       <span className="text-[11px] text-[#22c55e]">
                         +{previewHpDiff.toLocaleString()}
                       </span>
+                    ) : (
+                      !activeUpgradePreview &&
+                      perf.wearPenaltyPct > 0 && (
+                        <span
+                          className="text-[11px] font-bold"
+                          style={{ color: healthStatus.color }}
+                        >
+                          -{perf.wearPenaltyPct}%
+                        </span>
+                      )
                     )}
                   </div>
                 </div>
@@ -561,7 +701,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
           </div>
 
           {/* Driver Callsign & Controls Plaque */}
-          <div className="arcade-panel p-3.5 space-y-3">
+          <div className="arcade-panel shrink-0 p-3.5 space-y-3">
             <form onSubmit={handleSaveCallsign} className="space-y-1.5">
               <label
                 htmlFor="callsign-input"
@@ -600,7 +740,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
         <section
           className={`${
             mobileDynoOpen ? 'hidden' : 'flex flex-1'
-          } lg:flex lg:col-span-8 flex-col min-h-0`}
+          } lg:flex lg:col-span-8 flex-col min-h-0 h-full`}
         >
           {/* Desktop Rounded Pill Tab Strip */}
           <div className="hidden lg:flex shrink-0 items-center gap-1.5 arcade-panel rounded-2xl p-1.5 mb-3.5 overflow-x-auto no-scrollbar">
@@ -625,16 +765,50 @@ export const GarageHub: React.FC<GarageHubProps> = ({
           </div>
 
           {/* Scrollable Tab Body */}
-          <div className="flex-1 min-h-0 overflow-y-auto pr-0.5 lg:pr-1 space-y-3 lg:space-y-3.5">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain pr-0.5 lg:pr-1 pb-2 space-y-3 lg:space-y-3.5">
+            {engineHealth < 50 && (
+              <section
+                aria-label="Mechanic's Note"
+                className="lg:hidden rounded-2xl bg-[#24141b] border border-[#ff4d3d]/60 p-3 space-y-1.5"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 font-pixel text-[9px] text-[#fca5a5]">
+                    <PixelIcon name="wrench" className="w-3.5 h-3.5 shrink-0" />
+                    <span>MECHANIC&apos;S NOTE · {engineHealth}% ENG</span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!canAffordRepair}
+                    onClick={() => {
+                      soundEngine.playShopBuy();
+                      onRepairEngine(car.id);
+                    }}
+                    className={`arcade-btn rounded-full px-2.5 py-1 font-mono-num text-[10px] font-bold border whitespace-nowrap shrink-0 cursor-pointer ${
+                      canAffordRepair
+                        ? 'bg-[#22c55e] text-[#09120c] border-[#bbf7d0]'
+                        : 'bg-[#121828] text-[#64748b] border-[#2a3654] cursor-not-allowed'
+                    }`}
+                  >
+                    Repair · {formatCash(repairCost)}
+                  </button>
+                </div>
+                <p className="text-xs text-[#f1d5d9] leading-snug">
+                  Drive gently until repaired: shift before redline,{' '}
+                  {perf.nitrousShots > 0
+                    ? 'save Nitrous for close rivals, '
+                    : 'feather launches in the green RPM arc, '}
+                  and run shorter 1/4-mile passes to minimize engine wear.
+                </p>
+              </section>
+            )}
+
             {activeTab === 'RACES' && (
               <RaceStripTab
                 save={save}
                 selectedTier={selectedTier}
                 selectedDistance={selectedDistance}
-                timeOfDayMode={timeOfDayMode}
                 onSelectTier={setSelectedTier}
                 onSelectDistance={setSelectedDistance}
-                onChangeTimeOfDayMode={onChangeTimeOfDayMode}
                 onOpenTuning={() => handleSelectTab('TUNING')}
                 onStartRace={onStartRace}
               />

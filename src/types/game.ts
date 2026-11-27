@@ -78,6 +78,7 @@ export interface CarConfig {
   upgrades: CarUpgrades;
   visuals: CarVisuals;
   tuning?: DrivetrainTuning;
+  engineHealth?: number; // 0..100 (100 = fresh)
 }
 
 export interface CarSpec {
@@ -108,6 +109,9 @@ export interface CarSpec {
 
 export interface ComputedPerformance {
   hp: number;
+  rawHp: number;
+  engineHealth: number;
+  wearPenaltyPct: number;
   weightLbs: number;
   grip: number;
   redlineRpm: number;
@@ -280,6 +284,7 @@ export type ShiftRating =
   | 'NITROUS BOOST!';
 
 export type RacePhase =
+  | 'BURNOUT'
   | 'STAGING'
   | 'COUNTDOWN'
   | 'RACING'
@@ -290,7 +295,7 @@ export interface RaceTelemetry {
   phase: RacePhase;
   distance: StripDistanceId;
   distanceFt: number;
-  treeStep: number; // 0=prestage, 1=stage, 2=amber1, 3=amber2, 4=amber3, 5=green, -1=foul
+  treeStep: number; // -2=off(burnout), 0=prestage, 1=stage, 2=amber1, 3=amber2, 4=amber3, 5=green, -1=foul
   elapsedSec: number;
   playerDistFt: number;
   rivalDistFt: number;
@@ -306,6 +311,13 @@ export interface RaceTelemetry {
   maxGears: number;
   throttle: boolean;
   clutch: boolean;
+  brake: boolean;
+  burnoutTimeLeft: number;
+  burnoutDuration: number;
+  burnoutTemp: number; // 0..100
+  burnoutEfficiency: number; // 0..100
+  burnoutGripBonusPct: number; // e.g. -6..+18
+  burnoutSkipped: boolean;
   boostTimer: number;
   nitrousLeft: number;
   nitrousMax: number;
@@ -313,7 +325,7 @@ export interface RaceTelemetry {
   wheelspin: number; // 0..1
   inLaunchZone: boolean;
   inShiftZone: boolean;
-  calloutText: ShiftRating | '';
+  calloutText: string;
   calloutTimer: number;
   calloutColor: string;
   foul: boolean;
@@ -348,6 +360,12 @@ export interface RaceResult {
   isRematch?: boolean;
   unlockedNextTier: boolean;
   isNewPersonalBest: boolean;
+  overRevCount?: number;
+  nitrousUsedCount?: number;
+  engineWearApplied?: number;
+  engineHealthAfter?: number;
+  burnoutEfficiency?: number;
+  burnoutSkipped?: boolean;
   replay?: RaceReplayData;
 }
 

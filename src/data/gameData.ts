@@ -935,7 +935,60 @@ export function createDefaultCarConfig(carId: string): CarConfig {
       rims: 'steel',
     },
     tuning: createDefaultTuning(carId),
+    engineHealth: 100,
   };
+}
+
+export function getEngineHealth(config?: CarConfig): number {
+  const raw = config?.engineHealth;
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return 100;
+  return Math.max(0, Math.min(100, Math.round(raw)));
+}
+
+export function getEngineHealthPenaltyPct(engineHealth: number): number {
+  const h = Math.max(0, Math.min(100, engineHealth));
+  if (h >= 80) return 0;
+  if (h >= 50) return Math.round(((80 - h) / 30) * 12);
+  return Math.min(28, Math.round(12 + ((50 - h) / 35) * 16));
+}
+
+export function getEngineHealthStatus(engineHealth: number): {
+  label: 'OPTIMAL' | 'WORN' | 'CRITICAL';
+  color: string;
+} {
+  if (engineHealth >= 80) return { label: 'OPTIMAL', color: '#22c55e' };
+  if (engineHealth >= 50) return { label: 'WORN', color: '#f5b82e' };
+  return { label: 'CRITICAL', color: '#ff4d3d' };
+}
+
+export function getEngineRepairCost(car: CarSpec, config: CarConfig): number {
+  const health = getEngineHealth(config);
+  const missing = 100 - health;
+  if (missing <= 0) return 0;
+  const fullRebuildBase = [160, 420, 950, 2200, 4800][car.tier - 1];
+  const engineBuildScale = 1 + config.upgrades.engine * 0.14;
+  const rawCost = fullRebuildBase * engineBuildScale * (missing / 100);
+  return Math.max(15, Math.round(rawCost / 5) * 5);
+}
+
+export function computeRaceEngineWear(params: {
+  tier: TierId;
+  distance: StripDistanceId;
+  isTimeTrial: boolean;
+  foul: boolean;
+  overRevCount: number;
+  nitrousUsedCount: number;
+}): number {
+  if (params.foul) return 1;
+  const baseByDist = params.distance === 'mile' ? 11 : params.distance === 'half' ? 8 : 5;
+  const tierStress = params.tier >= 4 ? 1 : 0;
+  const stressWear =
+    Math.min(6, params.overRevCount * 2) + Math.round(Math.min(4.5, params.nitrousUsedCount * 1.5));
+  const rawWear = baseByDist + tierStress + stressWear;
+  if (params.isTimeTrial) {
+    return Math.max(2, Math.round(rawWear * 0.5));
+  }
+  return Math.max(3, Math.min(22, rawWear));
 }
 
 export function getUpgradeCost(car: CarSpec, key: UpgradeKey, nextLevel: number): number {
@@ -965,16 +1018,21 @@ export function computeCarPerformance(carId: string, config: CarConfig): Compute
   const car = getCarById(carId);
   const u = config.upgrades;
   const tuning = getEffectiveTuning(carId, config);
+  const engineHealth = getEngineHealth(config);
+  const wearPenaltyPct = getEngineHealthPenaltyPct(engineHealth);
+  const wearMult = 1 - wearPenaltyPct / 100;
 
   const engineMult = 1 + u.engine * 0.14;
   const inductionMult = 1 + u.induction * 0.125;
   const exhaustBonus = 1 + u.nitrous * 0.04;
-  const hp = Math.round(car.baseHp * engineMult * inductionMult * exhaustBonus);
+  const rawHp = Math.round(car.baseHp * engineMult * inductionMult * exhaustBonus);
+  const hp = Math.max(60, Math.round(rawHp * wearMult));
 
   const weightLbs = Math.round(car.baseWeightLbs * (1 - u.chassis * 0.045));
   const grip = Number((car.baseGrip * (1 + u.tires * 0.13)).toFixed(2));
   const redlineRpm = car.redlineRpm + u.engine * 150;
-  const shiftSpeedSec = Math.max(0.04, 0.17 - u.transmission * 0.025);
+  const wearShiftDrag = wearPenaltyPct > 0 ? (wearPenaltyPct / 28) * 0.035 : 0;
+  const shiftSpeedSec = Math.max(0.04, 0.17 - u.transmission * 0.025 + wearShiftDrag);
   const shiftBoostMult = 1.15 + u.induction * 0.022 + u.transmission * 0.018;
   const shiftWindowBonus = u.transmission * 90;
   const nitrousShots = u.nitrous > 0 ? Math.min(3, Math.ceil(u.nitrous / 2)) : 0;
@@ -999,7 +1057,7 @@ export function computeCarPerformance(carId: string, config: CarConfig): Compute
   // Shorter gears shave time on 1/4 mile unless way too short (tops out early)
   const qtrGearFactor = fdRatio > 1 ? 1 - Math.min(0.038, (fdRatio - 1) * 0.18) : 1 + Math.min(0.06, (1 - fdRatio) * 0.22);
   estimatedEtSec *= qtrGearFactor;
-  estimatedEtSec = Math.max(3.45, Math.min(16.8, Number(estimatedEtSec.toFixed(2))));
+  estimatedEtSec = Math.max(3.45, Math.min(18.5, Number(estimatedEtSec.toFixed(2))));
 
   // Estimate 1/2 mile & 1 mile ETs (penalized if gearTopMph caps speed early!)
   const idealHalfTrap = Math.min(aeroTopMph, 86 + Math.pow(pw, 0.56) * 8.2);
@@ -1020,6 +1078,9 @@ export function computeCarPerformance(carId: string, config: CarConfig): Compute
 
   return {
     hp,
+    rawHp,
+    engineHealth,
+    wearPenaltyPct,
     weightLbs,
     grip,
     redlineRpm,
@@ -1111,6 +1172,9 @@ export function getUpgradeImpactPreview(
   const characteristics: string[] = [];
   if (key === 'engine') {
     characteristics.push('Stronger high-RPM pull & higher rev ceiling');
+    if (getEngineHealth(config) < 100) {
+      characteristics.push('Fresh rebuild restores Engine Health to 100%');
+    }
   } else if (key === 'induction') {
     if (nextLevel === 2 && car.chassis !== 'funny' && car.chassis !== 'topfuel') {
       characteristics.push('Adds Chrome Hood Blower Scoop on car');
@@ -2138,6 +2202,7 @@ export function sanitizeCarConfig(carId: string, raw: unknown): CarConfig {
       stripe,
       rims,
     },
+    engineHealth: getEngineHealth(obj as CarConfig),
   };
   sanitized.tuning = getEffectiveTuning(carId, { ...sanitized, tuning: obj.tuning });
   return sanitized;
