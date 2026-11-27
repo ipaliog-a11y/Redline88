@@ -1439,12 +1439,8 @@ export function sanitizeCarConfig(carId: string, raw: unknown): CarConfig {
 
   const paintRaw = typeof rawVisuals.paintColor === 'string' ? rawVisuals.paintColor : '';
   const paintColor = /^#[0-9a-fA-F]{6}$/.test(paintRaw) ? paintRaw : fallback.visuals.paintColor;
-  const stripe = VALID_STRIPES.has(rawVisuals.stripe as StripeStyle)
-    ? (rawVisuals.stripe as StripeStyle)
-    : fallback.visuals.stripe;
-  const rims = VALID_RIMS.has(rawVisuals.rims as RimStyle)
-    ? (rawVisuals.rims as RimStyle)
-    : fallback.visuals.rims;
+  const stripe: StripeStyle = 'none';
+  const rims: RimStyle = 'steel';
 
   const sanitized: CarConfig = {
     upgrades: {

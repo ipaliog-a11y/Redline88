@@ -2,10 +2,8 @@ import {
   BodyVariant,
   CarUpgrades,
   ChassisStyle,
-  RimStyle,
   RivalSpec,
   StripDistanceId,
-  StripeStyle,
   TierId,
 } from '../types/game';
 
@@ -41,28 +39,6 @@ const PAINTS = [
   '#262936',
 ];
 
-const STRIPES: StripeStyle[] = [
-  'none',
-  'twin',
-  'flash',
-  'twin',
-  'checkered',
-  'flash',
-  'flames',
-  'flames',
-];
-
-const RIMS: RimStyle[] = [
-  'steel',
-  'gold',
-  'gold',
-  'chrome',
-  'chrome',
-  'prostar',
-  'prostar',
-  'prostar',
-];
-
 const STAGE_UPGRADES: CarUpgrades[] = [
   { engine: 0, induction: 0, transmission: 0, tires: 0, chassis: 0, nitrous: 0 },
   { engine: 1, induction: 0, transmission: 1, tires: 1, chassis: 0, nitrous: 0 },
@@ -85,7 +61,7 @@ const TIER_BLUEPRINTS: TierLadderBlueprint[] = [
     mileEts: [40.90, 39.40, 38.00, 36.70, 35.45, 34.30, 33.25, 32.30],
     mileTraps: [112, 118, 124, 130, 136, 142, 147, 152],
     quarterPurses: [180, 230, 290, 360, 440, 540, 660, 950],
-    reactionRange: [0.36, 0.16],
+    reactionRange: [0.68, 0.42],
     cars: [
       { carId: 'civic_86', carName: "Stock Hatch '85", chassis: 'hatch', bodyVariant: 'standard' },
       { carId: 'crx_88', carName: "CR-Pocket '88", chassis: 'hatch', bodyVariant: 'compact' },
@@ -135,7 +111,7 @@ const TIER_BLUEPRINTS: TierLadderBlueprint[] = [
     mileEts: [33.10, 31.85, 30.70, 29.65, 28.70, 27.85, 27.10, 26.40],
     mileTraps: [140, 148, 156, 164, 172, 180, 188, 196],
     quarterPurses: [400, 500, 625, 775, 950, 1175, 1450, 2100],
-    reactionRange: [0.26, 0.12],
+    reactionRange: [0.46, 0.28],
     cars: [
       { carId: 'iroc_84', carName: "Harbor Z-28", chassis: 'muscle', bodyVariant: 'standard' },
       { carId: 'gnx_87', carName: "Blackout GNX '87", chassis: 'muscle', bodyVariant: 'notch' },
@@ -185,7 +161,7 @@ const TIER_BLUEPRINTS: TierLadderBlueprint[] = [
     mileEts: [25.50, 24.55, 23.65, 22.80, 22.05, 21.35, 20.70, 20.10],
     mileTraps: [188, 198, 208, 218, 228, 238, 248, 258],
     quarterPurses: [900, 1125, 1400, 1725, 2125, 2600, 3200, 4600],
-    reactionRange: [0.19, 0.095],
+    reactionRange: [0.30, 0.16],
     cars: [
       { carId: 'gtr_89', carName: "Midnight R32", chassis: 'jdm', bodyVariant: 'standard' },
       { carId: 'supra_93', carName: "Mk4 Boost GT '93", chassis: 'jdm', bodyVariant: 'aero' },
@@ -235,7 +211,7 @@ const TIER_BLUEPRINTS: TierLadderBlueprint[] = [
     mileEts: [19.10, 18.42, 17.78, 17.18, 16.62, 16.10, 15.60, 15.15],
     mileTraps: [242, 252, 262, 272, 282, 292, 302, 314],
     quarterPurses: [2100, 2600, 3200, 3950, 4850, 5950, 7300, 10500],
-    reactionRange: [0.14, 0.072],
+    reactionRange: [0.18, 0.095],
     cars: [
       { carId: 'charger_fc', carName: 'Nitro Charger FC', chassis: 'funny', bodyVariant: 'standard' },
       { carId: 'firebird_fc', carName: 'Firehawk Aero FC', chassis: 'funny', bodyVariant: 'aero' },
@@ -285,7 +261,7 @@ const TIER_BLUEPRINTS: TierLadderBlueprint[] = [
     mileEts: [13.90, 13.35, 12.84, 12.36, 11.90, 11.46, 11.04, 10.65],
     mileTraps: [322, 334, 346, 358, 370, 382, 394, 408],
     quarterPurses: [4800, 5900, 7250, 8900, 10900, 13400, 16500, 24000],
-    reactionRange: [0.088, 0.048],
+    reactionRange: [0.105, 0.045],
     cars: [
       { carId: 'railstorm_tf', carName: 'Railstorm TF-1', chassis: 'topfuel', bodyVariant: 'standard' },
       { carId: 'slingshot_tf', carName: 'Nostalgia Slingshot', chassis: 'topfuel', bodyVariant: 'slingshot' },
@@ -421,8 +397,8 @@ function buildCareerEvents(): RivalSpec[] {
           chassis: carPick.chassis,
           bodyVariant: carPick.bodyVariant,
           paintColor: PAINTS[paintIdx],
-          stripe: STRIPES[i],
-          rims: RIMS[i],
+          stripe: 'none',
+          rims: 'steel',
           upgrades: { ...STAGE_UPGRADES[i] },
           targetEtSec: ets[i],
           targetTrapMph: traps[i],
