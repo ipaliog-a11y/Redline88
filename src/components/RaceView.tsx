@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { soundEngine } from '../audio/soundEngine';
 import {
   formatCash,
   formatEt,
   getCarById,
   getCarConfig,
+  getEngineHealth,
   getEngineHealthStatus,
+  getEngineRepairCost,
   getStripDistanceSpec,
   getTierById,
   QUARTER_MILE_FT,
@@ -31,6 +34,7 @@ interface RaceViewProps {
   muted: boolean;
   onToggleMute: () => void;
   onRaceFinished: (result: RaceResult) => RaceResult;
+  onRepairEngine: (carId: string) => void;
   onExitToGarage: () => void;
   onNextRival?: (nextRival: RivalSpec) => void;
   nextRival?: RivalSpec | null;
@@ -85,6 +89,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
   muted,
   onToggleMute,
   onRaceFinished,
+  onRepairEngine,
   onExitToGarage,
   onNextRival,
   nextRival,
@@ -94,6 +99,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
   const [hud, setHud] = useState<RaceTelemetry>(INITIAL_TELEMETRY);
   const [paused, setPaused] = useState(false);
   const [result, setResult] = useState<RaceResult | null>(null);
+  const [pendingAction, setPendingAction] = useState<'retry' | 'next' | null>(null);
 
   const onRaceFinishedRef = useRef(onRaceFinished);
   onRaceFinishedRef.current = onRaceFinished;
@@ -102,6 +108,9 @@ export const RaceView: React.FC<RaceViewProps> = ({
   const carConfig = getCarConfig(save, save.activeCarId);
   const carConfigRef = useRef(carConfig);
   carConfigRef.current = carConfig;
+  const liveEngineHealth = getEngineHealth(carConfig);
+  const repairCost = getEngineRepairCost(car, carConfig);
+  const canAffordRepair = save.cash >= repairCost;
   const tierSpec = getTierById(tierId);
   const activeDistance: StripDistanceId = rival ? rival.distance : distanceId;
   const distSpec = getStripDistanceSpec(activeDistance);
@@ -112,6 +121,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
     if (!container) return;
 
     setResult(null);
+    setPendingAction(null);
     setPaused(false);
 
     const sim = new RaceSimulation(
@@ -126,6 +136,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
         onTelemetry: (t) => setHud(t),
         onFinish: (rawResult) => {
           const enriched = onRaceFinishedRef.current(rawResult);
+          setPendingAction(null);
           setResult(enriched);
         },
       }
@@ -140,13 +151,72 @@ export const RaceView: React.FC<RaceViewProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [save.activeCarId, tierId, timeOfDay, activeDistance, rival?.id]);
 
-  const handleRestart = useCallback(() => {
+  const executeRestartNow = useCallback((repaired = false) => {
     setResult(null);
+    setPendingAction(null);
     setPaused(false);
     simRef.current?.setPaused(false);
-    simRef.current?.updateConfig(carConfigRef.current);
+    const nextCfg = repaired
+      ? { ...carConfigRef.current, engineHealth: 100 }
+      : carConfigRef.current;
+    simRef.current?.updateConfig(nextCfg);
     simRef.current?.reset();
   }, []);
+
+  const handleRestart = useCallback(() => {
+    if (result && liveEngineHealth < 100) {
+      soundEngine.playUiClick();
+      setPendingAction('retry');
+      return;
+    }
+    executeRestartNow(false);
+  }, [result, liveEngineHealth, executeRestartNow]);
+
+  const handleNextRivalClick = useCallback(() => {
+    if (!nextRival || !onNextRival) return;
+    if (liveEngineHealth < 100) {
+      soundEngine.playUiClick();
+      setPendingAction('next');
+      return;
+    }
+    setPendingAction(null);
+    onNextRival(nextRival);
+  }, [nextRival, onNextRival, liveEngineHealth]);
+
+  const handleDirectRepair = useCallback(() => {
+    if (liveEngineHealth >= 100 || !canAffordRepair) return;
+    soundEngine.playShopBuy();
+    onRepairEngine(save.activeCarId);
+  }, [liveEngineHealth, canAffordRepair, onRepairEngine, save.activeCarId]);
+
+  const handleConfirmRepairAndProceed = useCallback(
+    (doRepair: boolean) => {
+      const action = pendingAction;
+      if (!action) return;
+      if (doRepair && liveEngineHealth < 100 && canAffordRepair) {
+        soundEngine.playShopBuy();
+        onRepairEngine(save.activeCarId);
+      } else {
+        soundEngine.playUiClick();
+      }
+      setPendingAction(null);
+      if (action === 'retry') {
+        executeRestartNow(doRepair && canAffordRepair);
+      } else if (action === 'next' && nextRival && onNextRival) {
+        onNextRival(nextRival);
+      }
+    },
+    [
+      pendingAction,
+      liveEngineHealth,
+      canAffordRepair,
+      onRepairEngine,
+      save.activeCarId,
+      executeRestartNow,
+      nextRival,
+      onNextRival,
+    ]
+  );
 
   const togglePause = useCallback(() => {
     if (result) return;
@@ -166,7 +236,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
         return;
       }
       if (paused || result) {
-        if (result && (e.code === 'KeyR' || e.code === 'Enter')) {
+        if (result && !pendingAction && (e.code === 'KeyR' || e.code === 'Enter')) {
           e.preventDefault();
           handleRestart();
         }
@@ -231,13 +301,18 @@ export const RaceView: React.FC<RaceViewProps> = ({
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlur);
     };
-  }, [paused, result, togglePause, handleRestart]);
+  }, [paused, result, pendingAction, togglePause, handleRestart]);
 
   const isBurnoutPhase = hud.phase === 'BURNOUT';
   const isStagingPhase =
     hud.phase === 'STAGING' ||
     hud.phase === 'COUNTDOWN' ||
     (hud.phase === 'RACING' && hud.gear === 0);
+  const isLaunchedRacing = hud.phase === 'RACING' && hud.gear > 0;
+  const showVirtualTree =
+    !result &&
+    !paused &&
+    (isStagingPhase || (hud.phase === 'RACING' && hud.playerDistFt < 95) || hud.foul);
   const stripFt = hud.distanceFt || distSpec.feet;
   const playerPct = Math.min(100, (hud.playerDistFt / stripFt) * 100);
   const rivalPct = Math.min(100, (hud.rivalDistFt / stripFt) * 100);
@@ -352,7 +427,11 @@ export const RaceView: React.FC<RaceViewProps> = ({
 
         {/* Floating Skewed Arcade Shift / Launch Callout Banner */}
         {hud.calloutText && !result && (
-          <div className="pointer-events-none absolute top-[24%] left-1/2 -translate-x-1/2 z-10 text-center">
+          <div
+            className={`pointer-events-none absolute ${
+              showVirtualTree ? 'top-[40%] sm:top-[38%]' : 'top-[24%]'
+            } left-1/2 -translate-x-1/2 z-10 text-center`}
+          >
             <div
               className="-skew-x-10 font-pixel text-sm sm:text-lg tracking-wider px-5 py-2 bg-[#141218]/95 border-2 border-[#f7b519] shadow-[4px_4px_0_#07060a]"
               style={{ color: hud.calloutColor }}
@@ -450,25 +529,149 @@ export const RaceView: React.FC<RaceViewProps> = ({
           </div>
         )}
 
-        {/* Staging Instruction Banner */}
-        {isStagingPhase && !hud.foul && (
-          <div className="pointer-events-none absolute top-[92px] md:top-[78px] left-1/2 -translate-x-1/2 z-10 max-w-[94%] ng-plate-gold px-4 sm:px-5 py-1.5 text-center">
-            <p className="font-mono-num text-[10px] sm:text-xs text-[#ffd557] font-bold tracking-wide">
-              <span className="text-[#19d4e6] mr-2">
-                TIRES {hud.burnoutEfficiency}% ({hud.burnoutGripBonusPct >= 0 ? '+' : ''}
-                {hud.burnoutGripBonusPct}% GRIP)
-              </span>
-              <span className="sm:hidden">
-                {hud.treeStep < 5
-                  ? '· CLUTCH + GAS INTO GREEN!'
-                  : '· GO! RELEASE CLUTCH!'}
-              </span>
-              <span className="hidden sm:inline whitespace-nowrap">
-                {hud.treeStep < 5
-                  ? '· HOLD CLUTCH (SHIFT) + REV INTO GREEN ARC · RELEASE ON GREEN!'
-                  : '· GO! RELEASE CLUTCH & FLOOR THROTTLE!'}
-              </span>
-            </p>
+        {/* BIGGER VIRTUAL CHRISTMAS TREE LIGHTS ABOVE THE CARS */}
+        {showVirtualTree && (
+          <div className="pointer-events-none absolute top-[72px] md:top-[68px] left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1.5 w-[min(94%,460px)]">
+            {/* Large Twin-Bulb NHRA Virtual Tree Housing */}
+            <div className="bg-[#121118]/95 border-2 border-[#525866] shadow-[4px_4px_0_#07060a] px-4 sm:px-5 py-2.5 flex flex-col items-center gap-2">
+              {/* Pre-Stage & Stage Twin Indicator Row */}
+              <div className="flex items-center gap-5 border-b border-[#2e3342] pb-1.5 w-full justify-center">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-pixel text-[7px] sm:text-[8px] text-[#94a3b8]">PRE</span>
+                  <span
+                    className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 border-[#0a0a0f] transition-all ${
+                      hud.treeStep >= 0
+                        ? 'bg-[#fef08a] shadow-[0_0_10px_#fef08a]'
+                        : 'bg-[#2a271c]'
+                    }`}
+                  />
+                  <span
+                    className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 border-[#0a0a0f] transition-all ${
+                      hud.treeStep >= 0
+                        ? 'bg-[#fef08a] shadow-[0_0_10px_#fef08a]'
+                        : 'bg-[#2a271c]'
+                    }`}
+                  />
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-pixel text-[7px] sm:text-[8px] text-[#94a3b8]">STG</span>
+                  <span
+                    className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 border-[#0a0a0f] transition-all ${
+                      hud.treeStep >= 1
+                        ? 'bg-[#facc15] shadow-[0_0_12px_#facc15]'
+                        : 'bg-[#2a271c]'
+                    }`}
+                  />
+                  <span
+                    className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border-2 border-[#0a0a0f] transition-all ${
+                      hud.treeStep >= 1
+                        ? 'bg-[#facc15] shadow-[0_0_12px_#facc15]'
+                        : 'bg-[#2a271c]'
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Big High-Visibility Countdown Bulbs: 3 Ambers + Green + Red Foul */}
+              <div className="flex items-center gap-3 sm:gap-4">
+                {[0, 1, 2].map((idx) => {
+                  const lit = hud.treeStep >= 2 + idx && hud.treeStep !== -1;
+                  return (
+                    <div key={idx} className="flex flex-col items-center gap-1">
+                      <div
+                        className={`w-8 h-8 sm:w-11 sm:h-11 rounded-full border-2 transition-all flex items-center justify-center ${
+                          lit
+                            ? 'bg-[#facc15] border-[#fffbeb] shadow-[0_0_20px_#facc15,inset_0_0_8px_#ffffff]'
+                            : 'bg-[#2b2210] border-[#4d3d1c]'
+                        }`}
+                      >
+                        {lit && <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-white/85" />}
+                      </div>
+                      <span className="font-pixel text-[7px] text-[#94a3b8]">{idx + 1}</span>
+                    </div>
+                  );
+                })}
+
+                <div className="w-px h-10 bg-[#323642]" />
+
+                {/* BIG GREEN GO LIGHT */}
+                <div className="flex flex-col items-center gap-1">
+                  <div
+                    className={`w-9 h-9 sm:w-12 sm:h-12 rounded-full border-2 transition-all flex items-center justify-center ${
+                      hud.treeStep >= 5
+                        ? 'bg-[#2ee66b] border-[#dcfce7] shadow-[0_0_26px_#2ee66b,inset_0_0_10px_#ffffff]'
+                        : 'bg-[#10291b] border-[#1f4d32]'
+                    }`}
+                  >
+                    {hud.treeStep >= 5 && (
+                      <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-white/90" />
+                    )}
+                  </div>
+                  <span
+                    className={`font-pixel text-[7px] ${
+                      hud.treeStep >= 5 ? 'text-[#2ee66b]' : 'text-[#64748b]'
+                    }`}
+                  >
+                    GO
+                  </span>
+                </div>
+
+                {/* BIG RED FOUL LIGHT */}
+                <div className="flex flex-col items-center gap-1">
+                  <div
+                    className={`w-8 h-8 sm:w-11 sm:h-11 rounded-full border-2 transition-all flex items-center justify-center ${
+                      hud.treeStep === -1
+                        ? 'bg-[#ff3b30] border-[#fee2e2] shadow-[0_0_26px_#ff3b30,inset_0_0_10px_#ffffff]'
+                        : 'bg-[#2e1214] border-[#542024]'
+                    }`}
+                  >
+                    {hud.treeStep === -1 && (
+                      <span className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-white/90" />
+                    )}
+                  </div>
+                  <span
+                    className={`font-pixel text-[7px] ${
+                      hud.treeStep === -1 ? 'text-[#ff3b30]' : 'text-[#64748b]'
+                    }`}
+                  >
+                    FOUL
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Launch Preparation Prompt */}
+            {isStagingPhase && !hud.foul && (
+              <div
+                className={`px-3.5 sm:px-4 py-1.5 text-center border-2 shadow-[3px_3px_0_#07060a] ${
+                  hud.phase === 'STAGING'
+                    ? 'bg-[#241d0f]/95 border-[#f7b519] animate-pulse'
+                    : hud.treeStep >= 5
+                    ? 'bg-[#0e2e1b]/95 border-[#2ee66b]'
+                    : 'bg-[#141218]/95 border-[#f7b519]'
+                }`}
+              >
+                <p className="font-mono-num text-[10px] sm:text-xs font-bold tracking-wide">
+                  <span className="text-[#19d4e6] mr-2">
+                    TIRES {hud.burnoutEfficiency}% ({hud.burnoutGripBonusPct >= 0 ? '+' : ''}
+                    {hud.burnoutGripBonusPct}% GRIP)
+                  </span>
+                  {hud.phase === 'STAGING' ? (
+                    <span className="text-[#ffd557]">
+                      · PRESS &amp; HOLD CLUTCH [SHIFT] TO START LIGHTS
+                    </span>
+                  ) : hud.treeStep < 5 ? (
+                    <span className="text-[#ffd557]">
+                      · HOLD CLUTCH + REV TO GREEN · RELEASE ON GREEN!
+                    </span>
+                  ) : (
+                    <span className="text-[#2ee66b]">
+                      · GREEN! RELEASE CLUTCH TO LAUNCH!
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -500,8 +703,10 @@ export const RaceView: React.FC<RaceViewProps> = ({
           >
             <button
               type="button"
+              disabled={isLaunchedRacing}
               onContextMenu={(e) => e.preventDefault()}
               onPointerDown={(e) => {
+                if (isLaunchedRacing) return;
                 e.preventDefault();
                 e.currentTarget.setPointerCapture(e.pointerId);
                 simRef.current?.setClutch(true);
@@ -513,19 +718,27 @@ export const RaceView: React.FC<RaceViewProps> = ({
                 simRef.current?.setClutch(false);
               }}
               onPointerCancel={() => simRef.current?.setClutch(false)}
-              className={`ng-keycap touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-4 border-2 font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
-                isBurnoutPhase
+              className={`ng-keycap touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-4 border-2 font-pixel text-[9px] sm:text-[10px] whitespace-nowrap ${
+                isLaunchedRacing
+                  ? 'bg-[#141218] border-[#323642] text-[#64748b] cursor-not-allowed opacity-60'
+                  : isBurnoutPhase
                   ? hud.brake
-                    ? 'bg-[#e83b24] border-[#141218] text-[#ffffff]'
-                    : 'bg-[#361b1d] border-[#e83b24] text-[#fecaca] hover:bg-[#472226]'
+                    ? 'bg-[#e83b24] border-[#141218] text-[#ffffff] cursor-pointer'
+                    : 'bg-[#361b1d] border-[#e83b24] text-[#fecaca] hover:bg-[#472226] cursor-pointer'
                   : hud.clutch
-                  ? 'bg-[#f7b519] border-[#141218] text-[#141218]'
-                  : 'bg-[#2c2935] border-[#525866] text-[#f4ecd8] hover:bg-[#3a3647]'
+                  ? 'bg-[#f7b519] border-[#141218] text-[#141218] cursor-pointer'
+                  : hud.phase === 'STAGING'
+                  ? 'bg-[#362b12] border-[#f7b519] text-[#ffd557] hover:bg-[#4a3b18] animate-pulse cursor-pointer'
+                  : 'bg-[#2c2935] border-[#525866] text-[#f4ecd8] hover:bg-[#3a3647] cursor-pointer'
               }`}
             >
               {isBurnoutPhase ? 'BRAKE' : 'CLUTCH'}
               <span className="hidden lg:block font-mono-num text-[10px] opacity-80 mt-1">
-                {isBurnoutPhase ? '[S / SHIFT]' : '[SHIFT]'}
+                {isBurnoutPhase
+                  ? '[S / SHIFT]'
+                  : isLaunchedRacing
+                  ? 'LAUNCH ONLY'
+                  : '[SHIFT]'}
               </span>
             </button>
 
@@ -662,7 +875,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
                       }`}
                     >
                       {result.foul
-                        ? 'RED LIGHT FOUL'
+                        ? 'JUMPSTART · DISQUALIFIED'
                         : result.isTimeTrial
                         ? 'TIME SLIP LOGGED'
                         : result.won
@@ -726,7 +939,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
                     {result.foul ? '—' : `${result.sixtyFtSec.toFixed(2)}s`}
                   </span>
                   <span className="text-right text-[#2ee66b]">
-                    {result.perfectShifts} Perfect ({result.perfectClutchShifts} Clutch)
+                    {result.perfectShifts} Perfect
                   </span>
                 </div>
                 {typeof result.burnoutEfficiency === 'number' && (
@@ -804,30 +1017,45 @@ export const RaceView: React.FC<RaceViewProps> = ({
                 )}
               </div>
 
-              {/* Engine Health Post-Run Status */}
-              {typeof result.engineHealthAfter === 'number' && (() => {
-                const postStatus = getEngineHealthStatus(result.engineHealthAfter);
+              {/* Engine Health & Post-Run Repair Panel */}
+              {(() => {
+                const liveStatus = getEngineHealthStatus(liveEngineHealth);
                 return (
-                  <div className="ng-vfd px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 text-xs font-mono-num text-[#f4ecd8]">
+                  <div className="ng-vfd px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono-num text-[#f4ecd8]">
                     <div className="flex items-center gap-2 flex-wrap">
                       <PixelIcon name="wrench" className="w-3.5 h-3.5 shrink-0" />
-                      <span className="text-[#94a3b8]">ENGINE HEALTH</span>
-                      <span className="font-bold" style={{ color: postStatus.color }}>
-                        {result.engineHealthAfter}% · {postStatus.label}
+                      <span className="text-[#94a3b8]">ENGINE</span>
+                      <span className="font-bold" style={{ color: liveStatus.color }}>
+                        {liveEngineHealth}% · {liveStatus.label}
                       </span>
-                      {typeof result.engineWearApplied === 'number' && result.engineWearApplied > 0 && (
-                        <span className="text-[#94a3b8]">(-{result.engineWearApplied}% wear)</span>
-                      )}
+                      {liveEngineHealth < 100 &&
+                        typeof result.engineWearApplied === 'number' &&
+                        result.engineWearApplied > 0 && (
+                          <span className="text-[#94a3b8]">(-{result.engineWearApplied}% wear)</span>
+                        )}
                       {result.topGearRevProtectionUsed && (
                         <span className="bg-[#162b22] border border-[#2ee66b] text-[#2ee66b] px-1.5 py-0.5 text-[10px] font-bold">
-                          REV GUARD PROTECTED
+                          REV GUARD
                         </span>
                       )}
                     </div>
-                    {result.engineHealthAfter < 80 && (
-                      <span className="font-bold" style={{ color: postStatus.color }}>
-                        Power reduced — repair in Paddock
-                      </span>
+                    {liveEngineHealth < 100 ? (
+                      <button
+                        type="button"
+                        disabled={!canAffordRepair}
+                        onClick={handleDirectRepair}
+                        className={`ng-keycap px-3 py-1 border-2 font-mono-num font-bold text-[11px] uppercase whitespace-nowrap ${
+                          canAffordRepair
+                            ? 'bg-[#2ee66b] hover:bg-[#4ff588] border-[#141218] text-[#141218] cursor-pointer'
+                            : 'bg-[#1f1d26] border-[#3a3e4d] text-[#64748b] cursor-not-allowed'
+                        }`}
+                      >
+                        {canAffordRepair
+                          ? `REPAIR TO 100% (${formatCash(repairCost)})`
+                          : `NEED ${formatCash(repairCost)}`}
+                      </button>
+                    ) : (
+                      <span className="text-[#2ee66b] font-bold">✓ 100% READY</span>
                     )}
                   </div>
                 );
@@ -839,34 +1067,88 @@ export const RaceView: React.FC<RaceViewProps> = ({
                 </div>
               )}
 
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center justify-end gap-2.5 pt-1 pr-2">
-                <button
-                  type="button"
-                  onClick={onExitToGarage}
-                  className="ng-keycap px-4 py-2.5 bg-[#201e26] hover:bg-[#2d2a36] border-2 border-[#141218] text-[#f4ecd8] font-mono-num font-bold text-xs uppercase whitespace-nowrap cursor-pointer"
-                >
-                  PADDOCK &amp; SHOP
-                </button>
-                <button
-                  type="button"
-                  onClick={handleRestart}
-                  className="ng-keycap px-4 py-2.5 bg-[#f7b519] hover:bg-[#ffd557] border-2 border-[#141218] text-[#141218] font-mono-num font-bold text-xs uppercase whitespace-nowrap cursor-pointer"
-                >
-                  RACE AGAIN
-                </button>
-                {result.won && nextRival && onNextRival && (
+              {/* Pre-Race / Retry Repair Confirmation Prompt */}
+              {pendingAction && liveEngineHealth < 100 ? (
+                <div className="bg-[#141218] border-2 border-[#f7b519] p-3.5 space-y-2.5 text-[#f4ecd8]">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="font-pixel text-[10px] text-[#f7b519]">
+                      REPAIR ENGINE BEFORE {pendingAction === 'next' ? 'NEXT RIVAL' : 'RETRY'}?
+                    </div>
+                    <span className="font-mono-num text-[11px] text-[#b8c0cc]">
+                      CASH: <strong className="text-[#2ee66b]">{formatCash(save.cash)}</strong>
+                    </span>
+                  </div>
+                  <p className="font-mono-num text-xs text-[#cbd5e1]">
+                    Engine health is at{' '}
+                    <strong className="text-[#f7b519]">{liveEngineHealth}%</strong>. Rebuild to 100%
+                    for <strong>{formatCash(repairCost)}</strong> before lining up?
+                  </p>
+                  <div className="flex flex-wrap items-center justify-end gap-2 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundEngine.playUiClick();
+                        setPendingAction(null);
+                      }}
+                      className="ng-keycap px-3 py-2 bg-[#201e26] hover:bg-[#2d2a36] border-2 border-[#525866] text-[#b8c0cc] font-mono-num font-bold text-xs uppercase cursor-pointer"
+                    >
+                      BACK
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmRepairAndProceed(false)}
+                      className="ng-keycap px-3.5 py-2 bg-[#2c2935] hover:bg-[#3a3647] border-2 border-[#525866] text-[#f4ecd8] font-mono-num font-bold text-xs uppercase cursor-pointer"
+                    >
+                      SKIP REPAIR &amp; {pendingAction === 'next' ? 'NEXT' : 'RETRY'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!canAffordRepair}
+                      onClick={() => handleConfirmRepairAndProceed(true)}
+                      className={`ng-keycap px-4 py-2 border-2 font-pixel text-[9px] uppercase whitespace-nowrap ${
+                        canAffordRepair
+                          ? 'bg-[#2ee66b] hover:bg-[#4ff588] border-[#141218] text-[#141218] cursor-pointer'
+                          : 'bg-[#1f1d26] border-[#3a3e4d] text-[#64748b] cursor-not-allowed'
+                      }`}
+                    >
+                      {canAffordRepair
+                        ? `REPAIR (${formatCash(repairCost)}) & ${
+                            pendingAction === 'next' ? 'NEXT' : 'RETRY'
+                          }`
+                        : `NEED ${formatCash(repairCost)}`}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Action Buttons */
+                <div className="flex flex-wrap items-center justify-end gap-2.5 pt-1 pr-2">
                   <button
                     type="button"
-                    onClick={() => onNextRival(nextRival)}
-                    className="ng-chevron-cta cursor-pointer"
+                    onClick={onExitToGarage}
+                    className="ng-keycap px-4 py-2.5 bg-[#201e26] hover:bg-[#2d2a36] border-2 border-[#141218] text-[#f4ecd8] font-mono-num font-bold text-xs uppercase whitespace-nowrap cursor-pointer"
                   >
-                    <span className="ng-chevron-inner font-pixel text-[10px] whitespace-nowrap">
-                      NEXT RIVAL
-                    </span>
+                    PADDOCK &amp; SHOP
                   </button>
-                )}
-              </div>
+                  <button
+                    type="button"
+                    onClick={handleRestart}
+                    className="ng-keycap px-4 py-2.5 bg-[#f7b519] hover:bg-[#ffd557] border-2 border-[#141218] text-[#141218] font-mono-num font-bold text-xs uppercase whitespace-nowrap cursor-pointer"
+                  >
+                    RACE AGAIN
+                  </button>
+                  {result.won && nextRival && onNextRival && (
+                    <button
+                      type="button"
+                      onClick={handleNextRivalClick}
+                      className="ng-chevron-cta cursor-pointer"
+                    >
+                      <span className="ng-chevron-inner font-pixel text-[10px] whitespace-nowrap">
+                        NEXT RIVAL
+                      </span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

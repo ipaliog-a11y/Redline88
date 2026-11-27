@@ -11,9 +11,7 @@ import {
   getEngineRepairCost,
   getUpgradeImpactPreview,
   PAINT_COLORS,
-  RIM_OPTIONS,
   RIVALS,
-  STRIPE_OPTIONS,
   TOTAL_CAREER_EVENTS,
 } from '../data/gameData';
 import { sanitizeCallsign } from '../services/firebase';
@@ -227,8 +225,8 @@ export const GarageHub: React.FC<GarageHubProps> = ({
       activeTab === 'CUSTOMIZE'
         ? {
             paintColor: visualDraft.paintColor ?? config.visuals.paintColor,
-            stripe: visualDraft.stripe ?? config.visuals.stripe,
-            rims: visualDraft.rims ?? config.visuals.rims,
+            stripe: 'none' as const,
+            rims: 'steel' as const,
           }
         : config.visuals;
 
@@ -256,24 +254,6 @@ export const GarageHub: React.FC<GarageHubProps> = ({
         patch.paintColor = paintOpt.hex;
         items.push({ label: `Paint: ${paintOpt.name}`, cost: paintOpt.cost });
         totalCost += paintOpt.cost;
-      }
-    }
-
-    if (visualDraft.stripe && visualDraft.stripe !== config.visuals.stripe) {
-      const stripeOpt = STRIPE_OPTIONS.find((s) => s.id === visualDraft.stripe);
-      if (stripeOpt) {
-        patch.stripe = stripeOpt.id;
-        items.push({ label: `Decal: ${stripeOpt.name}`, cost: stripeOpt.cost });
-        totalCost += stripeOpt.cost;
-      }
-    }
-
-    if (visualDraft.rims && visualDraft.rims !== config.visuals.rims) {
-      const rimOpt = RIM_OPTIONS.find((r) => r.id === visualDraft.rims);
-      if (rimOpt) {
-        patch.rims = rimOpt.id;
-        items.push({ label: `Rims: ${rimOpt.name}`, cost: rimOpt.cost });
-        totalCost += rimOpt.cost;
       }
     }
 

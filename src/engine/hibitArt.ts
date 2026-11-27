@@ -304,62 +304,7 @@ function drawPaintedBodyShell(
     }
   }
 
-  // 5. Clipped livery stripes cleanly inside body spans
-  const stripe = opts.stripe ?? 'none';
-  if (stripe !== 'none') {
-    const sx0 = opts.stripeStartX ?? minX + 4;
-    const sx1 = opts.stripeEndX ?? maxX - 4;
-    const yMid = Math.round((opts.beltY + opts.lowerShadY) * 0.5) + 1;
-
-    for (let i = 0; i < spans.length; i++) {
-      const r = spans[i];
-      const cx0 = Math.max(r.x0 + 1, sx0);
-      const cx1 = Math.min(r.x1 - 1, sx1);
-      if (cx1 < cx0) continue;
-
-      if (stripe === 'twin') {
-        if (r.y === yMid - 1 || r.y === yMid + 1) {
-          ctx.fillStyle = '#f8fafc';
-          ctx.fillRect(cx0, r.y, cx1 - cx0 + 1, 1);
-        }
-      } else if (stripe === 'flash') {
-        if (r.y >= yMid - 2 && r.y <= yMid + 1) {
-          const shift = (yMid - r.y) * 3;
-          const fx0 = Math.max(r.x0 + 2, sx0 + 4 + shift);
-          const fx1 = Math.min(r.x1 - 2, sx1 - 3 + shift);
-          if (fx1 > fx0) {
-            ctx.fillStyle = r.y === yMid - 2 ? '#fef08a' : '#facc15';
-            ctx.fillRect(fx0, r.y, fx1 - fx0 + 1, 1);
-          }
-        }
-      } else if (stripe === 'checkered') {
-        const tailMaxX = Math.min(r.x1 - 1, minX + 20);
-        if (r.y >= opts.beltY + 1 && r.y <= opts.lowerShadY + 1 && tailMaxX > r.x0 + 2) {
-          for (let x = r.x0 + 2; x <= tailMaxX; x += 2) {
-            const cell = ((x - minX) >> 1) + ((r.y - opts.beltY) >> 1);
-            ctx.fillStyle = cell % 2 === 0 ? '#f8fafc' : '#1e293b';
-            ctx.fillRect(x, r.y, Math.min(2, tailMaxX - x + 1), 1);
-          }
-        }
-      } else if (stripe === 'flames') {
-        if (r.y >= opts.beltY + 1 && r.y <= opts.lowerShadY + 1) {
-          const flameStart = Math.max(r.x0 + 2, maxX - 30);
-          const wave = Math.round(Math.sin((r.y - opts.beltY) * 1.45) * 4);
-          const fx0 = Math.max(r.x0 + 2, flameStart + wave);
-          const fx1 = r.x1 - 2;
-          if (fx1 > fx0) {
-            ctx.fillStyle = '#ff6b1a';
-            ctx.fillRect(fx0, r.y, fx1 - fx0 + 1, 1);
-            const innerX0 = Math.min(fx1, fx0 + 6);
-            if (fx1 > innerX0) {
-              ctx.fillStyle = '#fde047';
-              ctx.fillRect(innerX0, r.y, fx1 - innerX0 + 1, 1);
-            }
-          }
-        }
-      }
-    }
-  }
+  // 5. Clean sculpted body finish (racing stripes and decals removed)
 
   // 6. Crisp darker-hue outline around the entire sculpted silhouette
   if (!opts.skipOutline) {
@@ -541,24 +486,11 @@ function drawHiBitWheel(
     }
   }
 
-  // Rim palette by RimStyle
-  const rimOuter =
-    rimStyle === 'gold'
-      ? '#b37a14'
-      : rimStyle === 'prostar'
-      ? '#7c8ea8'
-      : rimStyle === 'chrome'
-      ? '#8ca2bf'
-      : '#55637a';
-  const rimFill =
-    rimStyle === 'gold'
-      ? '#f5c242'
-      : rimStyle === 'prostar'
-      ? '#e2edf8'
-      : rimStyle === 'chrome'
-      ? '#f2f7ff'
-      : '#94a3b8';
-  const rimSpec = rimStyle === 'gold' ? '#fff4b8' : '#ffffff';
+  // Standard unpainted steel/alloy rim palette
+  void rimStyle;
+  const rimOuter = '#55637a';
+  const rimFill = '#94a3b8';
+  const rimSpec = '#e2e8f0';
 
   // Rim dish + brake rotor interior
   drawPixelDisc(ctx, icx, icy, rimR, '#1f283b', rimOuter);
@@ -576,7 +508,7 @@ function drawHiBitWheel(
   }
 
   // Rotating crisp pixel spokes
-  const spokeCount = rimStyle === 'steel' ? 4 : 5;
+  const spokeCount = 5;
   for (let s = 0; s < spokeCount; s++) {
     const a = angle + (s / spokeCount) * Math.PI * 2;
     for (let step = 1; step <= rimR - 1; step++) {
@@ -596,7 +528,7 @@ function drawHiBitWheel(
 
   // Center lug hub cap
   px(ctx, icx - 1, icy - 1, 3, 3, tireOutline);
-  px(ctx, icx, icy, 1, 1, rimStyle === 'gold' ? '#fff4b8' : '#ff5544');
+  px(ctx, icx, icy, 1, 1, '#cbd5e1');
 }
 
 export interface HiBitCarMetrics {
@@ -1786,12 +1718,6 @@ export function drawHiBitCarEndView(
     [icx + shoulderHalfW - 5, igy + bodyTopY - 1],
   ];
   drawSculptedWindow(ctx, glassPts, paintOut, timeOfDay);
-
-  // Twin racing stripes centered down the sculpted hood / trunk
-  if (visuals.stripe === 'twin') {
-    px(ctx, icx - 5, igy + bodyTopY + 1, 4, Math.abs(bodyTopY) - 8, '#f8fafc');
-    px(ctx, icx + 1, igy + bodyTopY + 1, 4, Math.abs(bodyTopY) - 8, '#f8fafc');
-  }
 
   // Towering Chrome Blower if Funny Car or upgraded Muscle
   if (isFunny || (chassis === 'muscle' && upgrades.induction >= 3)) {

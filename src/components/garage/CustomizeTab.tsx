@@ -1,13 +1,11 @@
 import React from 'react';
 import { soundEngine } from '../../audio/soundEngine';
-import { formatCash, PAINT_COLORS, RIM_OPTIONS, STRIPE_OPTIONS } from '../../data/gameData';
-import { CarConfig, CarSpec, RimStyle, StripeStyle } from '../../types/game';
+import { formatCash, PAINT_COLORS } from '../../data/gameData';
+import { CarConfig, CarSpec } from '../../types/game';
 import { HiBitShowcaseCanvas } from '../HiBitShowcaseCanvas';
 
 export interface VisualDraft {
   paintColor?: string;
-  stripe?: StripeStyle;
-  rims?: RimStyle;
 }
 
 export interface VisualCheckoutSummary {
@@ -67,7 +65,7 @@ export const CustomizeTab: React.FC<CustomizeTabProps> = ({
           <div className="font-pixel text-[9px] sm:text-[10px] text-[#f7b519]">
             {visualCheckout.hasChanges
               ? 'SPRAY BOOTH PREVIEW ACTIVE'
-              : 'SELECT PAINT, DECAL, OR RIMS TO PREVIEW LIVE'}
+              : 'SELECT A BODY PAINT COAT TO PREVIEW LIVE'}
           </div>
           {visualCheckout.hasChanges ? (
             <div className="text-xs font-mono-num text-[#f4ecd8] flex flex-wrap items-center gap-x-2">
@@ -167,96 +165,6 @@ export const CustomizeTab: React.FC<CustomizeTabProps> = ({
                       formatCash(p.cost)
                     )}
                   </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Racing Stripes & Decals */}
-      <div className="ng-plate overflow-hidden">
-        <div className="bg-[#18161e] border-b-2 border-[#323642] px-3 py-1.5">
-          <h4 className="font-pixel text-[9px] text-[#f7b519]">RACING STRIPES &amp; DECALS</h4>
-        </div>
-        <div className="p-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
-          {STRIPE_OPTIONS.map((opt) => {
-            const equipped = config.visuals.stripe === opt.id;
-            const previewing = previewConfig.visuals.stripe === opt.id && !equipped;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => {
-                  soundEngine.playUiClick();
-                  onChangeDraft((prev) => ({ ...prev, stripe: opt.id }));
-                }}
-                className={`ng-keycap p-2.5 border-2 text-left cursor-pointer ${
-                  previewing
-                    ? 'bg-[#2e2738] border-[#f7b519]'
-                    : equipped
-                    ? 'bg-[#162b22] border-[#2ee66b]'
-                    : 'bg-[#18161e] border-[#3a3e4d] hover:border-[#f7b519]'
-                }`}
-              >
-                <div className="text-xs font-bold text-[#f4ecd8]">{opt.name}</div>
-                <div className="font-mono-num text-[10px] text-[#b8c0cc] mt-1">
-                  {previewing ? (
-                    <span className="text-[#f7b519] font-bold">
-                      PREVIEW · {opt.cost === 0 ? 'FREE' : formatCash(opt.cost)}
-                    </span>
-                  ) : equipped ? (
-                    <span className="text-[#2ee66b] font-bold">EQUIPPED</span>
-                  ) : opt.cost === 0 ? (
-                    'FREE'
-                  ) : (
-                    formatCash(opt.cost)
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Drag Rims */}
-      <div className="ng-plate overflow-hidden">
-        <div className="bg-[#18161e] border-b-2 border-[#323642] px-3 py-1.5">
-          <h4 className="font-pixel text-[9px] text-[#f7b519]">DRAG WHEEL RIMS</h4>
-        </div>
-        <div className="p-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {RIM_OPTIONS.map((opt) => {
-            const equipped = config.visuals.rims === opt.id;
-            const previewing = previewConfig.visuals.rims === opt.id && !equipped;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => {
-                  soundEngine.playUiClick();
-                  onChangeDraft((prev) => ({ ...prev, rims: opt.id }));
-                }}
-                className={`ng-keycap p-2.5 border-2 text-left cursor-pointer ${
-                  previewing
-                    ? 'bg-[#2e2738] border-[#f7b519]'
-                    : equipped
-                    ? 'bg-[#162b22] border-[#2ee66b]'
-                    : 'bg-[#18161e] border-[#3a3e4d] hover:border-[#f7b519]'
-                }`}
-              >
-                <div className="text-xs font-bold text-[#f4ecd8]">{opt.name}</div>
-                <div className="font-mono-num text-[10px] text-[#b8c0cc] mt-1">
-                  {previewing ? (
-                    <span className="text-[#f7b519] font-bold">
-                      PREVIEW · {opt.cost === 0 ? 'FREE' : formatCash(opt.cost)}
-                    </span>
-                  ) : equipped ? (
-                    <span className="text-[#2ee66b] font-bold">EQUIPPED</span>
-                  ) : opt.cost === 0 ? (
-                    'FREE'
-                  ) : (
-                    formatCash(opt.cost)
-                  )}
                 </div>
               </button>
             );

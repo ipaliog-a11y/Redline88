@@ -505,6 +505,7 @@ function GameApp() {
         muted={muted}
         onToggleMute={handleToggleMute}
         onRaceFinished={handleRaceFinished}
+        onRepairEngine={handleRepairEngine}
         onExitToGarage={() => {
           soundEngine.playUiClick();
           setScreen('GARAGE');

@@ -372,12 +372,22 @@ export class RaceSimulation {
       this.brakeHeld = held;
       return;
     }
+    // After launch, only the shifter is used (clutch is launch-only)
+    if (this.launched) {
+      this.clutchHeld = false;
+      return;
+    }
+
     const wasHeld = this.clutchHeld;
     this.clutchHeld = held;
 
-    // Dumping clutch while revving before green triggers RED LIGHT FOUL!
+    // Releasing clutch before green light triggers immediate JUMPSTART disqualification!
     if (wasHeld && !held) {
-      if (this.phase === 'COUNTDOWN' && this.treeStep >= 2 && this.playerRpm > this.car.idleRpm + 700) {
+      if (this.phase === 'COUNTDOWN') {
+        this.playerVelFps = Math.max(8, 8 + this.car.tier * 2.2);
+        this.pitchDeg = -3.2;
+        this.exhaustFlame = 0.8;
+        this.spawnTireSmoke(10, 14);
         this.triggerFoul();
       } else if (this.phase === 'RACING' && !this.launched) {
         this.executeLaunch();
@@ -473,9 +483,10 @@ export class RaceSimulation {
     this.foul = true;
     this.treeStep = -1;
     this.phase = 'FINISH_COAST';
-    this.finishCoastTimer = 1.4;
-    this.showCallout('RED LIGHT FOUL!', '#ff4d3d');
+    this.finishCoastTimer = 1.25;
+    this.showCallout('JUMPSTART! DISQUALIFIED!', '#ff4d3d');
     soundEngine.playFoul();
+    this.emitTelemetry(true);
   }
 
   private getLaunchWindow(): { min: number; max: number } {
@@ -497,7 +508,8 @@ export class RaceSimulation {
   private executeLaunch(): void {
     if (this.launched) return;
     this.launched = true;
-    this.reactionSec = Math.max(0.005, this.simTime - this.greenLightTime);
+    this.clutchHeld = false;
+    this.reactionSec = Math.max(0.001, this.simTime - this.greenLightTime);
 
     const { min: launchMin, max: launchMax } = this.getLaunchWindow();
     const launchRpmSnapshot = Math.round(this.playerRpm);
@@ -576,7 +588,6 @@ export class RaceSimulation {
 
     const rpmBefore = this.playerRpm;
     const mphBefore = Math.round(this.playerVelFps * 0.681818);
-    const usedClutch = this.clutchHeld;
     this.playerRpm = Math.max(this.car.idleRpm + 800, rpmBefore * (newRatio / oldRatio));
     this.shiftLockTimer = this.perf.shiftSpeedSec;
     this.exhaustFlame = 1.0;
@@ -586,27 +597,15 @@ export class RaceSimulation {
 
     if (rpmBefore >= minSweet && rpmBefore <= maxSweet) {
       this.perfectShifts += 1;
-      if (this.clutchHeld) {
-        this.perfectClutchShifts += 1;
-        shiftRating = 'PERFECT CLUTCH!';
-        shiftColor = '#f5b82e';
-        this.boostTimer = 0.8;
-        this.boostStrength = this.perf.shiftBoostMult + 0.06;
-        this.hitstopTimer = 0.032;
-        this.pitchDeg = -(4.5 + this.car.tier * 1.1);
-        this.showCallout(shiftRating, shiftColor);
-        soundEngine.playShift('perfect_clutch', this.car.tier);
-      } else {
-        shiftRating = 'PERFECT SHIFT!';
-        shiftColor = '#22c55e';
-        this.boostTimer = 0.65;
-        this.boostStrength = this.perf.shiftBoostMult;
-        this.hitstopTimer = 0.025;
-        this.pitchDeg = -(3.2 + this.car.tier * 0.8);
-        this.showCallout(shiftRating, shiftColor);
-        soundEngine.playShift('perfect', this.car.tier);
-      }
-      this.playerVelFps *= this.clutchHeld ? 1.04 : 1.025;
+      shiftRating = 'PERFECT SHIFT!';
+      shiftColor = '#22c55e';
+      this.boostTimer = 0.72;
+      this.boostStrength = this.perf.shiftBoostMult + 0.03;
+      this.hitstopTimer = 0.028;
+      this.pitchDeg = -(3.8 + this.car.tier * 0.9);
+      this.showCallout(shiftRating, shiftColor);
+      soundEngine.playShift('perfect', this.car.tier);
+      this.playerVelFps *= 1.032;
     } else if (rpmBefore > maxSweet) {
       this.overRevCount += 1;
       shiftRating = 'OVER-REV!';
@@ -639,7 +638,7 @@ export class RaceSimulation {
       toGear: this.playerGear,
       rating: shiftRating,
       color: shiftColor,
-      usedClutch,
+      usedClutch: false,
       kind: 'shift',
     });
   }
@@ -707,36 +706,38 @@ export class RaceSimulation {
       this.stageTimer += dt;
       // Roll smoothly forward out of the burnout box up to the starting beam (0 ft)
       if (this.playerDistFt < 0) {
-        const rollStep = Math.min(-this.playerDistFt, Math.max(10, -this.playerDistFt * 5.2) * dt);
+        const rollStep = Math.min(-this.playerDistFt, Math.max(14, -this.playerDistFt * 6.5) * dt);
         this.playerDistFt += rollStep;
         this.wheelAngle += rollStep * 0.55;
       }
-      if (this.stageTimer >= 0.45 && this.treeStep === 0) {
-        this.treeStep = 1;
-      }
-      if (this.stageTimer >= 1.2) {
+      // Both cars wait at the line until the player presses & holds CLUTCH to stage and start the light sequence
+      if (this.playerDistFt >= -0.25 && this.clutchHeld) {
         this.playerDistFt = 0;
         this.phase = 'COUNTDOWN';
         this.stageTimer = 0;
-        this.treeStep = 2;
-        soundEngine.playTreeAmber();
+        this.treeStep = 1; // STAGED bulb lit; ambers begin next
+        soundEngine.playUiClick();
       }
       this.updateStagingRpm(dt);
     } else if (this.phase === 'COUNTDOWN') {
       this.stageTimer += dt;
-      if (this.stageTimer >= 0.55 && this.treeStep === 2) {
+      if (this.stageTimer >= 0.45 && this.treeStep === 1) {
+        this.treeStep = 2;
+        soundEngine.playTreeAmber();
+      } else if (this.stageTimer >= 1.0 && this.treeStep === 2) {
         this.treeStep = 3;
         soundEngine.playTreeAmber();
-      } else if (this.stageTimer >= 1.1 && this.treeStep === 3) {
+      } else if (this.stageTimer >= 1.55 && this.treeStep === 3) {
         this.treeStep = 4;
         soundEngine.playTreeAmber();
-      } else if (this.stageTimer >= 1.65 && this.treeStep === 4) {
+      } else if (this.stageTimer >= 2.1 && this.treeStep === 4) {
         this.treeStep = 5;
         this.phase = 'RACING';
         this.greenLightTime = this.simTime;
         soundEngine.playTreeGreen();
 
-        if (!this.clutchHeld && this.throttleHeld) {
+        // Launch only when clutch is released (if somehow already released, launch immediately)
+        if (!this.clutchHeld) {
           this.executeLaunch();
         }
       }
@@ -744,7 +745,7 @@ export class RaceSimulation {
     } else if (this.phase === 'RACING') {
       this.raceElapsed += dt;
 
-      if (!this.launched && !this.clutchHeld && this.throttleHeld) {
+      if (!this.launched && !this.clutchHeld) {
         this.executeLaunch();
       }
 
