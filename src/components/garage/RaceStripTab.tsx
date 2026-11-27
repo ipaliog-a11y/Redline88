@@ -1,12 +1,16 @@
 import React, { useMemo } from 'react';
 import { soundEngine } from '../../audio/soundEngine';
 import {
+  checkRaceEligibility,
   formatCash,
+  getCarById,
+  getCarConfig,
   getStripDistanceSpec,
   getTierById,
   RIVALS,
   STRIP_DISTANCES,
   TIERS,
+  TOTAL_CAREER_EVENTS,
 } from '../../data/gameData';
 import {
   PlayerSave,
@@ -22,7 +26,10 @@ interface RaceStripTabProps {
   selectedDistance: StripDistanceId;
   onSelectTier: (tier: TierId) => void;
   onSelectDistance: (distance: StripDistanceId) => void;
+  onSelectCar: (carId: string) => void;
   onOpenTuning: () => void;
+  onOpenShop: () => void;
+  onOpenShowroom: () => void;
   onStartRace: (tierId: TierId, distanceId: StripDistanceId, rival: RivalSpec | null) => void;
 }
 
@@ -32,11 +39,38 @@ export const RaceStripTab: React.FC<RaceStripTabProps> = ({
   selectedDistance,
   onSelectTier,
   onSelectDistance,
+  onSelectCar,
   onOpenTuning,
+  onOpenShop,
+  onOpenShowroom,
   onStartRace,
 }) => {
   const tierSpec = getTierById(selectedTier);
   const distSpec = getStripDistanceSpec(selectedDistance);
+  const activeConfig = getCarConfig(save, save.activeCarId);
+
+  const eligibility = useMemo(
+    () => checkRaceEligibility(save.activeCarId, activeConfig, selectedTier),
+    [save.activeCarId, activeConfig, selectedTier]
+  );
+
+  // Find an owned car that IS eligible for the selected tier for 1-click switching
+  const suggestedEligibleCar = useMemo(() => {
+    if (eligibility.eligible) return null;
+    for (const cid of save.ownedCars) {
+      if (cid === save.activeCarId) continue;
+      const cfg = getCarConfig(save, cid);
+      if (checkRaceEligibility(cid, cfg, selectedTier).eligible) {
+        return getCarById(cid);
+      }
+    }
+    return null;
+  }, [eligibility.eligible, save, selectedTier]);
+
+  const totalCareerCleared = useMemo(() => {
+    const validIds = new Set(RIVALS.map((r) => r.id));
+    return save.defeatedRivals.filter((id) => validIds.has(id)).length;
+  }, [save.defeatedRivals]);
 
   const tierRivals = useMemo(
     () => RIVALS.filter((r) => r.tier === selectedTier && r.distance === selectedDistance),
@@ -110,12 +144,18 @@ export const RaceStripTab: React.FC<RaceStripTabProps> = ({
             <div className="p-3 flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="bg-[#e83b24] text-white font-pixel text-[8px] px-1.5 py-0.5 border border-[#141218]">
-                    TIER {tierSpec.id}
+                  <span
+                    className="text-[#141218] font-pixel text-[8px] px-1.5 py-0.5 border border-[#141218]"
+                    style={{ backgroundColor: eligibility.eventBracket.color }}
+                  >
+                    {eligibility.eventBracket.code} · {eligibility.eventBracket.etRangeLabel}
                   </span>
                   <h3 className="font-pixel text-[10px] sm:text-xs text-[#f7b519] pixel-text-shadow truncate">
                     {tierSpec.className} · {tierSpec.venueName.toUpperCase()}
                   </h3>
+                  <span className="ng-vfd px-2 py-0.5 font-mono-num text-[10px] font-bold text-[#2ee66b]">
+                    CAREER {totalCareerCleared}/{TOTAL_CAREER_EVENTS}
+                  </span>
                 </div>
                 <p className="text-[11px] font-mono-num text-[#b8c0cc] mt-1">
                   <span className="text-[#f4ecd8]">{distSpec.tuningHint}</span>
@@ -133,25 +173,88 @@ export const RaceStripTab: React.FC<RaceStripTabProps> = ({
                 </button>
                 <button
                   type="button"
+                  disabled={!eligibility.eligible}
                   onClick={() => onStartRace(selectedTier, selectedDistance, null)}
-                  className="ng-keycap px-3 py-2 bg-[#2d2a36] hover:bg-[#3c3847] border-2 border-[#19d4e6] text-xs font-mono-num font-bold text-[#19d4e6] whitespace-nowrap cursor-pointer"
+                  className={`ng-keycap px-3 py-2 border-2 text-xs font-mono-num font-bold whitespace-nowrap ${
+                    eligibility.eligible
+                      ? 'bg-[#2d2a36] hover:bg-[#3c3847] border-[#19d4e6] text-[#19d4e6] cursor-pointer'
+                      : 'bg-[#18161e] border-[#323642] text-[#64748b] cursor-not-allowed'
+                  }`}
                 >
                   SOLO TEST · $0
                 </button>
                 {featuredRival && (
                   <button
                     type="button"
+                    disabled={!eligibility.eligible}
                     onClick={() => onStartRace(selectedTier, selectedDistance, featuredRival)}
-                    className="ng-chevron-cta cursor-pointer"
+                    className={`ng-chevron-cta ${
+                      eligibility.eligible ? 'cursor-pointer' : 'opacity-45 cursor-not-allowed'
+                    }`}
                   >
                     <span className="ng-chevron-inner font-pixel text-[10px] tracking-wider whitespace-nowrap">
-                      RACE NOW
+                      {eligibility.eligible ? 'RACE NOW' : 'BRACKET LOCKED'}
                     </span>
                   </button>
                 )}
               </div>
             </div>
           </div>
+
+          {/* Output Bracket Eligibility Banner (Blocked or Step-Up Notice) */}
+          {!eligibility.eligible && (
+            <div className="bg-[#331618] border-2 border-[#e83b24] p-3 flex flex-wrap items-center justify-between gap-2.5 shadow-[3px_3px_0_#07060a]">
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="font-pixel text-[9px] text-[#ffd557] flex items-center gap-1.5">
+                  <PixelIcon name="lock" className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    {eligibility.reason === 'OVER_BRACKET'
+                      ? 'OUTPUT BRACKET EXCEEDED · SANDBAGGING BLOCKED'
+                      : 'UNDERPOWERED FOR THIS BRACKET'}
+                  </span>
+                </div>
+                <p className="text-xs font-mono-num text-[#f4ecd8] leading-snug">
+                  {eligibility.message}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {suggestedEligibleCar && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playUiClick();
+                      onSelectCar(suggestedEligibleCar.id);
+                    }}
+                    className="ng-keycap px-3 py-1.5 bg-[#2ee66b] hover:bg-[#4ff588] text-[#141218] border-2 border-[#141218] font-mono-num text-xs font-bold whitespace-nowrap cursor-pointer"
+                  >
+                    SWITCH TO {suggestedEligibleCar.name.toUpperCase()}
+                  </button>
+                )}
+                {eligibility.reason === 'UNDER_BRACKET' && (
+                  <button
+                    type="button"
+                    onClick={onOpenShop}
+                    className="ng-keycap px-3 py-1.5 bg-[#f7b519] hover:bg-[#ffd557] text-[#141218] border-2 border-[#141218] font-mono-num text-xs font-bold whitespace-nowrap cursor-pointer"
+                  >
+                    UPGRADE PARTS
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={onOpenShowroom}
+                  className="ng-keycap px-3 py-1.5 bg-[#19d4e6] hover:bg-[#4ee6f5] text-[#141218] border-2 border-[#141218] font-mono-num text-xs font-bold whitespace-nowrap cursor-pointer"
+                >
+                  SHOWROOM
+                </button>
+              </div>
+            </div>
+          )}
+
+          {eligibility.eligible && eligibility.isStepUp && eligibility.message && (
+            <div className="ng-vfd px-3 py-2 border-l-4 border-l-[#f7b519] text-xs font-mono-num text-[#ffd557]">
+              ► {eligibility.message}
+            </div>
+          )}
         </div>
 
         {/* Right: Physical Arcade Dip-Switch Bank for Tiers T1–T5 */}
@@ -287,12 +390,14 @@ export const RaceStripTab: React.FC<RaceStripTabProps> = ({
 
                 <button
                   type="button"
-                  disabled={!unlocked}
+                  disabled={!unlocked || !eligibility.eligible}
                   onClick={() => onStartRace(selectedTier, selectedDistance, rival)}
-                  className="ng-chevron-cta cursor-pointer"
+                  className={`ng-chevron-cta ${
+                    unlocked && eligibility.eligible ? 'cursor-pointer' : 'opacity-45 cursor-not-allowed'
+                  }`}
                 >
                   <span className="ng-chevron-inner font-pixel text-[9px] py-1.5 px-3 whitespace-nowrap">
-                    {defeated ? 'REMATCH' : 'RACE NOW'}
+                    {!eligibility.eligible ? 'LOCKED' : defeated ? 'REMATCH' : 'RACE NOW'}
                   </span>
                 </button>
               </div>

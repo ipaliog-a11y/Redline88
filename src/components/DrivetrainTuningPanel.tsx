@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { soundEngine } from '../audio/soundEngine';
 import {
   computeCarPerformance,
@@ -7,7 +7,8 @@ import {
   getCarById,
   getEffectiveTuning,
 } from '../data/gameData';
-import { CarConfig, DrivetrainTuning } from '../types/game';
+import { autoTuneDrivetrain, AutoTuneResult } from '../engine/drivetrainAutoTuner';
+import { CarConfig, DrivetrainTuning, StripDistanceId } from '../types/game';
 import { PixelIcon } from './PixelSpritesUI';
 
 interface DrivetrainTuningPanelProps {
@@ -26,6 +27,11 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
   const car = getCarById(carId);
   const tuning = useMemo(() => getEffectiveTuning(carId, config), [carId, config]);
   const perf = useMemo(() => computeCarPerformance(carId, config), [carId, config]);
+  const [lastAutoTune, setLastAutoTune] = useState<AutoTuneResult | null>(null);
+
+  useEffect(() => {
+    setLastAutoTune(null);
+  }, [carId]);
 
   const gearMetrics = useMemo(() => {
     return tuning.gearRatios.map((ratio, idx) => {
@@ -79,12 +85,29 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
 
   const isTopGearShortForMile = topGearMaxMph < perf.topSpeedMph + 8;
 
-  const applyPreset = (preset: 'stock' | 'quarter' | 'half' | 'mile') => {
+  const handleAutoTune = (distance: StripDistanceId) => {
+    soundEngine.playShopBuy();
+    const result = autoTuneDrivetrain(carId, config, distance);
+    setLastAutoTune(result);
+    onUpdateTuning(carId, result.tuning);
+  };
+
+  const applyStock = () => {
     soundEngine.playUiClick();
-    onUpdateTuning(carId, createTrackPresetTuning(carId, preset));
+    setLastAutoTune(null);
+    onUpdateTuning(carId, createTrackPresetTuning(carId, 'stock', Boolean(tuning.topGearRevProtection)));
+  };
+
+  const handleToggleRevProtection = () => {
+    soundEngine.playUiClick();
+    onUpdateTuning(carId, {
+      ...tuning,
+      topGearRevProtection: !tuning.topGearRevProtection,
+    });
   };
 
   const handleFinalDrive = (val: number) => {
+    setLastAutoTune(null);
     onUpdateTuning(carId, {
       ...tuning,
       finalDrive: Number(val.toFixed(2)),
@@ -92,6 +115,7 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
   };
 
   const handleGearRatio = (index: number, val: number) => {
+    setLastAutoTune(null);
     const nextRatios = [...tuning.gearRatios];
     nextRatios[index] = Number(val.toFixed(2));
     onUpdateTuning(carId, {
@@ -128,7 +152,7 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      {/* Track Strategy Presets Bar */}
+      {/* Gearbox Auto-Tuner & Telemetry Bar */}
       <div className="ng-plate overflow-hidden">
         <div className="ng-checkered-bar h-2 w-full" />
         <div className="p-3 sm:p-4 space-y-2.5 sm:space-y-3">
@@ -137,38 +161,38 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
               <PixelIcon name="gears" className="w-6 h-6" />
               <div>
                 <h3 className="font-pixel text-[10px] sm:text-xs text-[#f7b519] pixel-text-shadow">
-                  DRIVETRAIN DYNO TUNING
+                  DRIVETRAIN DYNO &amp; AUTO-TUNER
                 </h3>
                 <p className="hidden sm:block text-xs font-mono-num text-[#b8c0cc] mt-0.5">
-                  Tune final drive, gear ratios, and shift targets for 1/4, 1/2, or 1 Mile strips.
+                  Auto-Tune adapts ratios to your current {perf.hp.toLocaleString()} HP · {perf.weightLbs.toLocaleString()} lb build for optimal ET.
                 </p>
               </div>
             </div>
             <div className="grid grid-cols-4 sm:flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => applyPreset('quarter')}
+                onClick={() => handleAutoTune('quarter')}
                 className="ng-keycap px-2.5 sm:px-3 py-1.5 bg-[#e83b24] hover:bg-[#ff563f] border-2 border-[#141218] text-[11px] font-mono-num font-bold text-white whitespace-nowrap cursor-pointer"
               >
-                1/4 MI
+                AUTO 1/4
               </button>
               <button
                 type="button"
-                onClick={() => applyPreset('half')}
+                onClick={() => handleAutoTune('half')}
                 className="ng-keycap px-2.5 sm:px-3 py-1.5 bg-[#f7b519] hover:bg-[#ffd557] border-2 border-[#141218] text-[11px] font-mono-num font-bold text-[#141218] whitespace-nowrap cursor-pointer"
               >
-                1/2 MI
+                AUTO 1/2
               </button>
               <button
                 type="button"
-                onClick={() => applyPreset('mile')}
+                onClick={() => handleAutoTune('mile')}
                 className="ng-keycap px-2.5 sm:px-3 py-1.5 bg-[#19d4e6] hover:bg-[#4ee6f5] border-2 border-[#141218] text-[11px] font-mono-num font-bold text-[#141218] whitespace-nowrap cursor-pointer"
               >
-                1 MILE
+                AUTO 1 MI
               </button>
               <button
                 type="button"
-                onClick={() => applyPreset('stock')}
+                onClick={applyStock}
                 className="ng-keycap px-2.5 sm:px-3 py-1.5 bg-[#2c2935] hover:bg-[#3a3647] border-2 border-[#525866] text-[11px] font-mono-num font-bold text-[#f4ecd8] flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer"
               >
                 <PixelIcon name="restart" className="w-3.5 h-3.5" />
@@ -176,6 +200,22 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
               </button>
             </div>
           </div>
+
+          {lastAutoTune && (
+            <div className="ng-vfd px-3 py-2 border-l-4 border-l-[#2ee66b] flex flex-wrap items-center justify-between gap-2 text-xs font-mono-num">
+              <span className="text-[#2ee66b] font-bold">
+                ★ AUTO-TUNED FOR{' '}
+                {lastAutoTune.distance === 'quarter'
+                  ? '1/4 MILE'
+                  : lastAutoTune.distance === 'half'
+                  ? '1/2 MILE'
+                  : '1 MILE'}
+                : FD {lastAutoTune.tuning.finalDrive.toFixed(2)} · SIM {lastAutoTune.projectedEtSec.toFixed(2)}s @{' '}
+                {lastAutoTune.projectedTrapMph.toFixed(1)} MPH
+              </span>
+              <span className="text-[#94a3b8]">Re-run Auto-Tune after installing new parts</span>
+            </div>
+          )}
 
           {/* Live Projected Performance across all 3 strip distances */}
           <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5 font-mono-num text-xs">
@@ -451,6 +491,38 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
               />
               <p className="text-[11px] text-[#94a3b8]">
                 Short-shift heavy V8s in peak torque; rev late on high-RPM builds.
+              </p>
+            </div>
+
+            {/* Top Gear Over-Rev Protection Toggle */}
+            <div className="space-y-2 pt-3 border-t-2 border-[#323642]">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="font-pixel text-[9px] text-[#19d4e6]">
+                    TOP GEAR REV PROTECTION
+                  </div>
+                  <div className="text-[11px] font-mono-num text-[#b8c0cc] mt-0.5">
+                    Electronic soft-cut limiter in Gear {tuning.gearRatios.length}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={Boolean(tuning.topGearRevProtection)}
+                  onClick={handleToggleRevProtection}
+                  className={`ng-keycap px-3 py-1.5 font-pixel text-[9px] border-2 whitespace-nowrap cursor-pointer ${
+                    tuning.topGearRevProtection
+                      ? 'bg-[#2ee66b] text-[#141218] border-[#141218]'
+                      : 'bg-[#18161e] text-[#94a3b8] border-[#525866] hover:border-[#19d4e6]'
+                  }`}
+                >
+                  {tuning.topGearRevProtection ? 'ON · SAFE' : 'OFF'}
+                </button>
+              </div>
+              <p className="text-[11px] font-mono-num text-[#94a3b8] leading-snug">
+                {tuning.topGearRevProtection
+                  ? 'Active: Caps RPM safely below redline in top gear so holding full throttle to the finish line will not cause over-rev engine damage.'
+                  : 'Off: Running full throttle past redline in top gear can trigger over-rev engine damage and extra wear.'}
               </p>
             </div>
           </div>

@@ -40,7 +40,7 @@
         },
         "defeatedRivals": {
           "type": "array",
-          "description": "List of defeated rival and challenge IDs (max 80)."
+          "description": "List of defeated rival and challenge IDs (max 160)."
         },
         "carConfigs": {
           "type": "object",

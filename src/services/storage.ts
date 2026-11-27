@@ -67,7 +67,7 @@ export function loadLocalSave(): PlayerSave {
         Math.min(5, Math.floor(Number(parsed.highestUnlockedTier ?? 1)) || 1)
       ) as TierId,
       ownedCars,
-      defeatedRivals: sanitizeIdList(parsed.defeatedRivals, 80),
+      defeatedRivals: sanitizeIdList(parsed.defeatedRivals, 160),
       carConfigs,
       totalWins: Math.max(0, Math.min(1000000, Math.floor(Number(parsed.totalWins ?? 0)) || 0)),
       totalRaces: Math.max(0, Math.min(1000000, Math.floor(Number(parsed.totalRaces ?? 0)) || 0)),
@@ -120,7 +120,7 @@ export function mergeSaves(local: PlayerSave, cloud: PlayerSave): PlayerSave {
   const mergedOwned = Array.from(new Set([...local.ownedCars, ...cloud.ownedCars])).slice(0, 30);
   const mergedRivals = Array.from(
     new Set([...local.defeatedRivals, ...cloud.defeatedRivals])
-  ).slice(0, 80);
+  ).slice(0, 160);
   const mergedConfigs: Record<string, CarConfig> = {};
 
   const allCarIds = Array.from(

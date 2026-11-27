@@ -12,7 +12,9 @@ import {
   getUpgradeImpactPreview,
   PAINT_COLORS,
   RIM_OPTIONS,
+  RIVALS,
   STRIPE_OPTIONS,
+  TOTAL_CAREER_EVENTS,
 } from '../data/gameData';
 import { sanitizeCallsign } from '../services/firebase';
 import {
@@ -386,7 +388,7 @@ export const GarageHub: React.FC<GarageHubProps> = ({
               T{save.highestUnlockedTier}/5
             </span>
             <span className="ng-vfd px-2 py-0.5 text-[#2ee66b] font-bold">
-              {save.totalWins}W
+              {save.defeatedRivals.filter((id) => RIVALS.some((r) => r.id === id)).length}/{TOTAL_CAREER_EVENTS} EV
             </span>
           </div>
         </div>
@@ -529,8 +531,12 @@ export const GarageHub: React.FC<GarageHubProps> = ({
 
             {/* Floating Right Steel VFD Telemetry Monitor */}
             <div className="pointer-events-none absolute top-2.5 right-2.5 sm:right-4 ng-vfd border-2 border-[#b8c0cc] px-2.5 sm:px-3 py-1.5 sm:py-2 min-w-[136px] sm:min-w-[180px] shadow-[3px_3px_0_#07060a] text-right">
-              <div className="font-pixel text-[7px] sm:text-[8px] text-[#b8c0cc] border-b border-[#323642] pb-1 mb-1">
-                TIER {car.tier} · {shownTopSpd} MPH TOP
+              <div className="font-pixel text-[7px] sm:text-[8px] border-b border-[#323642] pb-1 mb-1 flex items-center justify-between gap-2">
+                <span style={{ color: (activeUpgradePreview ? activeUpgradePreview.nextPerf.bracket : perf.bracket).color }}>
+                  {(activeUpgradePreview ? activeUpgradePreview.nextPerf.bracket : perf.bracket).code}{' '}
+                  {(activeUpgradePreview ? activeUpgradePreview.nextPerf.bracket : perf.bracket).name}
+                </span>
+                <span className="text-[#b8c0cc]">{shownTopSpd} MPH</span>
               </div>
               <div className="font-mono-num text-[11px] sm:text-xs font-bold text-[#f4ecd8] flex items-baseline justify-between gap-2">
                 <span className="text-[#94a3b8]">WT</span>
@@ -752,7 +758,10 @@ export const GarageHub: React.FC<GarageHubProps> = ({
                 selectedDistance={selectedDistance}
                 onSelectTier={setSelectedTier}
                 onSelectDistance={setSelectedDistance}
+                onSelectCar={onSelectCar}
                 onOpenTuning={() => handleSelectTab('TUNING')}
+                onOpenShop={() => handleSelectTab('SHOP')}
+                onOpenShowroom={() => handleSelectTab('DEALER')}
                 onStartRace={onStartRace}
               />
             )}

@@ -3,9 +3,11 @@ import {
   CarSpec,
   ComputedPerformance,
   DrivetrainTuning,
+  OutputBracketId,
+  OutputBracketSpec,
   PlayerSave,
+  RaceEligibilityResult,
   RimStyle,
-  RivalSpec,
   StripDistanceId,
   StripDistanceSpec,
   StripeStyle,
@@ -230,7 +232,7 @@ export const CARS: CarSpec[] = [
     tier: 1,
     chassis: 'hatch',
     bodyVariant: 'compact',
-    price: 750,
+    price: 900,
     baseHp: 148,
     baseWeightLbs: 1890,
     baseGrip: 0.96,
@@ -255,7 +257,7 @@ export const CARS: CarSpec[] = [
     tier: 1,
     chassis: 'hatch',
     bodyVariant: 'boxy',
-    price: 1050,
+    price: 1350,
     baseHp: 174,
     baseWeightLbs: 2290,
     baseGrip: 1.05,
@@ -280,7 +282,7 @@ export const CARS: CarSpec[] = [
     tier: 1,
     chassis: 'jdm',
     bodyVariant: 'wedge',
-    price: 1350,
+    price: 1850,
     baseHp: 186,
     baseWeightLbs: 2420,
     baseGrip: 0.94,
@@ -305,7 +307,7 @@ export const CARS: CarSpec[] = [
     tier: 1,
     chassis: 'muscle',
     bodyVariant: 'notch',
-    price: 1650,
+    price: 2400,
     baseHp: 218,
     baseWeightLbs: 2820,
     baseGrip: 0.91,
@@ -332,7 +334,7 @@ export const CARS: CarSpec[] = [
     tier: 2,
     chassis: 'muscle',
     bodyVariant: 'standard',
-    price: 2200,
+    price: 3600,
     baseHp: 340,
     baseWeightLbs: 3150,
     baseGrip: 1.04,
@@ -357,7 +359,7 @@ export const CARS: CarSpec[] = [
     tier: 2,
     chassis: 'muscle',
     bodyVariant: 'notch',
-    price: 2850,
+    price: 4600,
     baseHp: 372,
     baseWeightLbs: 3020,
     baseGrip: 1.15,
@@ -382,7 +384,7 @@ export const CARS: CarSpec[] = [
     tier: 2,
     chassis: 'muscle',
     bodyVariant: 'fastback',
-    price: 3450,
+    price: 5600,
     baseHp: 425,
     baseWeightLbs: 3420,
     baseGrip: 1.02,
@@ -407,7 +409,7 @@ export const CARS: CarSpec[] = [
     tier: 2,
     chassis: 'jdm',
     bodyVariant: 'wedge',
-    price: 4100,
+    price: 6800,
     baseHp: 352,
     baseWeightLbs: 2590,
     baseGrip: 1.12,
@@ -432,7 +434,7 @@ export const CARS: CarSpec[] = [
     tier: 2,
     chassis: 'jdm',
     bodyVariant: 'aero',
-    price: 4800,
+    price: 8200,
     baseHp: 405,
     baseWeightLbs: 2940,
     baseGrip: 1.1,
@@ -459,7 +461,7 @@ export const CARS: CarSpec[] = [
     tier: 3,
     chassis: 'jdm',
     bodyVariant: 'standard',
-    price: 6800,
+    price: 11500,
     baseHp: 640,
     baseWeightLbs: 2920,
     baseGrip: 1.28,
@@ -484,7 +486,7 @@ export const CARS: CarSpec[] = [
     tier: 3,
     chassis: 'jdm',
     bodyVariant: 'aero',
-    price: 8200,
+    price: 14000,
     baseHp: 725,
     baseWeightLbs: 3060,
     baseGrip: 1.2,
@@ -509,7 +511,7 @@ export const CARS: CarSpec[] = [
     tier: 3,
     chassis: 'jdm',
     bodyVariant: 'wedge',
-    price: 9500,
+    price: 16500,
     baseHp: 620,
     baseWeightLbs: 2510,
     baseGrip: 1.34,
@@ -534,7 +536,7 @@ export const CARS: CarSpec[] = [
     tier: 3,
     chassis: 'muscle',
     bodyVariant: 'fastback',
-    price: 11000,
+    price: 19500,
     baseHp: 790,
     baseWeightLbs: 3140,
     baseGrip: 1.24,
@@ -559,7 +561,7 @@ export const CARS: CarSpec[] = [
     tier: 3,
     chassis: 'muscle',
     bodyVariant: 'notch',
-    price: 12800,
+    price: 23000,
     baseHp: 870,
     baseWeightLbs: 2740,
     baseGrip: 1.42,
@@ -586,7 +588,7 @@ export const CARS: CarSpec[] = [
     tier: 4,
     chassis: 'funny',
     bodyVariant: 'standard',
-    price: 16500,
+    price: 32000,
     baseHp: 1950,
     baseWeightLbs: 2420,
     baseGrip: 1.65,
@@ -611,7 +613,7 @@ export const CARS: CarSpec[] = [
     tier: 4,
     chassis: 'funny',
     bodyVariant: 'aero',
-    price: 19500,
+    price: 39000,
     baseHp: 2060,
     baseWeightLbs: 2380,
     baseGrip: 1.68,
@@ -636,7 +638,7 @@ export const CARS: CarSpec[] = [
     tier: 4,
     chassis: 'funny',
     bodyVariant: 'fastback',
-    price: 22500,
+    price: 46000,
     baseHp: 2190,
     baseWeightLbs: 2310,
     baseGrip: 1.84,
@@ -661,7 +663,7 @@ export const CARS: CarSpec[] = [
     tier: 4,
     chassis: 'funny',
     bodyVariant: 'notch',
-    price: 25500,
+    price: 54000,
     baseHp: 2350,
     baseWeightLbs: 2440,
     baseGrip: 1.76,
@@ -686,7 +688,7 @@ export const CARS: CarSpec[] = [
     tier: 4,
     chassis: 'funny',
     bodyVariant: 'wedge',
-    price: 29000,
+    price: 64000,
     baseHp: 2540,
     baseWeightLbs: 2290,
     baseGrip: 1.88,
@@ -713,7 +715,7 @@ export const CARS: CarSpec[] = [
     tier: 5,
     chassis: 'topfuel',
     bodyVariant: 'standard',
-    price: 38000,
+    price: 78000,
     baseHp: 5600,
     baseWeightLbs: 2280,
     baseGrip: 2.45,
@@ -738,7 +740,7 @@ export const CARS: CarSpec[] = [
     tier: 5,
     chassis: 'topfuel',
     bodyVariant: 'slingshot',
-    price: 45000,
+    price: 94000,
     baseHp: 5450,
     baseWeightLbs: 2040,
     baseGrip: 2.58,
@@ -763,7 +765,7 @@ export const CARS: CarSpec[] = [
     tier: 5,
     chassis: 'topfuel',
     bodyVariant: 'canopy',
-    price: 54000,
+    price: 112000,
     baseHp: 6050,
     baseWeightLbs: 2250,
     baseGrip: 2.52,
@@ -788,7 +790,7 @@ export const CARS: CarSpec[] = [
     tier: 5,
     chassis: 'topfuel',
     bodyVariant: 'twin',
-    price: 62000,
+    price: 132000,
     baseHp: 6650,
     baseWeightLbs: 2420,
     baseGrip: 2.65,
@@ -813,7 +815,7 @@ export const CARS: CarSpec[] = [
     tier: 5,
     chassis: 'topfuel',
     bodyVariant: 'canopy',
-    price: 72000,
+    price: 155000,
     baseHp: 7050,
     baseWeightLbs: 2180,
     baseGrip: 2.78,
@@ -844,6 +846,71 @@ export function getTierById(tierId: TierId): TierSpec {
   return TIERS.find((t) => t.id === tierId) ?? TIERS[0];
 }
 
+export const OUTPUT_BRACKETS: OutputBracketSpec[] = [
+  {
+    id: 1,
+    code: 'B1',
+    name: 'STREET',
+    etRangeLabel: '12.5s–16.5s',
+    hpRangeLabel: '140–340 HP',
+    minEtSec: 12.5,
+    maxEtSec: 20.0,
+    color: '#ff6b35',
+  },
+  {
+    id: 2,
+    code: 'B2',
+    name: 'STREET MOD',
+    etRangeLabel: '10.0s–12.5s',
+    hpRangeLabel: '320–660 HP',
+    minEtSec: 10.0,
+    maxEtSec: 12.5,
+    color: '#f5b82e',
+  },
+  {
+    id: 3,
+    code: 'B3',
+    name: 'PRO STREET',
+    etRangeLabel: '7.6s–10.0s',
+    hpRangeLabel: '600–1,400 HP',
+    minEtSec: 7.6,
+    maxEtSec: 10.0,
+    color: '#22c55e',
+  },
+  {
+    id: 4,
+    code: 'B4',
+    name: 'FUNNY CAR',
+    etRangeLabel: '5.3s–7.6s',
+    hpRangeLabel: '1,800–4,100 HP',
+    minEtSec: 5.3,
+    maxEtSec: 7.6,
+    color: '#38bdf8',
+  },
+  {
+    id: 5,
+    code: 'B5',
+    name: 'TOP FUEL',
+    etRangeLabel: '3.4s–5.3s',
+    hpRangeLabel: '5,200+ HP',
+    minEtSec: 3.0,
+    maxEtSec: 5.3,
+    color: '#ff3b30',
+  },
+];
+
+export function getOutputBracketById(id: OutputBracketId): OutputBracketSpec {
+  return OUTPUT_BRACKETS.find((b) => b.id === id) ?? OUTPUT_BRACKETS[0];
+}
+
+export function getOutputBracketForEt(estimatedEtSec: number): OutputBracketSpec {
+  if (estimatedEtSec < 5.3) return OUTPUT_BRACKETS[4];
+  if (estimatedEtSec < 7.6) return OUTPUT_BRACKETS[3];
+  if (estimatedEtSec < 10.0) return OUTPUT_BRACKETS[2];
+  if (estimatedEtSec < 12.5) return OUTPUT_BRACKETS[1];
+  return OUTPUT_BRACKETS[0];
+}
+
 export function createDefaultTuning(carId: string): DrivetrainTuning {
   const spec = getCarById(carId);
   return {
@@ -851,6 +918,7 @@ export function createDefaultTuning(carId: string): DrivetrainTuning {
     gearRatios: [...spec.gearRatios],
     launchRpmOffset: 0,
     shiftRpmOffset: 0,
+    topGearRevProtection: false,
   };
 }
 
@@ -870,18 +938,21 @@ export function getEffectiveTuning(carId: string, config?: CarConfig): Drivetrai
     }),
     launchRpmOffset: Math.max(-600, Math.min(600, Math.round(t.launchRpmOffset || 0))),
     shiftRpmOffset: Math.max(-600, Math.min(350, Math.round(t.shiftRpmOffset || 0))),
+    topGearRevProtection: Boolean(t.topGearRevProtection),
   };
 }
 
 export function createTrackPresetTuning(
   carId: string,
-  preset: 'stock' | 'quarter' | 'half' | 'mile'
+  preset: 'stock' | 'quarter' | 'half' | 'mile',
+  preserveRevProtection = false
 ): DrivetrainTuning {
   const spec = getCarById(carId);
-  if (preset === 'stock') return createDefaultTuning(carId);
+  if (preset === 'stock') {
+    return { ...createDefaultTuning(carId), topGearRevProtection: preserveRevProtection };
+  }
 
   if (preset === 'quarter') {
-    // Aggressive short gearing for explosive 1/4 mile acceleration
     return {
       finalDrive: Number(Math.min(5.4, spec.finalDrive * 1.12).toFixed(2)),
       gearRatios: spec.gearRatios.map((r, i) =>
@@ -889,11 +960,11 @@ export function createTrackPresetTuning(
       ),
       launchRpmOffset: 150,
       shiftRpmOffset: 100,
+      topGearRevProtection: preserveRevProtection,
     };
   }
 
   if (preset === 'half') {
-    // Balanced runway gearing
     return {
       finalDrive: Number(Math.max(2.2, spec.finalDrive * 0.91).toFixed(2)),
       gearRatios: spec.gearRatios.map((r, i) => {
@@ -902,19 +973,20 @@ export function createTrackPresetTuning(
       }),
       launchRpmOffset: 50,
       shiftRpmOffset: 0,
+      topGearRevProtection: preserveRevProtection,
     };
   }
 
-  // 'mile': Tall overdrive top gears for extreme standing-mile trap speeds
   return {
     finalDrive: Number(Math.max(2.15, spec.finalDrive * 0.77).toFixed(2)),
     gearRatios: spec.gearRatios.map((r, i) => {
       const frac = i / Math.max(1, spec.gearRatios.length - 1);
-      const mult = 0.94 - frac * 0.16; // progressively taller in upper gears
+      const mult = 0.94 - frac * 0.16;
       return Number(Math.max(0.5, r * mult).toFixed(2));
     }),
     launchRpmOffset: 0,
     shiftRpmOffset: -100,
+    topGearRevProtection: preserveRevProtection,
   };
 }
 
@@ -965,8 +1037,8 @@ export function getEngineRepairCost(car: CarSpec, config: CarConfig): number {
   const health = getEngineHealth(config);
   const missing = 100 - health;
   if (missing <= 0) return 0;
-  const fullRebuildBase = [160, 420, 950, 2200, 4800][car.tier - 1];
-  const engineBuildScale = 1 + config.upgrades.engine * 0.14;
+  const fullRebuildBase = [180, 480, 1100, 2600, 5800][car.tier - 1];
+  const engineBuildScale = 1 + config.upgrades.engine * 0.12;
   const rawCost = fullRebuildBase * engineBuildScale * (missing / 100);
   return Math.max(15, Math.round(rawCost / 5) * 5);
 }
@@ -978,28 +1050,44 @@ export function computeRaceEngineWear(params: {
   foul: boolean;
   overRevCount: number;
   nitrousUsedCount: number;
+  topGearRevProtectionUsed?: boolean;
 }): number {
   if (params.foul) return 1;
-  const baseByDist = params.distance === 'mile' ? 11 : params.distance === 'half' ? 8 : 5;
+  const baseByDist = params.distance === 'mile' ? 10 : params.distance === 'half' ? 7 : 5;
   const tierStress = params.tier >= 4 ? 1 : 0;
   const stressWear =
-    Math.min(6, params.overRevCount * 2) + Math.round(Math.min(4.5, params.nitrousUsedCount * 1.5));
-  const rawWear = baseByDist + tierStress + stressWear;
+    Math.min(8, params.overRevCount * 2) + Math.round(Math.min(4.5, params.nitrousUsedCount * 1.5));
+  let rawWear = baseByDist + tierStress + stressWear;
+  // Top gear over-rev protection cushions full-throttle finish-line wear
+  if (params.topGearRevProtectionUsed) {
+    rawWear = Math.max(2, Math.round(rawWear * 0.78));
+  }
   if (params.isTimeTrial) {
     return Math.max(2, Math.round(rawWear * 0.5));
   }
-  return Math.max(3, Math.min(22, rawWear));
+  return Math.max(3, Math.min(24, rawWear));
 }
 
 export function getUpgradeCost(car: CarSpec, key: UpgradeKey, nextLevel: number): number {
   const meta = UPGRADE_CATEGORIES.find((u) => u.key === key)!;
-  const tierScale = [1, 1.9, 3.45, 6.4, 12.0][car.tier - 1];
-  const levelScale = Math.pow(1.72, nextLevel - 1);
+  const tierScale = [0.35, 0.8, 1.75, 3.85, 8.2][car.tier - 1];
+  const levelScale = Math.pow(1.52, nextLevel - 1);
   return Math.round((meta.baseCost * tierScale * levelScale) / 25) * 25;
 }
 
 export function getTierSpeedScale(tier: TierId): number {
   return [10.6, 8.6, 8.2, 6.2, 5.2][tier - 1];
+}
+
+export function getTierDriveScale(tier: TierId): number {
+  return [0.055, 0.055, 0.044, 0.0235, 0.0172][tier - 1];
+}
+
+export function computeAeroDragAccel(effectiveDrag: number, velFps: number): number {
+  const mph = velFps * 0.681818;
+  // Realistic quadratic aero drag + high-speed transonic compressibility above 220 MPH
+  const transonicFactor = mph > 220 ? 1 + Math.pow((mph - 220) / 115, 1.8) : 1;
+  return 0.00062 * effectiveDrag * velFps * velFps * transonicFactor;
 }
 
 export function computeGearMaxMph(
@@ -1022,59 +1110,71 @@ export function computeCarPerformance(carId: string, config: CarConfig): Compute
   const wearPenaltyPct = getEngineHealthPenaltyPct(engineHealth);
   const wearMult = 1 - wearPenaltyPct / 100;
 
-  const engineMult = 1 + u.engine * 0.14;
-  const inductionMult = 1 + u.induction * 0.125;
-  const exhaustBonus = 1 + u.nitrous * 0.04;
+  // Recalibrated upgrade curves:
+  // Stock -> Maxed stays strictly within its tier bracket (~1.53x HP, -9% weight, +25% grip),
+  // with enough headroom at full upgrade to beat the Tier Boss and win 1-2 early races in Tier N+1
+  // before needing a Tier N+1 chassis.
+  const engineMult = 1 + u.engine * 0.044;      // Lv5: 1.22x
+  const inductionMult = 1 + u.induction * 0.036; // Lv5: 1.18x
+  const exhaustBonus = 1 + u.nitrous * 0.012;    // Lv5: 1.06x (combined ~1.53x HP at 5/5/5)
   const rawHp = Math.round(car.baseHp * engineMult * inductionMult * exhaustBonus);
   const hp = Math.max(60, Math.round(rawHp * wearMult));
 
-  const weightLbs = Math.round(car.baseWeightLbs * (1 - u.chassis * 0.045));
-  const grip = Number((car.baseGrip * (1 + u.tires * 0.13)).toFixed(2));
-  const redlineRpm = car.redlineRpm + u.engine * 150;
+  const weightLbs = Math.round(car.baseWeightLbs * (1 - u.chassis * 0.018)); // Lv5: -9% weight
+  const grip = Number((car.baseGrip * (1 + u.tires * 0.05)).toFixed(2));     // Lv5: +25% grip
+  const redlineRpm = car.redlineRpm + u.engine * 120;
   const wearShiftDrag = wearPenaltyPct > 0 ? (wearPenaltyPct / 28) * 0.035 : 0;
-  const shiftSpeedSec = Math.max(0.04, 0.17 - u.transmission * 0.025 + wearShiftDrag);
-  const shiftBoostMult = 1.15 + u.induction * 0.022 + u.transmission * 0.018;
+  const shiftSpeedSec = Math.max(0.04, 0.16 - u.transmission * 0.022 + wearShiftDrag);
+  const shiftBoostMult = 1.08 + u.induction * 0.012 + u.transmission * 0.01;
   const shiftWindowBonus = u.transmission * 90;
   const nitrousShots = u.nitrous > 0 ? Math.min(3, Math.ceil(u.nitrous / 2)) : 0;
-  const nitrousPowerMult = 1.14 + u.nitrous * 0.038;
+  const nitrousPowerMult = 1.08 + u.nitrous * 0.02;
 
   // Gear-limited theoretical top speed & aerodynamic top speed
   const topGearRatio = tuning.gearRatios[tuning.gearRatios.length - 1];
   const gearTopMph = computeGearMaxMph(car, redlineRpm, topGearRatio, tuning.finalDrive);
-  const effectiveDrag = Math.max(0.18, car.dragCoeff * (1 - u.chassis * 0.025));
-  const aeroTopMph = Math.round(Math.pow(hp / (effectiveDrag * 0.0022), 1 / 2.75) * 1.12);
+  const effectiveDrag = Math.max(0.18, car.dragCoeff * (1 - u.chassis * 0.02));
+  const aeroTopMph = Math.min(
+    455,
+    Math.round(Math.pow(hp / (effectiveDrag * 0.0028), 1 / 2.78) * 1.06)
+  );
   const topSpeedMph = Math.min(gearTopMph, aeroTopMph);
 
   // Gearing ratio factor relative to stock final drive
   const fdRatio = tuning.finalDrive / car.finalDrive;
 
-  // Estimate realistic 1/4 mile ET from power-to-weight + grip + gearing
-  const pw = hp / (weightLbs / 1000);
-  let estimatedEtSec = 16.5 / Math.pow(pw / 68, 0.345);
-  estimatedEtSec *= 1 - (grip - 0.9) * 0.065;
-  estimatedEtSec *= 1 - u.transmission * 0.015;
-  estimatedEtSec *= 1 - u.nitrous * 0.016;
-  // Shorter gears shave time on 1/4 mile unless way too short (tops out early)
-  const qtrGearFactor = fdRatio > 1 ? 1 - Math.min(0.038, (fdRatio - 1) * 0.18) : 1 + Math.min(0.06, (1 - fdRatio) * 0.22);
+  // Calibrated 1/4 mile ET aligned with RaceSimulation physics
+  const effectivePw = (hp / (weightLbs / 1000)) * (getTierDriveScale(car.tier) / 0.055);
+  let estimatedEtSec = 15.85 / Math.pow(effectivePw / 71, 0.44);
+  estimatedEtSec *= 1 - (grip - 0.9) * 0.038;
+  estimatedEtSec *= 1 - u.transmission * 0.011;
+  estimatedEtSec *= 1 - u.nitrous * 0.012;
+  const qtrGearFactor =
+    fdRatio > 1 ? 1 - Math.min(0.032, (fdRatio - 1) * 0.14) : 1 + Math.min(0.05, (1 - fdRatio) * 0.18);
   estimatedEtSec *= qtrGearFactor;
   estimatedEtSec = Math.max(3.45, Math.min(18.5, Number(estimatedEtSec.toFixed(2))));
 
-  // Estimate 1/2 mile & 1 mile ETs (penalized if gearTopMph caps speed early!)
-  const idealHalfTrap = Math.min(aeroTopMph, 86 + Math.pow(pw, 0.56) * 8.2);
-  const halfCapPenalty = gearTopMph < idealHalfTrap ? 1 + ((idealHalfTrap - gearTopMph) / idealHalfTrap) * 0.32 : 1;
+  const idealHalfTrap = Math.min(aeroTopMph, 86 + Math.pow(effectivePw, 0.54) * 7.8);
+  const halfCapPenalty =
+    gearTopMph < idealHalfTrap ? 1 + ((idealHalfTrap - gearTopMph) / idealHalfTrap) * 0.32 : 1;
   const halfAeroFactor = 1 + (effectiveDrag - 0.3) * 0.14;
   const estimatedHalfEtSec = Number(
-    Math.max(5.45, estimatedEtSec * 1.56 * halfAeroFactor * halfCapPenalty).toFixed(2)
+    Math.max(5.35, estimatedEtSec * 1.58 * halfAeroFactor * halfCapPenalty).toFixed(2)
   );
 
-  const idealMileTrap = Math.min(aeroTopMph, 102 + Math.pow(pw, 0.58) * 9.8);
-  const mileCapPenalty = gearTopMph < idealMileTrap ? 1 + ((idealMileTrap - gearTopMph) / idealMileTrap) * 0.48 : 1;
+  const idealMileTrap = Math.min(aeroTopMph, 102 + Math.pow(effectivePw, 0.56) * 9.2);
+  const mileCapPenalty =
+    gearTopMph < idealMileTrap ? 1 + ((idealMileTrap - gearTopMph) / idealMileTrap) * 0.48 : 1;
   const mileAeroFactor = 1 + (effectiveDrag - 0.3) * 0.24;
   const estimatedMileEtSec = Number(
-    Math.max(8.75, estimatedEtSec * 2.48 * mileAeroFactor * mileCapPenalty).toFixed(2)
+    Math.max(8.75, estimatedEtSec * 2.55 * mileAeroFactor * mileCapPenalty).toFixed(2)
   );
 
-  const pi = Math.min(999, Math.round(pw * 0.42 + grip * 48 + u.transmission * 14 + u.nitrous * 12));
+  const pi = Math.min(
+    999,
+    Math.round(effectivePw * 0.52 + grip * 46 + u.transmission * 12 + u.nitrous * 10)
+  );
+  const bracket = getOutputBracketForEt(estimatedEtSec);
 
   return {
     hp,
@@ -1090,10 +1190,85 @@ export function computeCarPerformance(carId: string, config: CarConfig): Compute
     nitrousShots,
     nitrousPowerMult,
     pi,
+    bracket,
     estimatedEtSec,
     estimatedHalfEtSec,
     estimatedMileEtSec,
     topSpeedMph,
+  };
+}
+
+/**
+ * Enforces Output Bracket eligibility so mismatched cars (e.g., a 3-second Top Fueler vs
+ * a 15-second Street car, or a stock Street Hatch in Funny Car/Top Fuel) cannot race together.
+ *
+ * Rules:
+ * - A higher-tier / higher-bracket car can NEVER enter a lower-tier event (prevents sandbagging).
+ * - Any car of Tier N is always eligible for Tier N events (stock through fully upgraded).
+ * - A heavily upgraded Tier N car whose output reaches the top of its bracket / entry of Tier N+1
+ *   is eligible to step up into Tier N+1 events (allowing 1-2 wins before needing a Tier N+1 car).
+ * - A car more than 1 tier below (or stock Tier N trying to enter Tier N+1) is blocked as underpowered.
+ */
+export function checkRaceEligibility(
+  carId: string,
+  config: CarConfig,
+  targetTierId: TierId
+): RaceEligibilityResult {
+  const car = getCarById(carId);
+  const perf = computeCarPerformance(carId, config);
+  const carBracket = perf.bracket;
+  const eventBracket = getOutputBracketById(targetTierId);
+
+  // 1. Block overpowered cars from entering lower brackets (e.g., 3s car in 15s class)
+  if (car.tier > targetTierId) {
+    return {
+      eligible: false,
+      reason: 'OVER_BRACKET',
+      message: `${car.name} (${carBracket.code} ${carBracket.name} · ${perf.estimatedEtSec.toFixed(2)}s) exceeds Tier ${targetTierId} (${eventBracket.code} ${eventBracket.name}) output limits. Switch to a Tier ${targetTierId} car.`,
+      carBracket,
+      eventBracket,
+    };
+  }
+
+  // 2. Own tier is always legal (even if maxed out and touching next bracket entry)
+  if (car.tier === targetTierId) {
+    return {
+      eligible: true,
+      carBracket,
+      eventBracket,
+      isStepUp: false,
+    };
+  }
+
+  // 3. Stepping up 1 tier: allowed ONLY when upgraded enough to reach the next bracket's entry pace
+  if (car.tier === targetTierId - 1) {
+    // Allow entry if car's output bracket reached targetTierId, OR within 0.65s of the bracket boundary
+    const stepUpMaxEt = eventBracket.maxEtSec + 0.65;
+    if (carBracket.id >= targetTierId || perf.estimatedEtSec <= stepUpMaxEt) {
+      return {
+        eligible: true,
+        carBracket,
+        eventBracket,
+        isStepUp: true,
+        message: `STEP-UP ENTRY: Your upgraded ${car.name} qualifies for early Tier ${targetTierId} heats — you will need a Tier ${targetTierId} chassis to conquer the full bracket.`,
+      };
+    }
+    return {
+      eligible: false,
+      reason: 'UNDER_BRACKET',
+      message: `${car.name} (${perf.estimatedEtSec.toFixed(2)}s) is too slow for Tier ${targetTierId} (${eventBracket.etRangeLabel}). Upgrade parts to ≤ ${stepUpMaxEt.toFixed(2)}s or buy a Tier ${targetTierId} car.`,
+      carBracket,
+      eventBracket,
+    };
+  }
+
+  // 4. More than 1 tier below is strictly outclassed
+  return {
+    eligible: false,
+    reason: 'UNDER_BRACKET',
+    message: `${car.name} (${carBracket.code} · ${perf.estimatedEtSec.toFixed(2)}s) is outclassed for Tier ${targetTierId} (${eventBracket.code} · ${eventBracket.etRangeLabel}). Switch to or buy a Tier ${targetTierId} car.`,
+    carBracket,
+    eventBracket,
   };
 }
 
@@ -1224,926 +1399,9 @@ export function getCarCharacteristics(car: CarSpec): string[] {
 }
 
 // =========================================================================
-// 40 RIVALS & CHALLENGES:
-//   - 20 Classic 1/4 Mile Career Ladder Rivals (4 per tier, Stage 4 = Tier Boss)
-//   - 10 Half-Mile Runway Challenges (2 per tier)
-//   - 10 Standing Mile Gauntlet Challenges (2 per tier)
+// 120 CAREER EVENTS (5 Tiers × 3 Strip Lengths × 8 Stages per Ladder)
 // =========================================================================
-export const RIVALS: RivalSpec[] = [
-  // ==================== 1/4 MILE · TIER 1 ====================
-  {
-    id: 't1_r1',
-    name: 'Danny "Clutch" Ruiz',
-    title: 'Diner Parking Lot Local',
-    tier: 1,
-    distance: 'quarter',
-    stageIndex: 1,
-    isBoss: false,
-    carId: 'civic_86',
-    carName: "Stock Hatch '85",
-    chassis: 'hatch',
-    bodyVariant: 'standard',
-    paintColor: '#e5e7eb',
-    stripe: 'none',
-    rims: 'steel',
-    upgrades: { engine: 0, induction: 0, transmission: 0, tires: 0, chassis: 0, nitrous: 0 },
-    targetEtSec: 15.15,
-    targetTrapMph: 94,
-    reactionSec: 0.34,
-    winPurse: 200,
-    lossPurse: 55,
-  },
-  {
-    id: 't1_r2',
-    name: 'Mina Park',
-    title: 'Redline Courier',
-    tier: 1,
-    distance: 'quarter',
-    stageIndex: 2,
-    isBoss: false,
-    carId: 'crx_88',
-    carName: "CR-Pocket '88",
-    chassis: 'hatch',
-    bodyVariant: 'compact',
-    paintColor: '#2563eb',
-    stripe: 'twin',
-    rims: 'gold',
-    upgrades: { engine: 1, induction: 1, transmission: 1, tires: 1, chassis: 0, nitrous: 0 },
-    targetEtSec: 13.85,
-    targetTrapMph: 103,
-    reactionSec: 0.26,
-    winPurse: 300,
-    lossPurse: 70,
-  },
-  {
-    id: 't1_r3',
-    name: 'Ray "Two-Step" Kowalski',
-    title: 'Canyon Strip Veteran',
-    tier: 1,
-    distance: 'quarter',
-    stageIndex: 3,
-    isBoss: false,
-    carId: 'gti_85',
-    carName: "Euro GT-16V '85",
-    chassis: 'hatch',
-    bodyVariant: 'boxy',
-    paintColor: '#e8b624',
-    stripe: 'flash',
-    rims: 'chrome',
-    upgrades: { engine: 2, induction: 2, transmission: 2, tires: 2, chassis: 1, nitrous: 1 },
-    targetEtSec: 12.65,
-    targetTrapMph: 112,
-    reactionSec: 0.21,
-    winPurse: 425,
-    lossPurse: 90,
-  },
-  {
-    id: 't1_boss',
-    name: 'Vince "Asphalt" Vega',
-    title: 'Tier 1 Boss · Backroad King',
-    tier: 1,
-    distance: 'quarter',
-    stageIndex: 4,
-    isBoss: true,
-    carId: 'fox_87',
-    carName: "Vega's 5.0 Notch",
-    chassis: 'muscle',
-    bodyVariant: 'notch',
-    paintColor: '#262936',
-    stripe: 'flames',
-    rims: 'prostar',
-    upgrades: { engine: 1, induction: 1, transmission: 1, tires: 2, chassis: 1, nitrous: 1 },
-    targetEtSec: 11.75,
-    targetTrapMph: 121,
-    reactionSec: 0.17,
-    winPurse: 750,
-    lossPurse: 120,
-  },
-
-  // ==================== 1/4 MILE · TIER 2 ====================
-  {
-    id: 't2_r1',
-    name: 'Tanya "Torque" Brooks',
-    title: 'Dockside V8 Tuner',
-    tier: 2,
-    distance: 'quarter',
-    stageIndex: 1,
-    isBoss: false,
-    carId: 'iroc_84',
-    carName: "Harbor Z-28",
-    chassis: 'muscle',
-    bodyVariant: 'standard',
-    paintColor: '#16a34a',
-    stripe: 'twin',
-    rims: 'chrome',
-    upgrades: { engine: 1, induction: 1, transmission: 1, tires: 1, chassis: 1, nitrous: 0 },
-    targetEtSec: 11.45,
-    targetTrapMph: 125,
-    reactionSec: 0.23,
-    winPurse: 550,
-    lossPurse: 130,
-  },
-  {
-    id: 't2_r2',
-    name: 'Hector Morales',
-    title: 'Blower Shop Wrench',
-    tier: 2,
-    distance: 'quarter',
-    stageIndex: 2,
-    isBoss: false,
-    carId: 'chevelle_70',
-    carName: "Blown 454 Fury",
-    chassis: 'muscle',
-    bodyVariant: 'fastback',
-    paintColor: '#ea580c',
-    stripe: 'checkered',
-    rims: 'prostar',
-    upgrades: { engine: 2, induction: 2, transmission: 2, tires: 2, chassis: 1, nitrous: 1 },
-    targetEtSec: 10.65,
-    targetTrapMph: 134,
-    reactionSec: 0.19,
-    winPurse: 750,
-    lossPurse: 160,
-  },
-  {
-    id: 't2_r3',
-    name: 'Lydia "Gears" Novak',
-    title: 'Rotary 9k Slammer',
-    tier: 2,
-    distance: 'quarter',
-    stageIndex: 3,
-    isBoss: false,
-    carId: 'rx7_88',
-    carName: "Novak Turbo FC",
-    chassis: 'jdm',
-    bodyVariant: 'wedge',
-    paintColor: '#7e22ce',
-    stripe: 'flash',
-    rims: 'gold',
-    upgrades: { engine: 3, induction: 3, transmission: 3, tires: 3, chassis: 2, nitrous: 2 },
-    targetEtSec: 9.95,
-    targetTrapMph: 143,
-    reactionSec: 0.15,
-    winPurse: 1000,
-    lossPurse: 200,
-  },
-  {
-    id: 't2_boss',
-    name: 'Big Lou Callahan',
-    title: 'Tier 2 Boss · Harbor Heavyweight',
-    tier: 2,
-    distance: 'quarter',
-    stageIndex: 4,
-    isBoss: true,
-    carId: 'gtr_89',
-    carName: "Callahan Twin-Turbo",
-    chassis: 'jdm',
-    bodyVariant: 'standard',
-    paintColor: '#d93829',
-    stripe: 'twin',
-    rims: 'prostar',
-    upgrades: { engine: 1, induction: 2, transmission: 2, tires: 2, chassis: 1, nitrous: 1 },
-    targetEtSec: 9.35,
-    targetTrapMph: 151,
-    reactionSec: 0.13,
-    winPurse: 1700,
-    lossPurse: 260,
-  },
-
-  // ==================== 1/4 MILE · TIER 3 ====================
-  {
-    id: 't3_r1',
-    name: 'Kenji Takahashi',
-    title: 'Wangan Boost Specialist',
-    tier: 3,
-    distance: 'quarter',
-    stageIndex: 1,
-    isBoss: false,
-    carId: 'gtr_89',
-    carName: "Midnight R32",
-    chassis: 'jdm',
-    bodyVariant: 'standard',
-    paintColor: '#262936',
-    stripe: 'none',
-    rims: 'gold',
-    upgrades: { engine: 1, induction: 2, transmission: 2, tires: 2, chassis: 1, nitrous: 1 },
-    targetEtSec: 9.1,
-    targetTrapMph: 155,
-    reactionSec: 0.17,
-    winPurse: 1300,
-    lossPurse: 280,
-  },
-  {
-    id: 't3_r2',
-    name: 'Sasha Vance',
-    title: 'Metro Track Record Holder',
-    tier: 3,
-    distance: 'quarter',
-    stageIndex: 2,
-    isBoss: false,
-    carId: 'nsx_91',
-    carName: "Mid-Apex 1200",
-    chassis: 'jdm',
-    bodyVariant: 'wedge',
-    paintColor: '#e5e7eb',
-    stripe: 'flash',
-    rims: 'chrome',
-    upgrades: { engine: 3, induction: 3, transmission: 3, tires: 3, chassis: 2, nitrous: 2 },
-    targetEtSec: 8.45,
-    targetTrapMph: 168,
-    reactionSec: 0.14,
-    winPurse: 1700,
-    lossPurse: 340,
-  },
-  {
-    id: 't3_r3',
-    name: 'Marcus "Launch" Reid',
-    title: 'Pro Street Finalist',
-    tier: 3,
-    distance: 'quarter',
-    stageIndex: 3,
-    isBoss: false,
-    carId: 'nova_68',
-    carName: "Reid Outlaw Nova",
-    chassis: 'muscle',
-    bodyVariant: 'notch',
-    paintColor: '#16a34a',
-    stripe: 'checkered',
-    rims: 'prostar',
-    upgrades: { engine: 4, induction: 4, transmission: 4, tires: 4, chassis: 3, nitrous: 3 },
-    targetEtSec: 7.88,
-    targetTrapMph: 180,
-    reactionSec: 0.11,
-    winPurse: 2300,
-    lossPurse: 420,
-  },
-  {
-    id: 't3_boss',
-    name: 'Elena "Redline" Cruz',
-    title: 'Tier 3 Boss · Metro Champion',
-    tier: 3,
-    distance: 'quarter',
-    stageIndex: 4,
-    isBoss: true,
-    carId: 'charger_fc',
-    carName: "Cruz Alcohol FC",
-    chassis: 'funny',
-    bodyVariant: 'standard',
-    paintColor: '#e8b624',
-    stripe: 'flames',
-    rims: 'prostar',
-    upgrades: { engine: 1, induction: 1, transmission: 1, tires: 2, chassis: 1, nitrous: 1 },
-    targetEtSec: 7.35,
-    targetTrapMph: 194,
-    reactionSec: 0.1,
-    winPurse: 3800,
-    lossPurse: 560,
-  },
-
-  // ==================== 1/4 MILE · TIER 4 ====================
-  {
-    id: 't4_r1',
-    name: 'Bo "Zoomies" Dalton',
-    title: 'Alcohol Funny Car Ace',
-    tier: 4,
-    distance: 'quarter',
-    stageIndex: 1,
-    isBoss: false,
-    carId: 'firebird_fc',
-    carName: "Dalton Firehawk",
-    chassis: 'funny',
-    bodyVariant: 'aero',
-    paintColor: '#2563eb',
-    stripe: 'twin',
-    rims: 'prostar',
-    upgrades: { engine: 1, induction: 2, transmission: 2, tires: 2, chassis: 1, nitrous: 1 },
-    targetEtSec: 6.75,
-    targetTrapMph: 214,
-    reactionSec: 0.13,
-    winPurse: 2850,
-    lossPurse: 580,
-  },
-  {
-    id: 't4_r2',
-    name: 'Roxy Sterling',
-    title: 'Midnight Nitro Queen',
-    tier: 4,
-    distance: 'quarter',
-    stageIndex: 2,
-    isBoss: false,
-    carId: 'mustang_fc',
-    carName: "Sterling Cobra FC",
-    chassis: 'funny',
-    bodyVariant: 'fastback',
-    paintColor: '#7e22ce',
-    stripe: 'flames',
-    rims: 'chrome',
-    upgrades: { engine: 3, induction: 3, transmission: 3, tires: 3, chassis: 2, nitrous: 2 },
-    targetEtSec: 6.1,
-    targetTrapMph: 235,
-    reactionSec: 0.1,
-    winPurse: 3750,
-    lossPurse: 720,
-  },
-  {
-    id: 't4_r3',
-    name: 'Dale "Chute" Mercer',
-    title: '250-MPH Club Enforcer',
-    tier: 4,
-    distance: 'quarter',
-    stageIndex: 3,
-    isBoss: false,
-    carId: 'corvette_fc',
-    carName: "Mercer Nitro Wedge",
-    chassis: 'funny',
-    bodyVariant: 'wedge',
-    paintColor: '#d93829',
-    stripe: 'checkered',
-    rims: 'prostar',
-    upgrades: { engine: 4, induction: 4, transmission: 4, tires: 4, chassis: 4, nitrous: 3 },
-    targetEtSec: 5.55,
-    targetTrapMph: 256,
-    reactionSec: 0.085,
-    winPurse: 5000,
-    lossPurse: 900,
-  },
-  {
-    id: 't4_boss',
-    name: 'Axel "Thunder" Krane',
-    title: 'Tier 4 Boss · Speedway Legend',
-    tier: 4,
-    distance: 'quarter',
-    stageIndex: 4,
-    isBoss: true,
-    carId: 'slingshot_tf',
-    carName: "Krane Rail Prototype",
-    chassis: 'topfuel',
-    bodyVariant: 'slingshot',
-    paintColor: '#262936',
-    stripe: 'flash',
-    rims: 'prostar',
-    upgrades: { engine: 0, induction: 1, transmission: 1, tires: 1, chassis: 1, nitrous: 1 },
-    targetEtSec: 5.05,
-    targetTrapMph: 274,
-    reactionSec: 0.075,
-    winPurse: 8400,
-    lossPurse: 1300,
-  },
-
-  // ==================== 1/4 MILE · TIER 5 ====================
-  {
-    id: 't5_r1',
-    name: 'Jett "Nitromethane" Shaw',
-    title: 'Nationals Qualifier #4',
-    tier: 5,
-    distance: 'quarter',
-    stageIndex: 1,
-    isBoss: false,
-    carId: 'railstorm_tf',
-    carName: "Shaw Fueler #44",
-    chassis: 'topfuel',
-    bodyVariant: 'standard',
-    paintColor: '#e8b624',
-    stripe: 'twin',
-    rims: 'prostar',
-    upgrades: { engine: 1, induction: 1, transmission: 2, tires: 2, chassis: 1, nitrous: 1 },
-    targetEtSec: 4.65,
-    targetTrapMph: 292,
-    reactionSec: 0.08,
-    winPurse: 6000,
-    lossPurse: 1200,
-  },
-  {
-    id: 't5_r2',
-    name: 'Kira Volkov',
-    title: '300-MPH Barrier Breaker',
-    tier: 5,
-    distance: 'quarter',
-    stageIndex: 2,
-    isBoss: false,
-    carId: 'canopy_tf',
-    carName: "Volkov Mach Canopy",
-    chassis: 'topfuel',
-    bodyVariant: 'canopy',
-    paintColor: '#2563eb',
-    stripe: 'flash',
-    rims: 'prostar',
-    upgrades: { engine: 2, induction: 3, transmission: 3, tires: 3, chassis: 3, nitrous: 2 },
-    targetEtSec: 4.32,
-    targetTrapMph: 308,
-    reactionSec: 0.068,
-    winPurse: 7800,
-    lossPurse: 1550,
-  },
-  {
-    id: 't5_r3',
-    name: 'Rex "Header Flame" Tanner',
-    title: 'Semi-Finals Heavy Hitter',
-    tier: 5,
-    distance: 'quarter',
-    stageIndex: 3,
-    isBoss: false,
-    carId: 'twinhemi_tf',
-    carName: "Tanner Twin-Hemi",
-    chassis: 'topfuel',
-    bodyVariant: 'twin',
-    paintColor: '#ea580c',
-    stripe: 'flames',
-    rims: 'prostar',
-    upgrades: { engine: 4, induction: 4, transmission: 4, tires: 4, chassis: 4, nitrous: 4 },
-    targetEtSec: 4.04,
-    targetTrapMph: 322,
-    reactionSec: 0.058,
-    winPurse: 10500,
-    lossPurse: 1950,
-  },
-  {
-    id: 't5_boss',
-    name: 'Don "The Rail" Garlitson',
-    title: 'World Champion · Top-Fuel Final Boss',
-    tier: 5,
-    distance: 'quarter',
-    stageIndex: 4,
-    isBoss: true,
-    carId: 'apex_tfx',
-    carName: "Swamp Lightning TF-X",
-    chassis: 'topfuel',
-    bodyVariant: 'canopy',
-    paintColor: '#d93829',
-    stripe: 'checkered',
-    rims: 'prostar',
-    upgrades: { engine: 5, induction: 5, transmission: 5, tires: 5, chassis: 5, nitrous: 5 },
-    targetEtSec: 3.82,
-    targetTrapMph: 334,
-    reactionSec: 0.05,
-    winPurse: 19500,
-    lossPurse: 3000,
-  },
-
-  // ==================== 1/2 MILE RUNWAY CHALLENGES (10 NEW) ====================
-  {
-    id: 't1_half_1',
-    name: 'Tessa "Runway" Morales',
-    title: '1/2 Mile Airstrip Qualifier',
-    tier: 1,
-    distance: 'half',
-    stageIndex: 1,
-    isBoss: false,
-    carId: 'prelude_89',
-    carName: "Aero Coupe '89",
-    chassis: 'jdm',
-    bodyVariant: 'wedge',
-    paintColor: '#2563eb',
-    stripe: 'twin',
-    rims: 'gold',
-    upgrades: { engine: 1, induction: 1, transmission: 1, tires: 1, chassis: 1, nitrous: 0 },
-    targetEtSec: 21.8,
-    targetTrapMph: 128,
-    reactionSec: 0.24,
-    winPurse: 475,
-    lossPurse: 100,
-    challengeNote: 'Runway Speed Trap: Lengthen Final Drive so 5th gear does not hit the limiter early.',
-  },
-  {
-    id: 't1_half_2',
-    name: 'Gabe "Tall-Gear" Foster',
-    title: '1/2 Mile Street King',
-    tier: 1,
-    distance: 'half',
-    stageIndex: 2,
-    isBoss: false,
-    carId: 'fox_87',
-    carName: "Highway 5.0 Notch",
-    chassis: 'muscle',
-    bodyVariant: 'notch',
-    paintColor: '#d93829',
-    stripe: 'flash',
-    rims: 'chrome',
-    upgrades: { engine: 3, induction: 2, transmission: 2, tires: 2, chassis: 2, nitrous: 1 },
-    targetEtSec: 19.2,
-    targetTrapMph: 146,
-    reactionSec: 0.18,
-    winPurse: 850,
-    lossPurse: 150,
-    challengeNote: 'Save a Nitrous shot for 4th gear to blast through the 2,640-ft trap.',
-  },
-  {
-    id: 't2_half_1',
-    name: 'Caleb "Overdrive" Stone',
-    title: '1/2 Mile Dockside Sprint',
-    tier: 2,
-    distance: 'half',
-    stageIndex: 1,
-    isBoss: false,
-    carId: 'corvette_89',
-    carName: "Stingray ZR-6",
-    chassis: 'jdm',
-    bodyVariant: 'aero',
-    paintColor: '#2563eb',
-    stripe: 'twin',
-    rims: 'chrome',
-    upgrades: { engine: 2, induction: 2, transmission: 2, tires: 2, chassis: 2, nitrous: 1 },
-    targetEtSec: 16.8,
-    targetTrapMph: 168,
-    reactionSec: 0.18,
-    winPurse: 1150,
-    lossPurse: 225,
-    challengeNote: 'Aero Coupe Challenge: Tune 4th & 5th/6th ratios for smooth top-end pull.',
-  },
-  {
-    id: 't2_half_2',
-    name: 'Nadia "Apex" Vance',
-    title: '1/2 Mile Street-Mod Ace',
-    tier: 2,
-    distance: 'half',
-    stageIndex: 2,
-    isBoss: false,
-    carId: 'rx7_88',
-    carName: "Wangan Rotary FC",
-    chassis: 'jdm',
-    bodyVariant: 'wedge',
-    paintColor: '#e8b624',
-    stripe: 'checkered',
-    rims: 'gold',
-    upgrades: { engine: 4, induction: 3, transmission: 3, tires: 3, chassis: 3, nitrous: 2 },
-    targetEtSec: 15.1,
-    targetTrapMph: 186,
-    reactionSec: 0.14,
-    winPurse: 1950,
-    lossPurse: 320,
-    challengeNote: 'High-RPM runway screamer — stretch your Final Drive below 3.40.',
-  },
-  {
-    id: 't3_half_1',
-    name: 'Daichi Sato',
-    title: '1/2 Mile Wangan Sprinter',
-    tier: 3,
-    distance: 'half',
-    stageIndex: 1,
-    isBoss: false,
-    carId: 'supra_93',
-    carName: "Midnight Mk4 1400",
-    chassis: 'jdm',
-    bodyVariant: 'aero',
-    paintColor: '#ea580c',
-    stripe: 'none',
-    rims: 'gold',
-    upgrades: { engine: 3, induction: 3, transmission: 3, tires: 3, chassis: 2, nitrous: 2 },
-    targetEtSec: 13.4,
-    targetTrapMph: 210,
-    reactionSec: 0.14,
-    winPurse: 2550,
-    lossPurse: 500,
-    challengeNote: '210 MPH Half-Mile Shootout. Low drag and tall 6th gear shine here.',
-  },
-  {
-    id: 't3_half_2',
-    name: 'Viktor "V10" Drago',
-    title: '1/2 Mile Pro-Street Boss',
-    tier: 3,
-    distance: 'half',
-    stageIndex: 2,
-    isBoss: false,
-    carId: 'viper_92',
-    carName: "Drago Twin-Turbo V10",
-    chassis: 'muscle',
-    bodyVariant: 'fastback',
-    paintColor: '#7e22ce',
-    stripe: 'twin',
-    rims: 'prostar',
-    upgrades: { engine: 5, induction: 4, transmission: 4, tires: 4, chassis: 4, nitrous: 3 },
-    targetEtSec: 11.9,
-    targetTrapMph: 234,
-    reactionSec: 0.1,
-    winPurse: 4200,
-    lossPurse: 740,
-    challengeNote: 'Break 230 MPH before the 1/2 mile markers!',
-  },
-  {
-    id: 't4_half_1',
-    name: 'Colt "Afterburner" Hayes',
-    title: '1/2 Mile Funny Car Shootout',
-    tier: 4,
-    distance: 'half',
-    stageIndex: 1,
-    isBoss: false,
-    carId: 'firebird_fc',
-    carName: "Afterburner Aero FC",
-    chassis: 'funny',
-    bodyVariant: 'aero',
-    paintColor: '#2563eb',
-    stripe: 'flash',
-    rims: 'prostar',
-    upgrades: { engine: 3, induction: 3, transmission: 3, tires: 3, chassis: 3, nitrous: 2 },
-    targetEtSec: 9.75,
-    targetTrapMph: 282,
-    reactionSec: 0.1,
-    winPurse: 5800,
-    lossPurse: 1050,
-    challengeNote: 'Tune tall 4th/5th gear ratios — stock quarter-mile gears bounce at 255 MPH!',
-  },
-  {
-    id: 't4_half_2',
-    name: 'Zara "Mach" Sterling',
-    title: '1/2 Mile Outlaw Queen',
-    tier: 4,
-    distance: 'half',
-    stageIndex: 2,
-    isBoss: false,
-    carId: 'camaro_promod',
-    carName: "Outlaw Carbon 5-Spd",
-    chassis: 'funny',
-    bodyVariant: 'notch',
-    paintColor: '#262936',
-    stripe: 'flames',
-    rims: 'prostar',
-    upgrades: { engine: 5, induction: 5, transmission: 5, tires: 4, chassis: 5, nitrous: 4 },
-    targetEtSec: 8.65,
-    targetTrapMph: 310,
-    reactionSec: 0.08,
-    winPurse: 9400,
-    lossPurse: 1600,
-    challengeNote: '300+ MPH Half-Mile Pro-Mod Clash!',
-  },
-  {
-    id: 't5_half_1',
-    name: 'Soren "Jetstream" Lind',
-    title: '1/2 Mile Nitro Runway',
-    tier: 5,
-    distance: 'half',
-    stageIndex: 1,
-    isBoss: false,
-    carId: 'canopy_tf',
-    carName: "Jetstream Canopy TF",
-    chassis: 'topfuel',
-    bodyVariant: 'canopy',
-    paintColor: '#2563eb',
-    stripe: 'twin',
-    rims: 'prostar',
-    upgrades: { engine: 3, induction: 3, transmission: 3, tires: 3, chassis: 3, nitrous: 3 },
-    targetEtSec: 7.15,
-    targetTrapMph: 358,
-    reactionSec: 0.068,
-    winPurse: 12000,
-    lossPurse: 2200,
-    challengeNote: '350+ MPH Half-Mile Nitro Blast — use the 1/2 Mile gearing preset.',
-  },
-  {
-    id: 't5_half_2',
-    name: 'Baron "Sonic" Vance',
-    title: '1/2 Mile World Record Holder',
-    tier: 5,
-    distance: 'half',
-    stageIndex: 2,
-    isBoss: false,
-    carId: 'apex_tfx',
-    carName: "Sonic Boom TF-X",
-    chassis: 'topfuel',
-    bodyVariant: 'canopy',
-    paintColor: '#e5e7eb',
-    stripe: 'flash',
-    rims: 'prostar',
-    upgrades: { engine: 5, induction: 5, transmission: 5, tires: 5, chassis: 5, nitrous: 5 },
-    targetEtSec: 6.35,
-    targetTrapMph: 386,
-    reactionSec: 0.052,
-    winPurse: 22000,
-    lossPurse: 3400,
-    challengeNote: 'Ultimate Half-Mile Speed Trap Boss at 385+ MPH.',
-  },
-
-  // ==================== 1 MILE STANDING MILE GAUNTLET (10 NEW) ====================
-  {
-    id: 't1_mile_1',
-    name: 'Owen "Salt Flats" Miller',
-    title: 'Standing Mile Street Qualifier',
-    tier: 1,
-    distance: 'mile',
-    stageIndex: 1,
-    isBoss: false,
-    carId: 'prelude_89',
-    carName: "Salt-Flat Aero '89",
-    chassis: 'jdm',
-    bodyVariant: 'wedge',
-    paintColor: '#e5e7eb',
-    stripe: 'twin',
-    rims: 'chrome',
-    upgrades: { engine: 2, induction: 2, transmission: 2, tires: 1, chassis: 2, nitrous: 1 },
-    targetEtSec: 33.8,
-    targetTrapMph: 148,
-    reactionSec: 0.22,
-    winPurse: 725,
-    lossPurse: 140,
-    challengeNote: '5,280-ft Standing Mile! Switch to 1 Mile gearing in Drivetrain Tuning.',
-  },
-  {
-    id: 't1_mile_2',
-    name: 'Carla "Top-End" Reyes',
-    title: 'Standing Mile Street Champion',
-    tier: 1,
-    distance: 'mile',
-    stageIndex: 2,
-    isBoss: false,
-    carId: 'fox_87',
-    carName: "Bonneville 5.0",
-    chassis: 'muscle',
-    bodyVariant: 'notch',
-    paintColor: '#16a34a',
-    stripe: 'checkered',
-    rims: 'prostar',
-    upgrades: { engine: 4, induction: 4, transmission: 3, tires: 2, chassis: 4, nitrous: 2 },
-    targetEtSec: 29.6,
-    targetTrapMph: 166,
-    reactionSec: 0.16,
-    winPurse: 1250,
-    lossPurse: 210,
-    challengeNote: 'Endurance speed duel — hold Nitrous until top gear for maximum trap gain.',
-  },
-  {
-    id: 't2_mile_1',
-    name: 'Miles "Long-Leg" Carter',
-    title: 'Standing Mile Grand Tourer',
-    tier: 2,
-    distance: 'mile',
-    stageIndex: 1,
-    isBoss: false,
-    carId: 'corvette_89',
-    carName: "Bonneville ZR '89",
-    chassis: 'jdm',
-    bodyVariant: 'aero',
-    paintColor: '#d93829',
-    stripe: 'twin',
-    rims: 'chrome',
-    upgrades: { engine: 3, induction: 3, transmission: 3, tires: 2, chassis: 3, nitrous: 2 },
-    targetEtSec: 25.8,
-    targetTrapMph: 192,
-    reactionSec: 0.16,
-    winPurse: 1800,
-    lossPurse: 340,
-    challengeNote: 'Break the 190 MPH barrier across a full standing mile!',
-  },
-  {
-    id: 't2_mile_2',
-    name: 'Duke "Iron" Holloway',
-    title: 'Standing Mile Mod Legend',
-    tier: 2,
-    distance: 'mile',
-    stageIndex: 2,
-    isBoss: false,
-    carId: 'chevelle_70',
-    carName: "Twin-Scroll 454 Mile",
-    chassis: 'muscle',
-    bodyVariant: 'fastback',
-    paintColor: '#ea580c',
-    stripe: 'flames',
-    rims: 'prostar',
-    upgrades: { engine: 5, induction: 5, transmission: 4, tires: 4, chassis: 5, nitrous: 3 },
-    targetEtSec: 23.2,
-    targetTrapMph: 212,
-    reactionSec: 0.13,
-    winPurse: 2950,
-    lossPurse: 480,
-    challengeNote: '210+ MPH Street-Mod Mile Champion — tall final drive mandatory.',
-  },
-  {
-    id: 't3_mile_1',
-    name: 'Renji "300K" Kuroda',
-    title: 'Standing Mile Wangan Ghost',
-    tier: 3,
-    distance: 'mile',
-    stageIndex: 1,
-    isBoss: false,
-    carId: 'supra_93',
-    carName: "Wangan 250-MPH Mk4",
-    chassis: 'jdm',
-    bodyVariant: 'aero',
-    paintColor: '#262936',
-    stripe: 'flash',
-    rims: 'gold',
-    upgrades: { engine: 4, induction: 4, transmission: 4, tires: 3, chassis: 4, nitrous: 3 },
-    targetEtSec: 20.6,
-    targetTrapMph: 244,
-    reactionSec: 0.12,
-    winPurse: 3950,
-    lossPurse: 740,
-    challengeNote: 'Kuroda runs ultra-tall 6th gear ratios — match his aero & gearing!',
-  },
-  {
-    id: 't3_mile_2',
-    name: 'Helena "Velocity" Cross',
-    title: 'Standing Mile Pro-Street Sovereign',
-    tier: 3,
-    distance: 'mile',
-    stageIndex: 2,
-    isBoss: false,
-    carId: 'viper_92',
-    carName: "Velocity 2000 V10",
-    chassis: 'muscle',
-    bodyVariant: 'fastback',
-    paintColor: '#d93829',
-    stripe: 'twin',
-    rims: 'prostar',
-    upgrades: { engine: 5, induction: 5, transmission: 5, tires: 5, chassis: 5, nitrous: 5 },
-    targetEtSec: 18.6,
-    targetTrapMph: 268,
-    reactionSec: 0.095,
-    winPurse: 6600,
-    lossPurse: 1150,
-    challengeNote: '268 MPH Standing Mile Pro-Street Record Challenge.',
-  },
-  {
-    id: 't4_mile_1',
-    name: 'Maverick "Mach" Cole',
-    title: 'Standing Mile Aero Funny Car',
-    tier: 4,
-    distance: 'mile',
-    stageIndex: 1,
-    isBoss: false,
-    carId: 'firebird_fc',
-    carName: "Mach-300 Firehawk",
-    chassis: 'funny',
-    bodyVariant: 'aero',
-    paintColor: '#e8b624',
-    stripe: 'flash',
-    rims: 'prostar',
-    upgrades: { engine: 4, induction: 4, transmission: 4, tires: 4, chassis: 4, nitrous: 3 },
-    targetEtSec: 15.2,
-    targetTrapMph: 322,
-    reactionSec: 0.09,
-    winPurse: 8900,
-    lossPurse: 1650,
-    challengeNote: 'Drop your Final Drive below 2.75 to chase 320+ MPH in the full mile.',
-  },
-  {
-    id: 't4_mile_2',
-    name: 'Dante "Salt King" Moretti',
-    title: 'Standing Mile Funny Car Emperor',
-    tier: 4,
-    distance: 'mile',
-    stageIndex: 2,
-    isBoss: false,
-    carId: 'corvette_fc',
-    carName: "Moretti 345-MPH Wedge",
-    chassis: 'funny',
-    bodyVariant: 'wedge',
-    paintColor: '#7e22ce',
-    stripe: 'checkered',
-    rims: 'prostar',
-    upgrades: { engine: 5, induction: 5, transmission: 5, tires: 5, chassis: 5, nitrous: 5 },
-    targetEtSec: 13.7,
-    targetTrapMph: 348,
-    reactionSec: 0.075,
-    winPurse: 14500,
-    lossPurse: 2450,
-    challengeNote: '348 MPH Standing Mile Gauntlet — every perfect shift counts!',
-  },
-  {
-    id: 't5_mile_1',
-    name: 'Captain "Bonneville" Vance',
-    title: 'Standing Mile Top-Fuel Streamliner',
-    tier: 5,
-    distance: 'mile',
-    stageIndex: 1,
-    isBoss: false,
-    carId: 'canopy_tf',
-    carName: "Salt-Streak Canopy TF",
-    chassis: 'topfuel',
-    bodyVariant: 'canopy',
-    paintColor: '#2563eb',
-    stripe: 'flash',
-    rims: 'prostar',
-    upgrades: { engine: 4, induction: 4, transmission: 4, tires: 4, chassis: 4, nitrous: 4 },
-    targetEtSec: 11.4,
-    targetTrapMph: 396,
-    reactionSec: 0.062,
-    winPurse: 18000,
-    lossPurse: 3200,
-    challengeNote: 'Approach 400 MPH in a full mile! Custom tall top-gear ratios required.',
-  },
-  {
-    id: 't5_mile_2',
-    name: 'Omega "420 MPH" Sterling',
-    title: 'Ultimate Standing Mile World Legend',
-    tier: 5,
-    distance: 'mile',
-    stageIndex: 2,
-    isBoss: false,
-    carId: 'apex_tfx',
-    carName: "Omega Land-Speed TF-X",
-    chassis: 'topfuel',
-    bodyVariant: 'canopy',
-    paintColor: '#262936',
-    stripe: 'flames',
-    rims: 'prostar',
-    upgrades: { engine: 5, induction: 5, transmission: 5, tires: 5, chassis: 5, nitrous: 5 },
-    targetEtSec: 10.15,
-    targetTrapMph: 424,
-    reactionSec: 0.048,
-    winPurse: 36000,
-    lossPurse: 5500,
-    challengeNote: 'The ultimate 420+ MPH Standing Mile final test of drivetrain mastery.',
-  },
-];
+export { CAREER_EVENTS as RIVALS, TOTAL_CAREER_EVENTS } from './careerEvents';
 
 const VALID_STRIPES: ReadonlySet<StripeStyle> = new Set([
   'none',
@@ -2211,7 +1469,7 @@ export function sanitizeCarConfig(carId: string, raw: unknown): CarConfig {
 export function createInitialPlayerSave(): PlayerSave {
   return {
     callsign: 'ROOKIE_88',
-    cash: 250,
+    cash: 350,
     activeCarId: 'civic_86',
     highestUnlockedTier: 1,
     ownedCars: ['civic_86'],

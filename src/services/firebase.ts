@@ -183,7 +183,7 @@ export async function loadCloudSave(uid: string): Promise<PlayerSave | null> {
       defeatedRivals: Array.isArray(data.defeatedRivals)
         ? data.defeatedRivals
             .filter((id): id is string => typeof id === 'string')
-            .slice(0, 80)
+            .slice(0, 160)
             .map(sanitizeShortId)
         : [],
       carConfigs,
@@ -212,7 +212,7 @@ export async function syncCloudSave(uid: string, save: PlayerSave): Promise<void
     activeCarId: sanitizeShortId(save.activeCarId),
     highestUnlockedTier: Math.max(1, Math.min(5, Math.floor(save.highestUnlockedTier))),
     ownedCars: save.ownedCars.slice(0, 30).map(sanitizeShortId),
-    defeatedRivals: save.defeatedRivals.slice(0, 80).map(sanitizeShortId),
+    defeatedRivals: save.defeatedRivals.slice(0, 160).map(sanitizeShortId),
     carConfigs: sanitizedConfigs,
     totalWins: Math.max(0, Math.min(1000000, Math.floor(save.totalWins))),
     totalRaces: Math.max(0, Math.min(1000000, Math.floor(save.totalRaces))),
