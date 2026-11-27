@@ -77,7 +77,7 @@ export const ShowroomTab: React.FC<ShowroomTabProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Tier 1..5 Showroom Class Selector */}
+      {/* Tier 1..5 Arcade Class Selector */}
       <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
         {TIERS.map((t) => {
           const active = showroomTier === t.id;
@@ -94,32 +94,36 @@ export const ShowroomTab: React.FC<ShowroomTabProps> = ({
                 setShowroomCarId(tierCars[0].id);
                 setShowroomSpecMode('CURRENT');
               }}
-              className={`arcade-btn rounded-xl p-2 sm:p-2.5 text-center sm:text-left border cursor-pointer ${
+              className={`ng-keycap p-2 text-center sm:text-left border-2 cursor-pointer ${
                 active
-                  ? 'bg-[#26355c] border-[#facc15] text-[#f7f3e3]'
-                  : 'bg-[#151e36] border-[#3c5080]/65 text-[#cbd5e1] hover:border-[#6884bf]'
+                  ? 'bg-[#f7b519] border-[#141218] text-[#141218]'
+                  : 'bg-[#201e26] border-[#525866] text-[#f4ecd8] hover:border-[#f7b519]'
               }`}
             >
-              <div className="flex items-center justify-center sm:justify-between gap-1 text-[10px] font-mono-num">
-                <span className={active ? 'text-[#facc15] font-bold' : 'text-[#94a3b8]'}>
-                  <span className="sm:hidden text-xs">T{t.id}</span>
+              <div className="flex items-center justify-center sm:justify-between gap-1 text-[10px] font-mono-num font-bold">
+                <span>
+                  <span className="sm:hidden">T{t.id}</span>
                   <span className="hidden sm:inline">TIER {t.id}</span>
                 </span>
                 {!unlocked ? (
                   <PixelIcon name="lock" className="w-3.5 h-3.5" />
                 ) : (
-                  <span className="hidden sm:inline text-[#4ade80] font-bold">
+                  <span
+                    className={`hidden sm:inline px-1 ${
+                      active ? 'bg-[#141218] text-[#2ee66b]' : 'text-[#2ee66b]'
+                    }`}
+                  >
                     {ownedInTier}/{tierCars.length}
                   </span>
                 )}
               </div>
-              <div className="hidden sm:block font-bold text-xs mt-1 truncate">{t.className}</div>
+              <div className="hidden sm:block font-pixel text-[8px] mt-1 truncate">{t.className}</div>
             </button>
           );
         })}
       </div>
 
-      {/* 5-Car Tier Selector Bar */}
+      {/* 5-Car Tier Selector Plates */}
       <div className="flex overflow-x-auto no-scrollbar gap-2 pb-0.5 sm:grid sm:grid-cols-5 sm:overflow-visible">
         {showroomTierCars.map((c) => {
           const owned = save.ownedCars.includes(c.id);
@@ -134,57 +138,58 @@ export const ShowroomTab: React.FC<ShowroomTabProps> = ({
                 setShowroomCarId(c.id);
                 setShowroomSpecMode('CURRENT');
               }}
-              className={`arcade-btn rounded-xl min-w-[132px] sm:min-w-0 shrink-0 p-2 sm:p-2.5 text-left border cursor-pointer ${
+              className={`ng-keycap min-w-[132px] sm:min-w-0 shrink-0 p-2 text-left border-2 cursor-pointer ${
                 selected
-                  ? 'bg-[#291e38] border-[#ef3b2d] text-[#f7f3e3]'
-                  : 'bg-[#151e36] border-[#3c5080]/65 text-[#cbd5e1] hover:border-[#6884bf]'
+                  ? 'bg-[#2f232c] border-[#e83b24] text-[#f4ecd8]'
+                  : 'bg-[#1a1820] border-[#3a3e4d] text-[#b8c0cc] hover:border-[#f7b519]'
               }`}
             >
               <div className="flex items-center justify-between gap-1 text-[10px] font-mono-num">
                 <span
-                  className="w-3 h-3 rounded-full shrink-0 border border-white/30"
+                  className="w-3 h-3 shrink-0 border border-[#141218]"
                   style={{ backgroundColor: c.defaultPaint }}
                 />
                 {owned ? (
-                  <span className="text-[#4ade80] font-bold">OWNED</span>
+                  <span className="text-[#2ee66b] font-bold">OWNED</span>
                 ) : !unlocked ? (
                   <PixelIcon name="lock" className="w-3.5 h-3.5" />
                 ) : (
-                  <span className="text-[#cbd5e1]">{formatCash(c.price)}</span>
+                  <span className="text-[#f4ecd8] font-bold">{formatCash(c.price)}</span>
                 )}
               </div>
-              <div className="font-bold text-xs mt-1 truncate">{c.name}</div>
-              <div className="text-[10px] text-[#facc15] truncate mt-0.5">{c.specialty}</div>
+              <div className="font-bold text-xs mt-1 truncate text-[#f4ecd8]">{c.name}</div>
+              <div className="text-[10px] font-mono-num text-[#f7b519] truncate mt-0.5">
+                {c.specialty}
+              </div>
             </button>
           );
         })}
       </div>
 
-      {/* Split Showroom Stage: 4-Angle Hi-Bit Turntable Left · Detailed Stats Right */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-3.5 items-stretch">
-        {/* Left: Illuminated 4-Angle Hi-Bit Pixel Turntable Stage */}
-        <div className="xl:col-span-7 arcade-panel overflow-hidden flex flex-col justify-between">
-          <div className="p-3.5 flex-1 flex flex-col justify-between gap-3.5">
+      {/* Split Showroom Stage: 4-Angle Neo-Geo Turntable Left · VFD Specs Right */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 items-stretch">
+        <div className="xl:col-span-7 ng-plate overflow-hidden flex flex-col justify-between">
+          <div className="ng-checkered-bar h-2 w-full" />
+          <div className="p-3 flex-1 flex flex-col justify-between gap-3">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-[11px] font-mono-num text-[#f5b82e] font-bold">
+                <div className="text-[10px] font-mono-num text-[#f7b519] font-bold">
                   TIER {showroomCar.tier} · {showroomCar.specialty.toUpperCase()} ·{' '}
                   {showroomCar.gearRatios.length}-SPD
                   {showroomCar.hasParachute ? ' · CHUTE' : ''}
                 </div>
-                <h3 className="text-lg sm:text-xl font-bold text-[#f8fafc] mt-0.5 arcade-shadow-text">
-                  {showroomCar.name}
+                <h3 className="font-pixel text-xs sm:text-sm text-[#f4ecd8] mt-1 pixel-text-shadow">
+                  {showroomCar.name.toUpperCase()}
                 </h3>
-                <p className="text-xs text-[#94a3b8]">{showroomCar.subtitle}</p>
+                <p className="text-xs text-[#b8c0cc] mt-0.5">{showroomCar.subtitle}</p>
               </div>
 
-              {/* 4-Angle Turntable Controls */}
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   type="button"
                   onClick={handleStepTurntable}
                   aria-label="Rotate car 90 degrees"
-                  className="arcade-btn rounded-full h-8 px-3 bg-[#141b2d] hover:bg-[#232d47] border border-[#5670a6]/70 text-xs font-bold text-[#f8fafc] flex items-center gap-1 cursor-pointer"
+                  className="ng-keycap h-8 px-2.5 bg-[#2c2935] hover:bg-[#3a3647] border-2 border-[#525866] text-xs font-mono-num font-bold text-[#f4ecd8] flex items-center gap-1 cursor-pointer"
                 >
                   <PixelIcon name="rotate" className="w-3.5 h-3.5" />
                   <span>90°</span>
@@ -196,15 +201,15 @@ export const ShowroomTab: React.FC<ShowroomTabProps> = ({
                     setTurntableSpinning((s) => !s);
                   }}
                   aria-label={turntableSpinning ? 'Pause turntable' : 'Spin turntable'}
-                  className="arcade-btn rounded-full h-8 w-8 bg-[#141b2d] hover:bg-[#232d47] border border-[#5670a6]/70 text-[#f5b82e] flex items-center justify-center cursor-pointer"
+                  className="ng-keycap h-8 w-8 bg-[#2c2935] hover:bg-[#3a3647] border-2 border-[#525866] text-[#f7b519] flex items-center justify-center cursor-pointer"
                 >
                   <PixelIcon name={turntableSpinning ? 'pause' : 'play'} className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
 
-            {/* 4-Angle Hi-Bit Showroom Turntable (SIDE R / FRONT / SIDE L / REAR) */}
-            <div className="w-full aspect-[340/180] arcade-inset rounded-2xl overflow-hidden relative">
+            {/* 4-Angle Hi-Bit Showroom Turntable */}
+            <div className="w-full aspect-[340/180] ng-vfd overflow-hidden relative">
               {mountTurntable ? (
                 <HiBitShowcaseCanvas
                   mode="turntable"
@@ -223,10 +228,10 @@ export const ShowroomTab: React.FC<ShowroomTabProps> = ({
             </div>
 
             {/* Purchase / Select Action Footer */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-2.5 border-t border-[#2b3859]/70">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t-2 border-[#323642]">
               <div className="font-mono-num">
                 <div className="text-[9px] text-[#94a3b8]">SHOWROOM PRICE</div>
-                <div className="text-base sm:text-lg font-bold text-[#22c55e] leading-tight">
+                <div className="text-base sm:text-lg font-bold text-[#2ee66b] leading-tight">
                   {showroomOwned
                     ? 'IN GARAGE'
                     : showroomCar.price === 0
@@ -236,31 +241,28 @@ export const ShowroomTab: React.FC<ShowroomTabProps> = ({
               </div>
 
               {showroomOwned ? (
-                <button
-                  type="button"
-                  disabled={save.activeCarId === showroomCar.id}
-                  onClick={() => {
-                    soundEngine.playUiClick();
-                    onSelectCar(showroomCar.id);
-                  }}
-                  className={`arcade-btn rounded-full px-5 py-2.5 text-xs font-bold uppercase flex items-center gap-1.5 whitespace-nowrap border ${
-                    save.activeCarId === showroomCar.id
-                      ? 'bg-[#132b23] text-[#4ade80] border-[#22c55e] cursor-default'
-                      : 'bg-gradient-to-b from-[#ff5a4a] to-[#e6392a] hover:from-[#ff6d5e] hover:to-[#f04435] text-white border-[#facc15] cursor-pointer'
-                  }`}
-                >
-                  {save.activeCarId === showroomCar.id ? (
-                    <>
-                      <PixelIcon name="check" className="w-4 h-4" /> Active Car
-                    </>
-                  ) : (
-                    'Drive This Car'
-                  )}
-                </button>
+                save.activeCarId === showroomCar.id ? (
+                  <div className="px-4 py-2 bg-[#162b22] border-2 border-[#2ee66b] font-pixel text-[9px] text-[#2ee66b] flex items-center gap-1.5">
+                    <PixelIcon name="check" className="w-3.5 h-3.5" /> ACTIVE CAR
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playUiClick();
+                      onSelectCar(showroomCar.id);
+                    }}
+                    className="ng-chevron-cta cursor-pointer"
+                  >
+                    <span className="ng-chevron-inner font-pixel text-[9px] whitespace-nowrap">
+                      DRIVE THIS CAR
+                    </span>
+                  </button>
+                )
               ) : showroomCar.tier > save.highestUnlockedTier ? (
-                <div className="text-xs font-mono-num text-[#cbd5e1] flex items-center gap-1.5 arcade-inset rounded-full px-3.5 py-2">
+                <div className="text-xs font-mono-num text-[#f4ecd8] flex items-center gap-1.5 ng-vfd px-3 py-2">
                   <PixelIcon name="lock" className="w-4 h-4" />
-                  <span>Beat Tier {showroomCar.tier - 1} Boss to Unlock</span>
+                  <span>BEAT TIER {showroomCar.tier - 1} BOSS TO UNLOCK</span>
                 </div>
               ) : (
                 <button
@@ -270,145 +272,122 @@ export const ShowroomTab: React.FC<ShowroomTabProps> = ({
                     soundEngine.playShopBuy();
                     onBuyCar(showroomCar.id);
                   }}
-                  className={`arcade-btn rounded-full px-5 py-2.5 text-xs font-bold uppercase whitespace-nowrap border ${
-                    save.cash >= showroomCar.price
-                      ? 'bg-gradient-to-b from-[#ff5a4a] to-[#e6392a] hover:from-[#ff6d5e] hover:to-[#f04435] text-white border-[#facc15] cursor-pointer'
-                      : 'bg-[#12182b] text-[#64748b] border-[#1f2947] cursor-not-allowed'
-                  }`}
+                  className="ng-chevron-cta cursor-pointer"
                 >
-                  {save.cash >= showroomCar.price ? 'Purchase Chassis' : 'Insufficient Cash'}
+                  <span className="ng-chevron-inner font-pixel text-[9px] whitespace-nowrap">
+                    {save.cash >= showroomCar.price ? 'BUY CHASSIS' : 'NEED CASH'}
+                  </span>
                 </button>
               )}
             </div>
           </div>
         </div>
 
-        {/* Right: Detailed Car Stats & Characteristics Side Panel */}
-        <div className="xl:col-span-5 arcade-panel p-3.5 flex flex-col justify-between gap-3.5">
-          <div className="space-y-3.5">
-            <div className="flex items-center justify-between gap-2 border-b border-[#2b3859]/70 pb-2.5">
+        {/* Right: VFD Specifications Side Panel */}
+        <div className="xl:col-span-5 ng-plate p-3 flex flex-col justify-between gap-3">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2 border-b-2 border-[#323642] pb-2">
               <div>
-                <h4 className="font-pixel text-[10px] text-[#facc15]">SPECIFICATIONS</h4>
-                <div className="font-mono-num text-xs text-[#cbd5e1] mt-1">
-                  PI {showroomPerf.pi} · Est. {showroomPerf.estimatedEtSec.toFixed(2)}s
+                <h4 className="font-pixel text-[9px] text-[#f7b519]">SPECIFICATIONS</h4>
+                <div className="font-mono-num text-xs text-[#f4ecd8] mt-1">
+                  PI {showroomPerf.pi} · EST {showroomPerf.estimatedEtSec.toFixed(2)}s
                 </div>
               </div>
 
-              {/* Stock/Owned vs Maxed Inspector Toggle */}
-              <div className="flex items-center gap-1 arcade-inset rounded-full p-1 text-[11px] font-mono-num">
+              <div className="flex items-center gap-1 ng-vfd p-1 text-[10px] font-mono-num">
                 <button
                   type="button"
                   onClick={() => setShowroomSpecMode('CURRENT')}
-                  className={`px-2.5 py-1 rounded-full font-bold cursor-pointer transition-colors ${
+                  className={`px-2 py-0.5 font-bold cursor-pointer ${
                     showroomSpecMode === 'CURRENT'
-                      ? 'bg-[#ef3b2d] text-white'
-                      : 'text-[#94a3b8] hover:text-white'
+                      ? 'bg-[#e83b24] text-white'
+                      : 'text-[#b8c0cc] hover:text-white'
                   }`}
                 >
-                  {showroomOwned ? 'Owned' : 'Stock'}
+                  {showroomOwned ? 'OWNED' : 'STOCK'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowroomSpecMode('MAXED')}
-                  className={`px-2.5 py-1 rounded-full font-bold cursor-pointer transition-colors ${
+                  className={`px-2 py-0.5 font-bold cursor-pointer ${
                     showroomSpecMode === 'MAXED'
-                      ? 'bg-[#facc15] text-[#090d1a]'
-                      : 'text-[#94a3b8] hover:text-white'
+                      ? 'bg-[#f7b519] text-[#141218]'
+                      : 'text-[#b8c0cc] hover:text-white'
                   }`}
                 >
-                  Maxed
+                  MAXED
                 </button>
               </div>
             </div>
 
             {/* Core Stat Bars */}
-            <div className="space-y-2.5 font-mono-num text-xs">
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-[#94a3b8]">POWER OUTPUT</span>
-                  <span className="font-bold text-[#f7f3e3]">
-                    {showroomPerf.hp.toLocaleString()} HP
-                  </span>
+            <div className="space-y-2 font-mono-num text-xs">
+              {[
+                {
+                  label: 'POWER OUTPUT',
+                  val: `${showroomPerf.hp.toLocaleString()} HP`,
+                  pct: hpBarPct,
+                  color: '#e83b24',
+                },
+                {
+                  label: '1/4 MILE PACE',
+                  val: `${showroomPerf.estimatedEtSec.toFixed(2)}s`,
+                  pct: paceBarPct,
+                  color: '#f7b519',
+                },
+                {
+                  label: 'LAUNCH TRACTION',
+                  val: `${showroomPerf.grip.toFixed(2)} G`,
+                  pct: gripBarPct,
+                  color: '#2ee66b',
+                },
+                {
+                  label: 'WEIGHT / AGILITY',
+                  val: `${showroomPerf.weightLbs.toLocaleString()} LBS`,
+                  pct: agilityBarPct,
+                  color: '#19d4e6',
+                },
+              ].map((bar) => (
+                <div key={bar.label}>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-[#b8c0cc]">{bar.label}</span>
+                    <span className="font-bold text-[#f4ecd8]">{bar.val}</span>
+                  </div>
+                  <div className="h-2.5 ng-vfd p-0.5">
+                    <div
+                      className="h-full"
+                      style={{ width: `${bar.pct}%`, backgroundColor: bar.color }}
+                    />
+                  </div>
                 </div>
-                <div className="h-2.5 arcade-inset rounded-full p-0.5 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-[#ef3b2d]"
-                    style={{ width: `${hpBarPct}%` }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-[#94a3b8]">1/4 MILE PACE</span>
-                  <span className="font-bold text-[#facc15]">
-                    {showroomPerf.estimatedEtSec.toFixed(2)}s
-                  </span>
-                </div>
-                <div className="h-2.5 arcade-inset rounded-full p-0.5 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-[#facc15]"
-                    style={{ width: `${paceBarPct}%` }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-[#94a3b8]">LAUNCH TRACTION</span>
-                  <span className="font-bold text-[#22c55e]">
-                    {showroomPerf.grip.toFixed(2)} G
-                  </span>
-                </div>
-                <div className="h-2.5 arcade-inset rounded-full p-0.5 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-[#22c55e]"
-                    style={{ width: `${gripBarPct}%` }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-[#94a3b8]">WEIGHT / AGILITY</span>
-                  <span className="font-bold text-[#38bdf8]">
-                    {showroomPerf.weightLbs.toLocaleString()} LBS
-                  </span>
-                </div>
-                <div className="h-2.5 arcade-inset rounded-full p-0.5 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-[#38bdf8]"
-                    style={{ width: `${agilityBarPct}%` }}
-                  />
-                </div>
-              </div>
+              ))}
             </div>
 
             {/* Technical Readout Grid */}
             <div className="grid grid-cols-2 gap-2 font-mono-num text-xs pt-1">
-              <div className="led-readout px-2.5 py-2">
+              <div className="ng-vfd px-2.5 py-1.5">
                 <div className="text-[9px] text-[#94a3b8]">1/2 MI · 1 MILE</div>
-                <div className="font-bold text-[#38bdf8] mt-0.5">
+                <div className="font-bold text-[#19d4e6] mt-0.5">
                   {showroomPerf.estimatedHalfEtSec.toFixed(2)}s ·{' '}
                   {showroomPerf.estimatedMileEtSec.toFixed(2)}s
                 </div>
               </div>
-              <div className="led-readout px-2.5 py-2">
+              <div className="ng-vfd px-2.5 py-1.5">
                 <div className="text-[9px] text-[#94a3b8]">TOP SPEED · DRAG</div>
-                <div className="font-bold text-[#f7f3e3] mt-0.5">
+                <div className="font-bold text-[#f4ecd8] mt-0.5">
                   {showroomPerf.topSpeedMph} MPH · {showroomCar.dragCoeff.toFixed(2)} Cd
                 </div>
               </div>
-              <div className="led-readout px-2.5 py-2">
+              <div className="ng-vfd px-2.5 py-1.5">
                 <div className="text-[9px] text-[#94a3b8]">HP / TON · REDLINE</div>
-                <div className="font-bold text-[#f7f3e3] mt-0.5">
+                <div className="font-bold text-[#f4ecd8] mt-0.5">
                   {Math.round(showroomPerf.hp / (showroomPerf.weightLbs / 2000)).toLocaleString()} ·{' '}
                   {(showroomPerf.redlineRpm / 1000).toFixed(1)}k
                 </div>
               </div>
-              <div className="led-readout px-2.5 py-2">
+              <div className="ng-vfd px-2.5 py-1.5">
                 <div className="text-[9px] text-[#94a3b8]">LAUNCH · BOOST</div>
-                <div className="font-bold text-[#22c55e] mt-0.5">
+                <div className="font-bold text-[#2ee66b] mt-0.5">
                   {(showroomCar.launchRpmMin / 1000).toFixed(1)}k–
                   {(showroomCar.launchRpmMax / 1000).toFixed(1)}k · +
                   {Math.round((showroomPerf.shiftBoostMult - 1) * 100)}%
@@ -417,10 +396,9 @@ export const ShowroomTab: React.FC<ShowroomTabProps> = ({
             </div>
           </div>
 
-          {/* Chassis Characteristics */}
-          <div className="pt-2.5 border-t border-[#2b3859]/70 space-y-1">
-            <div className="font-pixel text-[9px] text-[#94a3b8]">CHASSIS CHARACTERISTICS</div>
-            <div className="text-xs text-[#cbd5e1] leading-relaxed">
+          <div className="pt-2 border-t-2 border-[#323642] space-y-1">
+            <div className="font-pixel text-[8px] text-[#f7b519]">CHASSIS TRAITS</div>
+            <div className="text-xs font-mono-num text-[#b8c0cc] leading-relaxed">
               {getCarCharacteristics(showroomCar).join(' · ')}
             </div>
           </div>

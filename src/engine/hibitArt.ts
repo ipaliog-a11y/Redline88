@@ -1952,7 +1952,10 @@ export function getHiBitShowroomAngleLabel(angleRad: number): ShowroomAngle {
 /**
  * Hi-Bit 2D Garage Pit Bay (320×160 logical pixels):
  * Clean indie workshop with sunny bay skylight, red mechanic tool chest,
- * stacked spare slicks, spinning dyno rollers, and crisp wet-floor pixel reflection!
+ * Neo-Geo Paddock 1994 Hi-Res Pit Garage Dyno Bay:
+ * Open twin rolled-up garage doors revealing sunlit checkered paddock walls, corrugated steel back wall,
+ * overhead I-beam gantry, wall AC unit, nitro fuel drum, rolling red tool chest, floor tie-down straps,
+ * spinning steel dyno rollers, and crisp wet-floor pixel reflection!
  */
 export function drawHiBitPitBay(
   ctx: CanvasRenderingContext2D,
@@ -1966,73 +1969,146 @@ export function drawHiBitPitBay(
 ): void {
   ctx.imageSmoothingEnabled = false;
 
-  // Smooth warm workshop wall gradient
-  const wallGrad = ctx.createLinearGradient(0, 0, 0, h * 0.72);
-  wallGrad.addColorStop(0, '#21304f');
-  wallGrad.addColorStop(1, '#2b3e63');
-  ctx.fillStyle = wallGrad;
-  ctx.fillRect(0, 0, w, h);
-
-  // Sunny clerestory workshop windows (bright Golf Story indie cheer!)
-  for (let wx = 18; wx < w - 30; wx += 74) {
-    pxBox(ctx, wx, 12, 54, 24, '#7cd4ff', '#162138');
-    px(ctx, wx + 2, 14, 50, 8, '#c7efff');
-    px(ctx, wx + 26, 13, 2, 22, '#162138');
-  }
-
-  // Cheerful coral & gold motorsport workshop wall stripe
   const floorY = Math.round(h * 0.72);
-  px(ctx, 0, floorY - 22, w, 5, '#ff4d3d');
-  px(ctx, 0, floorY - 17, w, 3, '#f5b82e');
-  px(ctx, 0, floorY - 14, w, 14, '#1b263d');
+  const doorW = Math.round(w * 0.14);
 
-  // Red Mechanic Rolling Tool Chest (back-left)
-  pxBox(ctx, 14, floorY - 34, 42, 34, '#d93829', '#521515');
-  px(ctx, 16, floorY - 32, 38, 3, '#ff7d6b');
+  // Brushed gunmetal corrugated workshop back wall
+  const wallGrad = ctx.createLinearGradient(0, 0, 0, floorY);
+  wallGrad.addColorStop(0, '#3a404f');
+  wallGrad.addColorStop(0.55, '#4b5263');
+  wallGrad.addColorStop(1, '#313542');
+  ctx.fillStyle = wallGrad;
+  ctx.fillRect(0, 0, w, floorY);
+
+  // Subtle vertical corrugated wall ribs
+  for (let rx = doorW + 8; rx < w - doorW - 8; rx += 16) {
+    px(ctx, rx, 14, 1, floorY - 26, '#5c6478');
+    px(ctx, rx + 1, 14, 1, floorY - 26, '#282c38');
+  }
+
+  // Overhead Steel I-Beam Gantry & Conduit Pipe
+  px(ctx, 0, 0, w, 14, '#252833');
+  px(ctx, 0, 12, w, 2, '#141218');
+  px(ctx, 0, 3, w, 2, '#6c758a');
+  px(ctx, doorW, 18, w - doorW * 2, 3, '#6c758a');
+  px(ctx, doorW, 21, w - doorW * 2, 1, '#141218');
+
+  // Left & Right Open Rolled-Up Garage Doors showing warm checkered paddock daylight!
+  for (const side of [0, 1]) {
+    const dx = side === 0 ? 0 : w - doorW;
+    // Warm sunlit checkered paddock backdrop outside
+    px(ctx, dx, 14, doorW, floorY - 14, '#f4ecd8');
+    const sq = 10;
+    for (let cy = 14; cy < floorY; cy += sq) {
+      for (let cx = dx; cx < dx + doorW; cx += sq) {
+        const isAlt = (Math.floor((cx - dx) / sq) + Math.floor((cy - 14) / sq)) % 2 === 0;
+        if (isAlt) px(ctx, cx, cy, Math.min(sq, dx + doorW - cx), Math.min(sq, floorY - cy), '#e5d9bc');
+      }
+    }
+    // Rolled-up corrugated steel door shutter at top of doorway
+    px(ctx, dx, 14, doorW, 14, '#474e5e');
+    for (let sy = 16; sy < 27; sy += 3) {
+      px(ctx, dx, sy, doorW, 1, '#6f788c');
+      px(ctx, dx, sy + 1, doorW, 1, '#262933');
+    }
+    px(ctx, dx, 27, doorW, 2, '#141218');
+    // Steel doorway jamb frame
+    const jambX = side === 0 ? doorW - 4 : dx;
+    px(ctx, jambX, 14, 4, floorY - 14, '#2c303d');
+    px(ctx, side === 0 ? jambX : jambX + 3, 14, 1, floorY - 14, '#141218');
+    px(ctx, side === 0 ? jambX + 2 : jambX + 1, 14, 1, floorY - 14, '#7d8699');
+  }
+
+  // Lower workshop wainscot & Neo-Geo vermilion/marigold racing stripe
+  px(ctx, doorW, floorY - 22, w - doorW * 2, 4, '#e83b24');
+  px(ctx, doorW, floorY - 18, w - doorW * 2, 3, '#f7b519');
+  px(ctx, doorW, floorY - 15, w - doorW * 2, 15, '#242630');
+  px(ctx, doorW, floorY - 23, w - doorW * 2, 1, '#141218');
+
+  // Wall-mounted AC unit (upper right of back wall)
+  const acX = Math.round(w * 0.62);
+  pxBox(ctx, acX, 26, 44, 15, '#cfd6e0', '#141218');
+  px(ctx, acX + 2, 28, 40, 2, '#ffffff');
+  px(ctx, acX + 4, 35, 36, 3, '#3b414f');
+  px(ctx, acX + 36, 31, 3, 2, '#2ee66b');
+
+  // Red 55-Gallon Nitro Fuel Drum (back-left inside bay)
+  const drumX = doorW + 14;
+  pxBox(ctx, drumX, floorY - 30, 20, 30, '#d9331e', '#141218');
+  px(ctx, drumX + 2, floorY - 28, 4, 26, '#ff6852');
+  px(ctx, drumX + 1, floorY - 21, 18, 2, '#8c1d10');
+  px(ctx, drumX + 1, floorY - 11, 18, 2, '#8c1d10');
+  px(ctx, drumX + 6, floorY - 18, 8, 5, '#f7b519');
+
+  // Red Mechanic Rolling Tool Chest (back-right inside bay)
+  const chestX = w - doorW - 60;
+  pxBox(ctx, chestX, floorY - 32, 46, 32, '#c92a2a', '#141218');
+  px(ctx, chestX + 2, floorY - 30, 42, 3, '#ff6b57');
   for (let d = 0; d < 4; d++) {
-    const dy = floorY - 26 + d * 7;
-    px(ctx, 18, dy, 34, 5, '#b5281c');
-    px(ctx, 28, dy + 1, 14, 2, '#e2edf8');
+    const dy = floorY - 25 + d * 6;
+    px(ctx, chestX + 4, dy, 38, 4, '#9e1c1c');
+    px(ctx, chestX + 14, dy + 1, 18, 2, '#e2e8f0');
   }
 
-  // Stacked Spare Drag Slicks (back-right)
-  for (let s = 0; s < 3; s++) {
-    const sy = floorY - 10 - s * 9;
-    pxBox(ctx, w - 52 + (s % 2), sy, 34, 9, '#252d40', '#131826');
-    px(ctx, w - 48 + (s % 2), sy + 2, 12, 2, '#475569');
-  }
+  // Warm Asphalt-Concrete Dyno Floor + Hazard Curb Line
+  px(ctx, 0, floorY, w, h - floorY, '#595d69');
+  px(ctx, 0, floorY, w, 2, '#141218');
+  px(ctx, 0, floorY + 2, w, 2, '#858b9c');
+  // Recessed dark steel dyno pit bed
+  const pitLeft = Math.round(w * 0.16);
+  const pitW = Math.round(w * 0.68);
+  pxBox(ctx, pitLeft, floorY + 6, pitW, h - floorY - 14, '#24232c', '#141218');
+  px(ctx, pitLeft + 2, floorY + 8, pitW - 4, 2, '#3d3c4a');
 
-  // Concrete Dyno Floor + Yellow Safety Line
-  px(ctx, 0, floorY, w, h - floorY, '#2b3448');
-  px(ctx, 0, floorY, w, 2, '#161c2b');
-  px(ctx, 0, floorY + 2, w, 2, '#3d4963');
-  px(ctx, 0, h - 10, w, 4, '#f5b82e');
-
-  // Wet/polished dyno floor patch with subtle sheen
-  px(ctx, Math.round(w * 0.14), floorY + 5, Math.round(w * 0.72), h - floorY - 18, '#232c40');
-  px(ctx, Math.round(w * 0.18), floorY + 7, Math.round(w * 0.64), 2, '#3c4d6e');
+  // Bottom brushed-steel floor edge trim
+  px(ctx, 0, h - 6, w, 2, '#141218');
+  px(ctx, 0, h - 4, w, 4, '#26232e');
 
   const carCenterX = Math.round(w * 0.5);
-  const carGroundY = floorY + 14;
+  const carGroundY = floorY + 15;
   const m = getHiBitCarMetrics(chassis, upgrades);
-  const scale = chassis === 'topfuel' ? 1.55 : chassis === 'funny' ? 1.75 : 1.95;
+  const scale =
+    w >= 460
+      ? chassis === 'topfuel'
+        ? 1.75
+        : chassis === 'funny'
+        ? 2.0
+        : 2.2
+      : chassis === 'topfuel'
+      ? 1.55
+      : chassis === 'funny'
+      ? 1.75
+      : 1.95;
 
   // Spinning steel dyno rollers recessed under rear tire!
   const rearScreenX = Math.round(carCenterX + m.rearAxleX * scale);
-  pxBox(ctx, rearScreenX - 18, carGroundY - 3, 36, 7, '#64748b', '#1c2438');
-  const rollShift = Math.floor(timeSec * 24) % 6;
-  for (let rx = -14 + rollShift; rx < 15; rx += 6) {
-    px(ctx, rearScreenX + rx, carGroundY - 2, 2, 5, '#e2edf8');
+  pxBox(ctx, rearScreenX - 20, carGroundY - 3, 40, 8, '#6e7687', '#141218');
+  const rollShift = Math.floor(timeSec * 26) % 6;
+  for (let rx = -16 + rollShift; rx < 17; rx += 6) {
+    px(ctx, rearScreenX + rx, carGroundY - 2, 2, 6, '#e8eef7');
   }
+
+  // Red Dyno Tie-Down Straps anchored from floor hooks to chassis
+  drawPixelLine(ctx, pitLeft + 10, carGroundY + 2, rearScreenX - 16, carGroundY - 6, '#e83b24');
+  drawPixelLine(
+    ctx,
+    pitLeft + pitW - 10,
+    carGroundY + 2,
+    Math.round(carCenterX + m.frontAxleX * scale) + 14,
+    carGroundY - 6,
+    '#e83b24'
+  );
+  pxBox(ctx, pitLeft + 7, carGroundY, 6, 4, '#b8c0cc', '#141218');
+  pxBox(ctx, pitLeft + pitW - 13, carGroundY, 6, 4, '#b8c0cc', '#141218');
 
   // Crisp Wet-Floor Inverted Pixel Reflection beneath car!
   ctx.save();
   ctx.beginPath();
-  ctx.rect(0, carGroundY, w, h - carGroundY - 10);
+  ctx.rect(pitLeft + 2, carGroundY, pitW - 4, h - carGroundY - 8);
   ctx.clip();
-  ctx.globalAlpha = 0.24;
+  ctx.globalAlpha = 0.25;
   ctx.translate(carCenterX, carGroundY + 2);
-  ctx.scale(scale, -scale * 0.55);
+  ctx.scale(scale, -scale * 0.52);
   drawHiBitCarProfile({
     ctx,
     x: 0,
@@ -2041,7 +2117,7 @@ export function drawHiBitPitBay(
     bodyVariant,
     visuals,
     upgrades,
-    wheelAngle: timeSec * 7.5,
+    wheelAngle: timeSec * 8.0,
     timeOfDay: 'afternoon',
     drawShadow: false,
     isReflection: true,
@@ -2060,8 +2136,8 @@ export function drawHiBitPitBay(
     bodyVariant,
     visuals,
     upgrades,
-    wheelAngle: timeSec * 7.5,
-    exhaustFlame: Math.sin(timeSec * 5.2) > 0.88 ? 0.3 : 0,
+    wheelAngle: timeSec * 8.0,
+    exhaustFlame: Math.sin(timeSec * 5.2) > 0.88 ? 0.35 : 0,
     timeOfDay: 'afternoon',
     simTime: timeSec,
   });
@@ -2069,8 +2145,8 @@ export function drawHiBitPitBay(
 }
 
 /**
- * 4-Angle Illuminated Hi-Bit Showroom Turntable (340×180 logical pixels):
- * Rotates cleanly across SIDE R -> FRONT -> SIDE L -> REAR with wet-floor reflections!
+ * 4-Angle Neo-Geo Arcade Showroom Turntable (340×180 logical pixels):
+ * Rotates cleanly across SIDE R -> FRONT -> SIDE L -> REAR on a brushed-chrome & marigold stage!
  */
 export function drawHiBitShowroomTurntable(
   ctx: CanvasRenderingContext2D,
@@ -2085,61 +2161,73 @@ export function drawHiBitShowroomTurntable(
 ): void {
   ctx.imageSmoothingEnabled = false;
 
-  // Smooth modern indie showroom backdrop gradient
+  // Warm Charcoal Neo-Geo Arcade Stage Backdrop
   const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
-  bgGrad.addColorStop(0, '#162038');
-  bgGrad.addColorStop(0.65, '#223154');
-  bgGrad.addColorStop(1, '#141a2b');
+  bgGrad.addColorStop(0, '#141218');
+  bgGrad.addColorStop(0.62, '#24202b');
+  bgGrad.addColorStop(1, '#121016');
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, w, h);
 
-  // Crisp studio ceiling light cones (clean flat translucent trapezoids, zero blur)
-  ctx.fillStyle = 'rgba(255, 245, 200, 0.08)';
+  // Subtle horizontal checkered racing banner across back showroom wall
+  const bannerY = 26;
+  px(ctx, 0, bannerY - 2, w, 2, '#e83b24');
+  px(ctx, 0, bannerY + 16, w, 2, '#f7b519');
+  const sq = 8;
+  for (let cy = bannerY; cy < bannerY + 16; cy += sq) {
+    for (let cx = 0; cx < w; cx += sq) {
+      const alt = (Math.floor(cx / sq) + Math.floor((cy - bannerY) / sq)) % 2 === 0;
+      px(ctx, cx, cy, sq, sq, alt ? '#2e2938' : '#1b1822');
+    }
+  }
+
+  // Crisp arcade spotlight cones (warm gold + cyan accent, zero blur)
+  ctx.fillStyle = 'rgba(247, 181, 25, 0.09)';
   ctx.beginPath();
-  ctx.moveTo(w * 0.25, 0);
-  ctx.lineTo(w * 0.42, 0);
+  ctx.moveTo(w * 0.22, 0);
+  ctx.lineTo(w * 0.4, 0);
   ctx.lineTo(w * 0.56, h * 0.78);
-  ctx.lineTo(w * 0.14, h * 0.78);
+  ctx.lineTo(w * 0.12, h * 0.78);
   ctx.closePath();
   ctx.fill();
 
+  ctx.fillStyle = 'rgba(25, 212, 230, 0.06)';
   ctx.beginPath();
-  ctx.moveTo(w * 0.58, 0);
-  ctx.lineTo(w * 0.75, 0);
-  ctx.lineTo(w * 0.86, h * 0.78);
+  ctx.moveTo(w * 0.6, 0);
+  ctx.lineTo(w * 0.78, 0);
+  ctx.lineTo(w * 0.88, h * 0.78);
   ctx.lineTo(w * 0.44, h * 0.78);
   ctx.closePath();
   ctx.fill();
 
-  // Showroom horizon trim
+  // Showroom horizon floor
   const padY = Math.round(h * 0.74);
-  px(ctx, 0, padY - 10, w, 2, '#3b4e78');
-  px(ctx, 0, padY - 8, w, h - padY + 8, '#172033');
+  px(ctx, 0, padY - 10, w, 2, '#525866');
+  px(ctx, 0, padY - 8, w, h - padY + 8, '#1a1820');
 
-  // Illuminated Pixel Turntable Drum Pad
+  // Illuminated Brushed-Chrome & Marigold Pixel Turntable Drum
   const cx = Math.round(w * 0.5);
-  const padRx = Math.round(w * 0.41);
+  const padRx = Math.round(w * 0.42);
   const padRy = 18;
 
-  // Turntable drum side rim
-  ctx.fillStyle = '#0e1320';
+  ctx.fillStyle = '#09080c';
   ctx.beginPath();
-  ctx.ellipse(cx, padY + 6, padRx + 2, padRy + 2, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, padY + 7, padRx + 3, padRy + 2, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = '#293859';
+  ctx.fillStyle = '#525866';
   ctx.beginPath();
   ctx.ellipse(cx, padY + 4, padRx, padRy, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Bright gold outer turntable ring
-  ctx.fillStyle = '#f5b82e';
+  // Racing marigold outer turntable ring
+  ctx.fillStyle = '#f7b519';
   ctx.beginPath();
   ctx.ellipse(cx, padY, padRx, padRy, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Inner polished dark turntable top surface
-  ctx.fillStyle = '#1d2740';
+  // Inner dark asphalt turntable top surface
+  ctx.fillStyle = '#1f1c26';
   ctx.beginPath();
   ctx.ellipse(cx, padY, padRx - 4, padRy - 3, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -2149,7 +2237,7 @@ export function drawHiBitShowroomTurntable(
     const a = angleRad + (i / 12) * Math.PI * 2;
     const tx = cx + Math.cos(a) * (padRx - 8);
     const ty = padY + Math.sin(a) * (padRy - 5);
-    px(ctx, tx - 1, ty, 3, 1, i % 3 === 0 ? '#facc15' : '#4f6594');
+    px(ctx, tx - 1, ty, 3, 1, i % 3 === 0 ? '#19d4e6' : '#8f98a8');
   }
 
   const label = getHiBitShowroomAngleLabel(angleRad);

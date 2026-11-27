@@ -634,9 +634,9 @@ export const PixelPartSprite: React.FC<{
 };
 
 /**
- * Deterministic 16-bit Pixel-Art Rival Portrait (16x16 grid) generated from each rival's ID, tier, and paint color.
- * Tiers 1–2: Street shades, hair/bandanas, leather/racing jackets.
- * Tiers 3–5: Full-face racing helmets, chrome/gold visors, fire suits, boss crown emblem.
+ * Deterministic 24×24 SNK / Neo-Geo Hi-Res Pixel Rival Portrait generated from each rival's ID, tier, and paint color.
+ * Tiers 1–2: Multi-tone shaded street racers with caps, bandanas, aviator shades, and collared racing jackets.
+ * Tiers 3–5: Full-face aerodynamic racing helmets, reflective chrome/gold/cyan visors, fire suits, and boss crown emblem.
  */
 function hashString(str: string): number {
   let h = 2166136261;
@@ -647,93 +647,133 @@ function hashString(str: string): number {
   return Math.abs(h);
 }
 
-const SKIN_TONES = ['#f6c8a8', '#e2a77d', '#c68457', '#8d5524', '#f1c27d'];
-const HAIR_TONES = ['#1e1b2e', '#5c3a21', '#d97706', '#94a3b8', '#b91c1c', '#facc15'];
+const SKIN_RAMPS: [string, string, string][] = [
+  ['#ffe0c4', '#f2b88f', '#c98863'],
+  ['#f7cba2', '#e09f70', '#b37146'],
+  ['#e3a97a', '#c48152', '#915732'],
+  ['#b57b4e', '#8f5932', '#63391d'],
+  ['#fce0b8', '#e6b87c', '#ba894d'],
+];
+
+const HAIR_RAMPS: [string, string][] = [
+  ['#383345', '#1b1824'],
+  ['#80512d', '#4f2f16'],
+  ['#f09c2b', '#b56312'],
+  ['#cfd6e0', '#7e8899'],
+  ['#d93829', '#8a1c14'],
+  ['#f7c948', '#bf8a15'],
+];
+
 const BG_BY_TIER: Record<number, [string, string]> = {
-  1: ['#1d2b4f', '#2f4578'],
-  2: ['#422006', '#78350f'],
-  3: ['#1e1b4b', '#4338ca'],
-  4: ['#0c4a6e', '#0284c7'],
-  5: ['#450a0a', '#b91c1c'],
+  1: ['#2c3d59', '#3f577a'],
+  2: ['#523214', '#7a4b1c'],
+  3: ['#194238', '#266354'],
+  4: ['#143b5c', '#1e5c8a'],
+  5: ['#54161a', '#8c2229'],
 };
 
 export const PixelRivalPortrait: React.FC<{
   rival: RivalSpec;
   className?: string;
-}> = ({ rival, className = 'w-14 h-14' }) => {
+}> = ({ rival, className = 'w-16 h-16' }) => {
   const seed = hashString(rival.id + rival.name);
-  const skin = SKIN_TONES[seed % SKIN_TONES.length];
-  const hair = HAIR_TONES[(seed >> 3) % HAIR_TONES.length];
+  const [skinHi, skinMid, skinShad] = SKIN_RAMPS[seed % SKIN_RAMPS.length];
+  const [hairHi, hairDark] = HAIR_RAMPS[(seed >> 3) % HAIR_RAMPS.length];
   const [bgA, bgB] = BG_BY_TIER[rival.tier] ?? BG_BY_TIER[1];
   const suit = rival.paintColor;
-  const accent = rival.isBoss ? '#facc15' : '#38bdf8';
+  const accent = rival.isBoss ? '#f7b519' : '#19d4e6';
   const hasHelmet = rival.tier >= 3 || rival.isBoss;
-  const hasShades = !hasHelmet && (seed & 1) === 0;
-  const hasBandana = !hasHelmet && (seed & 2) === 0;
+  const hasCap = !hasHelmet && (seed % 3 === 0);
+  const hasShades = !hasHelmet && ((seed >> 1) & 1) === 0;
+  const hasBandana = !hasHelmet && !hasCap && ((seed >> 2) & 1) === 0;
 
   const palette: Record<string, string> = {
     '.': bgA,
     ':': bgB,
-    K: '#090d1a',
-    S: skin,
-    H: hair,
+    K: '#141218',
+    L: skinHi,
+    S: skinMid,
+    D: skinShad,
+    H: hairHi,
+    h: hairDark,
     J: suit,
     A: accent,
+    C: '#f7b519',
+    c: '#b57b0e',
     W: '#f8fafc',
-    V: rival.isBoss ? '#facc15' : '#38bdf8',
-    G: '#1e293b',
+    V: rival.isBoss ? '#f7b519' : '#19d4e6',
+    v: rival.isBoss ? '#996908' : '#0b6d80',
+    G: '#201e26',
+    M: '#b8c0cc',
   };
 
   let rows: string[];
   if (hasHelmet) {
     rows = [
-      rival.isBoss ? '....KA.KA.KA....' : '................',
-      rival.isBoss ? '....KAAAAAAK....' : '....KKKKKKKK....',
-      '....KKKKKKKK....',
-      '...KJJJJJJJJK...',
-      '..KJJWWJJWWJJK..',
-      '..KJKVVVVVVKJK..',
-      '..KJKVVWWVVKJK..',
-      '..KJKVVVVVVKJK..',
-      '..KJJKKKKKKJJK..',
-      '...KJJJJJJJJK...',
-      '....KKGGGGKK....',
-      '..KKJJAAAAJJKK..',
-      '.KJJJJAWWAJJJJK.',
-      '.KJJJJAAAAJJJJK.',
-      'KJJJJJJAAJJJJJJK',
-      'KJJJJJJAAJJJJJJK',
+      rival.isBoss ? '......KC..KC..KC........' : '....::::::::::::::::....',
+      rival.isBoss ? '......KCCCKCCCKC........' : '..::::::::::::::::::::..',
+      '......KKKKKKKKKKKK......',
+      '....KKJJJJJJJJJJJJKK....',
+      '...KJJJWWWWWWWWWWJJJK...',
+      '..KJJJWJJJJJJJJJJWJJJK..',
+      '..KJJJJKKKKKKKKKKJJJJK..',
+      '..KJJJKVVVVVVVVVVKJJJK..',
+      '..KJJJKVVWWWWVVvvKJJJK..',
+      '..KJJJKVVVVVVvvvvKJJJK..',
+      '..KJJJKvvvvvvvvvvKJJJK..',
+      '..KJJJKKKKKKKKKKKKJJJK..',
+      '...KJJJJJGGGGGGJJJJJK...',
+      '...KJJJJJGMGGMGJJJJJK...',
+      '....KKJJJJJJJJJJJJKK....',
+      '......KKGGGGGGGGKK......',
+      '....KKJJJJAAAAJJJJKK....',
+      '...KJJJJJAAWWAAJJJJJK...',
+      '..KJJJJJJAAAAAAJJJJJJK..',
+      '..KJJJJAJJAAAAJJAJJJJK..',
+      '.KJJJJJAJJJAAJJJAJJJJJK.',
+      '.KJJJJJAJJJAAJJJAJJJJJK.',
+      'KJJJJJJAJJJAAJJJAJJJJJJK',
+      'KJJJJJJAJJJAAJJJAJJJJJJK',
     ];
   } else {
     rows = [
-      '::::::::::::::::',
-      '....KKKKKKKK....',
-      '...KHHHHHHHHK...',
-      hasBandana ? '..KAAAAAAAAAAK..' : '..KHHHHHHHHHHK..',
-      '..KHSSSSSSSSHK..',
-      hasShades ? '..KSKKKKKKKKK...' : '..KSSKWSSWKSSK..',
-      hasShades ? '..KSKGGKKGGKSK..' : '..KSSKWSSWKSSK..',
-      '..KSSSSSSSSSSK..',
-      '...KSSKKKKSSK...',
-      '...KSSSSSSSSK...',
-      '....KKSSSSKK....',
-      '..KKJJAWWAJJKK..',
-      '.KJJJJAWWAJJJJK.',
-      '.KJJJJJJJJJJJJK.',
-      'KJJJJAJJJJAJJJJK',
-      'KJJJJAJJJJAJJJJK',
+      '....::::::::::::::::....',
+      hasCap ? '......KKKKKKKKKKKK......' : '......KKKKKKKKKKKK......',
+      hasCap ? '....KKCCCCCCCCCCCCKK....' : '....KKHHHHHhhHHHHHKK....',
+      hasCap ? '...KCCWWWWCCCCCCCCCCK...' : '...KHHHHHHhhhhHHHHHHK...',
+      hasCap ? '...KCCCCCCCCCCCCCCCCK...' : hasBandana ? '...KAAAAAAAAAAAAAAAAK...' : '...KHHhhHHHHHHHHhhHHK...',
+      hasCap ? '..KKccccccccccccccccKK..' : hasBandana ? '..KAAWWWWAAAAAAAAAAAAK..' : '..KHHhKKKKKKKKKKKKhHHK..',
+      '....KHLLLLLLLLLLLLDK....',
+      '....KHLSSSSSSSSSSSDK....',
+      '....KHLSKKSSSKKSSSDK....',
+      hasShades ? '...KSSKKKKKKKKKKKKSSK...' : '....KSSKWKSSSKWKSSDK....',
+      hasShades ? '...KSSKGGMKGGKGGMKSSK...' : '....KSSKWKSSSKWKSSDK....',
+      hasShades ? '...KSSKKKKKKKKKKKKSSK...' : '....KSSSSSSDDSSSSSDK....',
+      '....KSSSSSSDDSSSSSDK....',
+      '....KSSSSSKKKKSSSSDK....',
+      '.....KSSSDDDDDDSSDK.....',
+      '......KKDDDDDDDDKK......',
+      '.......KKSSDDSSKK.......',
+      '....KKJJJKKSSKKJJJKK....',
+      '...KJJJJJAAWWAAJJJJJK...',
+      '..KJJJJJAAAWWAAAJJJJJK..',
+      '..KJJJJAJJJAAJJJAJJJJK..',
+      '.KJJJJJAJJJAAJJJAJJJJJK.',
+      'KJJJJJJAJJJAAJJJAJJJJJJK',
+      'KJJJJJJAJJJAAJJJAJJJJJJK',
     ];
   }
 
-  // Ensure exact 16-char row lengths for safety
-  const normalized = rows.map((r) => (r.length >= 16 ? r.slice(0, 16) : r.padEnd(16, '.')));
+  const normalized = rows.map((r) => (r.length >= 24 ? r.slice(0, 24) : r.padEnd(24, '.')));
 
   return (
-    <div className={`relative arcade-inset rounded-xl overflow-hidden shrink-0 ${className}`}>
+    <div
+      className={`relative border-2 border-[#141218] bg-[#141218] overflow-hidden shrink-0 shadow-[2px_2px_0_#07060a] ${className}`}
+    >
       {renderPixelMatrix(normalized, palette, 'w-full h-full block', `${rival.name} portrait`)}
       {rival.isBoss && (
-        <div className="pointer-events-none absolute bottom-0 inset-x-0 bg-[#090d1a]/88 text-center font-pixel text-[7px] text-[#facc15] py-0.5 leading-none">
-          BOSS
+        <div className="pointer-events-none absolute bottom-0 inset-x-0 bg-[#141218]/92 border-t border-[#f7b519] text-center font-pixel text-[6px] text-[#f7b519] py-0.5 leading-none">
+          ★ BOSS
         </div>
       )}
     </div>

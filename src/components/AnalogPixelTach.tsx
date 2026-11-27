@@ -98,9 +98,9 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
 
   return (
     <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-      {/* Sleek Rounded Tachometer Face + Circular Shift Light */}
+      {/* Crisp Steel-Beveled Neo-Geo Tachometer Face + Shift Light */}
       <div
-        className={`relative shrink-0 bg-[#0e1422] border border-[#4a6294]/55 rounded-2xl shadow-[inset_0_2px_6px_rgba(4,7,15,0.5)] flex items-center justify-center ${
+        className={`relative shrink-0 ng-vfd border-2 border-[#525866] flex items-center justify-center ${
           compact ? 'w-[146px] h-[78px]' : 'w-[158px] sm:w-[214px] h-[84px] sm:h-[104px]'
         }`}
       >
@@ -114,34 +114,34 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
           <path
             d={describeArc(cx, cy, dialR + 8, MIN_ANG - 4, MAX_ANG + 4)}
             fill="none"
-            stroke="#3c4d73"
+            stroke="#525866"
             strokeWidth="4"
-            strokeLinecap="round"
+            strokeLinecap="square"
           />
           <path
             d={describeArc(cx, cy, dialR, MIN_ANG, MAX_ANG)}
             fill="none"
-            stroke="#192033"
+            stroke="#201e26"
             strokeWidth="12"
-            strokeLinecap="round"
+            strokeLinecap="butt"
           />
 
-          {/* Launch Sweet-Spot Emerald Arc */}
+          {/* Launch Sweet-Spot VFD Green Arc */}
           {isStaging && (
             <path
               d={describeArc(cx, cy, dialR, launchStartA, launchEndA)}
               fill="none"
-              stroke="#22c55e"
+              stroke="#2ee66b"
               strokeWidth="12"
             />
           )}
 
-          {/* Shift Sweet-Spot Gold Arc */}
+          {/* Shift Sweet-Spot Racing Marigold Arc */}
           {!isStaging && gear < maxGears && (
             <path
               d={describeArc(cx, cy, dialR, shiftStartA, shiftEndA)}
               fill="none"
-              stroke="#f5b82e"
+              stroke="#f7b519"
               strokeWidth="12"
             />
           )}
@@ -150,7 +150,7 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
           <path
             d={describeArc(cx, cy, dialR, redStartA, MAX_ANG)}
             fill="none"
-            stroke="#ff4d3d"
+            stroke="#e83b24"
             strokeWidth="12"
           />
 
@@ -168,16 +168,15 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
                   y1={pInner.y}
                   x2={pOuter.x}
                   y2={pOuter.y}
-                  stroke={val >= redlineRpm ? '#ff4d3d' : '#cbd5e1'}
+                  stroke={val >= redlineRpm ? '#e83b24' : '#b8c0cc'}
                   strokeWidth={isMajor ? 2.5 : 1.5}
-                  strokeLinecap="round"
                 />
                 {isMajor && (
                   <text
                     x={pLabel.x}
                     y={pLabel.y + 3}
                     textAnchor="middle"
-                    fill={val >= redlineRpm ? '#fca5a5' : '#94a3b8'}
+                    fill={val >= redlineRpm ? '#ff8b7a' : '#b8c0cc'}
                     fontSize="8"
                     fontFamily="'Press Start 2P', monospace"
                   >
@@ -193,7 +192,7 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
             x={cx}
             y={cy - 22}
             textAnchor="middle"
-            fill="#64748b"
+            fill="#8f98a8"
             fontSize="6.5"
             fontFamily="'Press Start 2P', monospace"
           >
@@ -206,30 +205,28 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
             y1={tail.y}
             x2={tip.x}
             y2={tip.y}
-            stroke="#070a12"
+            stroke="#07060a"
             strokeWidth="5.5"
-            strokeLinecap="round"
           />
           <line
             x1={tail.x}
             y1={tail.y}
             x2={tip.x}
             y2={tip.y}
-            stroke={inShiftZone ? '#f5b82e' : inLaunchZone ? '#22c55e' : '#ff4d3d'}
+            stroke={inShiftZone ? '#f7b519' : inLaunchZone ? '#2ee66b' : '#e83b24'}
             strokeWidth="3.2"
-            strokeLinecap="round"
           />
 
-          {/* Circular Center Hub Cap */}
-          <circle cx={cx} cy={cy} r="6.5" fill="#3c4d73" stroke="#070a12" strokeWidth="2" />
-          <circle cx={cx} cy={cy} r="3" fill="#f5b82e" />
+          {/* Center Hub Cap */}
+          <circle cx={cx} cy={cy} r="6.5" fill="#525866" stroke="#07060a" strokeWidth="2" />
+          <circle cx={cx} cy={cy} r="3" fill="#f7b519" />
 
           {/* Pixel Font RPM Readout */}
           <text
             x={cx}
             y={cy + 16}
             textAnchor="middle"
-            fill="#f8fafc"
+            fill="#f4ecd8"
             fontSize="9"
             fontFamily="'Press Start 2P', monospace"
           >
@@ -237,51 +234,51 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
           </text>
         </svg>
 
-        {/* Circular Shift Light Lamp */}
+        {/* Square Arcade Shift Light Lamp */}
         <div
           className="absolute top-1.5 right-1.5 flex flex-col items-center"
           title="Shift Light"
         >
           <div
-            className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 flex items-center justify-center transition-colors ${
+            className={`w-6 h-6 sm:w-7 sm:h-7 border-2 flex items-center justify-center ${
               shiftLightState === 'SHIFT'
-                ? 'bg-[#f5b82e] border-[#fef08a]'
+                ? 'bg-[#f7b519] border-[#fff3c4]'
                 : shiftLightState === 'LAUNCH'
-                ? 'bg-[#22c55e] border-[#bbf7d0]'
+                ? 'bg-[#2ee66b] border-[#dcfce7]'
                 : shiftLightState === 'REDLINE'
-                ? 'bg-[#ff4d3d] border-[#fecaca]'
+                ? 'bg-[#e83b24] border-[#fecaca]'
                 : shiftLightState === 'APPROACH'
-                ? 'bg-[#b45309] border-[#f59e0b]'
-                : 'bg-[#192033] border-[#3c4d73]'
+                ? 'bg-[#996908] border-[#f7b519]'
+                : 'bg-[#1c1a22] border-[#525866]'
             }`}
           >
             <div
-              className={`w-2 h-2 rounded-full ${
-                shiftLightState === 'OFF' ? 'bg-[#334155]' : 'bg-[#ffffff]'
+              className={`w-2 h-2 ${
+                shiftLightState === 'OFF' ? 'bg-[#323642]' : 'bg-[#ffffff]'
               }`}
             />
           </div>
-          <span className="font-pixel text-[6px] text-[#94a3b8] mt-0.5 leading-none">
+          <span className="font-pixel text-[6px] text-[#b8c0cc] mt-0.5 leading-none">
             {shiftLightState === 'LAUNCH' ? 'GO' : 'SHIFT'}
           </span>
         </div>
       </div>
 
-      {/* Sculpted Gear Indicator + Speed Readout + Status Bar */}
+      {/* VFD Gear Pod + Speed Pod + Status Strip */}
       <div className="flex-1 min-w-0 flex flex-col gap-1.5">
         <div className="flex items-stretch gap-1.5 sm:gap-2">
           {/* Gear Pod */}
-          <div className="bg-[#0e1422] border border-[#4a6294]/50 rounded-xl shadow-[inset_0_2px_5px_rgba(4,7,15,0.45)] px-2.5 sm:px-3.5 py-1.5 text-center min-w-[54px] sm:min-w-[68px]">
-            <div className="font-pixel text-[7px] sm:text-[8px] text-[#94a3b8] leading-none">
+          <div className="ng-vfd border-2 border-[#525866] px-2.5 sm:px-3.5 py-1.5 text-center min-w-[54px] sm:min-w-[68px]">
+            <div className="font-pixel text-[7px] sm:text-[8px] text-[#b8c0cc] leading-none">
               GEAR
             </div>
             <div
               className={`font-pixel text-lg sm:text-2xl leading-none mt-1.5 ${
                 inShiftZone
-                  ? 'text-[#f5b82e]'
+                  ? 'text-[#f7b519]'
                   : isOverRev
-                  ? 'text-[#ff4d3d]'
-                  : 'text-[#22c55e]'
+                  ? 'text-[#e83b24]'
+                  : 'text-[#2ee66b]'
               }`}
             >
               {gear === 0 ? 'N' : gear}
@@ -289,34 +286,34 @@ export const AnalogPixelTach: React.FC<AnalogPixelTachProps> = ({
           </div>
 
           {/* Speed Pod */}
-          <div className="bg-[#0e1422] border border-[#4a6294]/50 rounded-xl shadow-[inset_0_2px_5px_rgba(4,7,15,0.45)] px-3 sm:px-3.5 py-1.5 text-right flex-1 min-w-[78px]">
-            <div className="font-pixel text-[7px] sm:text-[8px] text-[#94a3b8] leading-none">
+          <div className="ng-vfd border-2 border-[#525866] px-3 sm:px-3.5 py-1.5 text-right flex-1 min-w-[78px]">
+            <div className="font-pixel text-[7px] sm:text-[8px] text-[#b8c0cc] leading-none">
               SPEED MPH
             </div>
-            <div className="font-pixel text-base sm:text-xl text-[#f8fafc] leading-none mt-1.5">
+            <div className="font-pixel text-base sm:text-xl text-[#f4ecd8] leading-none mt-1.5">
               {mph}
             </div>
           </div>
         </div>
 
-        {/* Sleek State Readout Bar */}
-        <div className="bg-[#0e1422] border border-[#4a6294]/45 rounded-xl px-3 py-1.5 flex items-center justify-between gap-2 font-mono-num text-[10px] sm:text-xs">
+        {/* VFD State Readout Bar */}
+        <div className="ng-vfd border-2 border-[#323642] px-3 py-1.5 flex items-center justify-between gap-2 font-mono-num text-[10px] sm:text-xs">
           <span className="text-[#94a3b8] truncate">
             REDLINE {(redlineRpm / 1000).toFixed(1)}K
           </span>
           <span
             className={`font-bold whitespace-nowrap ${
               shiftLightState === 'SHIFT'
-                ? 'text-[#f5b82e]'
+                ? 'text-[#f7b519]'
                 : shiftLightState === 'LAUNCH'
-                ? 'text-[#22c55e]'
+                ? 'text-[#2ee66b]'
                 : shiftLightState === 'REDLINE'
-                ? 'text-[#ff4d3d]'
+                ? 'text-[#e83b24]'
                 : boostActive
-                ? 'text-[#38bdf8]'
+                ? 'text-[#19d4e6]'
                 : wheelspin > 0.2
                 ? 'text-[#f97316]'
-                : 'text-[#cbd5e1]'
+                : 'text-[#f4ecd8]'
             }`}
           >
             {shiftLightState === 'LAUNCH'
