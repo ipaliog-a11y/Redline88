@@ -9,6 +9,7 @@ import { BodyVariant, CarUpgrades, CarVisuals, ChassisStyle } from '../types/gam
 
 interface HiBitShowcaseCanvasProps {
   mode: 'pitbay' | 'turntable';
+  wide?: boolean;
   chassis: ChassisStyle;
   bodyVariant?: BodyVariant;
   visuals: CarVisuals;
@@ -27,11 +28,12 @@ const ANGLE_BADGE_LABELS: Record<ShowroomAngle, string> = {
 
 /**
  * Pure 2D Hi-Bit Pixel Art Showcase Canvas (Zero 3D / Zero WebGL / Zero Anti-Aliasing):
- * - 'pitbay': 320×160 logical pixels with spinning dyno rollers & wet-floor pixel reflection
+ * - 'pitbay': 320×160 (or 520×160 wide) logical pixels with open paddock doors, dyno rollers & reflections
  * - 'turntable': 340×180 logical pixels with 4-angle pixel rotation (SIDE R / FRONT / SIDE L / REAR)
  */
 export const HiBitShowcaseCanvas: React.FC<HiBitShowcaseCanvasProps> = ({
   mode,
+  wide = false,
   chassis,
   bodyVariant,
   visuals,
@@ -77,7 +79,7 @@ export const HiBitShowcaseCanvas: React.FC<HiBitShowcaseCanvasProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const logicalW = mode === 'turntable' ? 340 : 320;
+    const logicalW = mode === 'turntable' ? 340 : wide ? 520 : 320;
     const logicalH = mode === 'turntable' ? 180 : 160;
     canvas.width = logicalW;
     canvas.height = logicalH;
@@ -151,7 +153,7 @@ export const HiBitShowcaseCanvas: React.FC<HiBitShowcaseCanvasProps> = ({
       alive = false;
       cancelAnimationFrame(rafId);
     };
-  }, [mode]);
+  }, [mode, wide]);
 
   return (
     <div className={`relative w-full h-full select-none ${className}`}>
@@ -163,7 +165,7 @@ export const HiBitShowcaseCanvas: React.FC<HiBitShowcaseCanvasProps> = ({
         }
       />
       {mode === 'turntable' && (
-        <div className="pointer-events-none absolute bottom-2 right-2 bg-[#0e1422]/90 border border-[#5670a6]/55 rounded-full px-2.5 py-1 font-pixel text-[8px] text-[#f5b82e] backdrop-blur-sm">
+        <div className="pointer-events-none absolute bottom-2 right-2 bg-[#0b0a0f]/92 border-2 border-[#525866] px-2.5 py-1 font-pixel text-[8px] text-[#f7b519]">
           {ANGLE_BADGE_LABELS[angleLabel]}
         </div>
       )}

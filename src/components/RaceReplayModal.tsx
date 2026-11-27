@@ -298,234 +298,237 @@ export const RaceReplayModal: React.FC<RaceReplayModalProps> = ({ record, onClos
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-[#0b0f1a]/84 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-4"
+      className="fixed inset-0 z-50 bg-[#07060a]/86 flex items-center justify-center p-2.5 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Run Replay"
     >
-      <div className="pixel-panel-accent rounded-3xl max-w-4xl w-full max-h-[94dvh] overflow-y-auto p-4 sm:p-5 space-y-3.5 sm:space-y-4">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3 border-b border-[#3c4d73]/60 pb-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <PixelIcon name="film" className="w-4 h-4" />
-              <h2 className="font-pixel text-xs sm:text-sm text-[#f5b82e] pixel-text-shadow truncate">
-                RUN REPLAY · {distSpec.shortLabel}
-              </h2>
-            </div>
-            <p className="text-xs text-[#94a3b8] mt-1 truncate">
-              {record.driverName} · <span className="text-[#f8fafc] font-bold">{car.name}</span> ·{' '}
-              {tierSpec.name}
-              {replay.rival ? ` vs ${replay.rival.name}` : ' (Solo Test)'}
-            </p>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="text-right font-mono-num">
-              <div className="text-sm sm:text-base font-bold text-[#22c55e]">
-                {formatEt(record.etMs)}
+      <div className="ng-plate-gold max-w-4xl w-full max-h-[94dvh] overflow-y-auto">
+        <div className="ng-checkered-bar h-2.5 w-full" />
+        <div className="p-4 sm:p-5 space-y-3.5 sm:space-y-4">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3 border-b-2 border-[#323642] pb-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <PixelIcon name="film" className="w-4 h-4" />
+                <h2 className="font-pixel text-xs sm:text-sm text-[#f7b519] pixel-text-shadow truncate">
+                  RUN REPLAY · {distSpec.shortLabel}
+                </h2>
               </div>
-              <div className="text-[11px] text-[#cbd5e1]">{replay.trapMph.toFixed(1)} MPH</div>
+              <p className="text-xs font-mono-num text-[#b8c0cc] mt-1 truncate">
+                {record.driverName} · <span className="text-[#f4ecd8] font-bold">{car.name}</span> ·{' '}
+                {tierSpec.name}
+                {replay.rival ? ` vs ${replay.rival.name}` : ' (Solo Test)'}
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close replay"
-              className="pixel-btn rounded-full h-9 w-9 flex items-center justify-center bg-[#222c45] hover:bg-[#2a3654] border border-[#526ba3]/70 text-[#f8fafc] cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Hi-Bit 16-Bit Pixel Art Replay Viewport */}
-        <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] pixel-inset rounded-2xl overflow-hidden">
-          <div ref={mountRef} className="w-full h-full" />
-
-          {/* Top-Left Speed Indicator */}
-          <div className="pointer-events-none absolute top-2.5 left-2.5 bg-[#0e1422]/90 border border-[#5670a6]/55 rounded-full px-3 py-1 font-pixel text-[8px] text-[#f5b82e] backdrop-blur-sm">
-            REPLAY · {speed}X
-          </div>
-
-          {/* Top-Right ET & Distance Readout */}
-          <div className="pointer-events-none absolute top-2.5 right-2.5 bg-[#0e1422]/90 border border-[#5670a6]/55 rounded-full px-3 py-1 font-mono-num text-[11px] sm:text-xs flex items-center gap-3 backdrop-blur-sm">
-            <span className="text-[#f5b82e] font-bold">ET {currentTime.toFixed(2)}s</span>
-            <span className="text-[#cbd5e1]">
-              {Math.round(frame.distFt).toLocaleString()} / {replay.distanceFt.toLocaleString()} FT
-            </span>
-          </div>
-
-          {/* On-Viewport Active Shift Timing Callout */}
-          {activeEvent && (
-            <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 bg-[#0e1422]/92 border border-[#5670a6]/65 rounded-2xl shadow-[0_8px_20px_rgba(5,8,18,0.5)] px-4 py-1.5 text-center backdrop-blur-sm">
-              <div
-                className="font-pixel text-[10px] sm:text-xs pixel-text-shadow"
-                style={{ color: activeEvent.color }}
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="text-right font-mono-num ng-vfd px-2.5 py-1">
+                <div className="text-sm sm:text-base font-bold text-[#2ee66b]">
+                  {formatEt(record.etMs)}
+                </div>
+                <div className="text-[11px] text-[#19d4e6]">{replay.trapMph.toFixed(1)} MPH</div>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close replay"
+                className="ng-keycap h-9 w-9 flex items-center justify-center bg-[#2c2935] hover:bg-[#3a3647] border-2 border-[#525866] text-[#f4ecd8] cursor-pointer"
               >
-                {activeEvent.rating}
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Hi-Bit 16-Bit Pixel Art Replay Viewport */}
+          <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] ng-vfd overflow-hidden">
+            <div ref={mountRef} className="w-full h-full" />
+
+            {/* Top-Left Speed Indicator */}
+            <div className="pointer-events-none absolute top-2.5 left-2.5 bg-[#0b0a0f]/92 border-2 border-[#525866] px-2.5 py-1 font-pixel text-[8px] text-[#f7b519]">
+              REPLAY · {speed}X
+            </div>
+
+            {/* Top-Right ET & Distance Readout */}
+            <div className="pointer-events-none absolute top-2.5 right-2.5 bg-[#0b0a0f]/92 border-2 border-[#525866] px-2.5 py-1 font-mono-num text-[11px] sm:text-xs flex items-center gap-3">
+              <span className="text-[#f7b519] font-bold">ET {currentTime.toFixed(2)}s</span>
+              <span className="text-[#f4ecd8]">
+                {Math.round(frame.distFt).toLocaleString()} / {replay.distanceFt.toLocaleString()} FT
+              </span>
+            </div>
+
+            {/* On-Viewport Active Shift Timing Callout */}
+            {activeEvent && (
+              <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 bg-[#141218]/94 border-2 border-[#f7b519] shadow-[3px_3px_0_#07060a] px-4 py-1.5 text-center">
+                <div
+                  className="font-pixel text-[10px] sm:text-xs pixel-text-shadow"
+                  style={{ color: activeEvent.color }}
+                >
+                  {activeEvent.rating}
+                </div>
+                <div className="font-mono-num text-[10px] text-[#f4ecd8] mt-0.5">
+                  {getEventBadgeLabel(activeEvent)} · {activeEvent.rpm.toLocaleString()} RPM · {activeEvent.mph} MPH
+                </div>
               </div>
-              <div className="font-mono-num text-[10px] text-[#f8fafc] mt-0.5">
-                {getEventBadgeLabel(activeEvent)} · {activeEvent.rpm.toLocaleString()} RPM · {activeEvent.mph} MPH
+            )}
+          </div>
+
+          {/* Pixel Tachometer + Timeline Scrubber */}
+          <div className="ng-vfd p-3 space-y-3">
+            <AnalogPixelTach
+              rpm={frame.rpm}
+              redlineRpm={replay.redlineRpm}
+              launchMinRpm={replay.launchMinRpm}
+              launchMaxRpm={replay.launchMaxRpm}
+              shiftMinRpm={replay.shiftMinRpm}
+              shiftMaxRpm={replay.shiftMaxRpm}
+              gear={frame.gear}
+              maxGears={car.gearRatios.length}
+              mph={frame.mph}
+              isStaging={isNearLaunch}
+              boostActive={frame.boost}
+              compact
+            />
+
+            {/* Interactive Timeline Scrubber with Shift Markers */}
+            <div className="space-y-1.5 pt-1 border-t border-[#323642]">
+              <div className="relative pt-4 pb-1">
+                <div className="pointer-events-none absolute left-0 right-0 top-0 h-4">
+                  {replay.events.map((ev, idx) => {
+                    const pct = Math.max(1, Math.min(99, (ev.t / totalSec) * 100));
+                    const isActive = idx === activeEventIndex;
+                    return (
+                      <div
+                        key={`${ev.kind}-${ev.t}-${idx}`}
+                        className="absolute -translate-x-1/2 flex flex-col items-center"
+                        style={{ left: `${pct}%` }}
+                      >
+                        <span
+                          className={`font-mono-num text-[9px] font-bold leading-none whitespace-nowrap ${
+                            isActive ? 'scale-110' : 'opacity-85'
+                          }`}
+                          style={{ color: ev.color }}
+                        >
+                          {getEventBadgeLabel(ev)}
+                        </span>
+                        <span className="w-0.5 h-2 mt-0.5" style={{ backgroundColor: ev.color }} />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <input
+                  type="range"
+                  min={0}
+                  max={totalSec}
+                  step={0.01}
+                  value={currentTime}
+                  aria-label="Replay timeline"
+                  onChange={(e) => {
+                    setPlaying(false);
+                    playingRef.current = false;
+                    handleSeek(parseFloat(e.target.value));
+                  }}
+                  className="w-full accent-[#f7b519] cursor-pointer"
+                />
+              </div>
+
+              {/* Playback Controls */}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleTogglePlay}
+                    className="ng-keycap px-4 py-1.5 bg-[#e83b24] hover:bg-[#ff563f] border-2 border-[#141218] text-[#ffffff] font-pixel text-[9px] flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                  >
+                    <PixelIcon name={playing ? 'pause' : 'play'} className="w-3.5 h-3.5" />
+                    <span>{playing ? 'PAUSE' : currentTime >= totalSec - 0.01 ? 'REPLAY' : 'PLAY'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRestart}
+                    className="ng-keycap px-3.5 py-1.5 bg-[#2c2935] hover:bg-[#3a3647] border-2 border-[#525866] text-[#f4ecd8] font-mono-num text-xs font-bold flex items-center gap-1 whitespace-nowrap cursor-pointer"
+                  >
+                    <PixelIcon name="restart" className="w-3.5 h-3.5" />
+                    <span>RESTART</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1 font-mono-num">
+                  <span className="text-[10px] text-[#94a3b8] mr-1 hidden sm:inline">SPEED</span>
+                  {SPEED_OPTIONS.map((sp) => (
+                    <button
+                      key={sp}
+                      type="button"
+                      onClick={() => {
+                        soundEngine.playUiClick();
+                        setSpeed(sp);
+                      }}
+                      className={`ng-keycap px-2.5 py-1 text-xs font-bold border-2 whitespace-nowrap cursor-pointer ${
+                        speed === sp
+                          ? 'bg-[#f7b519] border-[#141218] text-[#141218]'
+                          : 'bg-[#1c1a22] border-[#525866] text-[#b8c0cc] hover:bg-[#2c2935]'
+                      }`}
+                    >
+                      {sp}x
+                    </button>
+                  ))}
+                </div>
+
+                <div className="font-mono-num text-[11px] text-[#b8c0cc] whitespace-nowrap">
+                  {progressPct.toFixed(0)}% · RT {replay.reactionSec.toFixed(3)}s · 60ft {replay.sixtyFtSec.toFixed(2)}s
+                </div>
               </div>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Pixel Tachometer + Timeline Scrubber */}
-        <div className="pixel-inset p-3 space-y-3">
-          <AnalogPixelTach
-            rpm={frame.rpm}
-            redlineRpm={replay.redlineRpm}
-            launchMinRpm={replay.launchMinRpm}
-            launchMaxRpm={replay.launchMaxRpm}
-            shiftMinRpm={replay.shiftMinRpm}
-            shiftMaxRpm={replay.shiftMaxRpm}
-            gear={frame.gear}
-            maxGears={car.gearRatios.length}
-            mph={frame.mph}
-            isStaging={isNearLaunch}
-            boostActive={frame.boost}
-            compact
-          />
+          {/* Clickable Shift Timing Breakdown */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-pixel text-[10px] text-[#f7b519]">
+                SHIFT TIMING BREAKDOWN
+              </h3>
+              <span className="text-[11px] font-mono-num text-[#b8c0cc]">Click any shift to inspect timing</span>
+            </div>
 
-          {/* Interactive Timeline Scrubber with Shift Markers */}
-          <div className="space-y-1.5 pt-1 border-t border-[#2c3a59]">
-            <div className="relative pt-4 pb-1">
-              <div className="pointer-events-none absolute left-0 right-0 top-0 h-4">
+            {replay.events.length === 0 ? (
+              <div className="ng-vfd p-3 text-xs text-[#94a3b8]">
+                No shift events recorded on this run.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                 {replay.events.map((ev, idx) => {
-                  const pct = Math.max(1, Math.min(99, (ev.t / totalSec) * 100));
                   const isActive = idx === activeEventIndex;
                   return (
-                    <div
+                    <button
                       key={`${ev.kind}-${ev.t}-${idx}`}
-                      className="absolute -translate-x-1/2 flex flex-col items-center"
-                      style={{ left: `${pct}%` }}
+                      type="button"
+                      onClick={() => handleJumpToEvent(ev)}
+                      className={`ng-keycap text-left p-2.5 border-2 cursor-pointer ${
+                        isActive
+                          ? 'bg-[#2c2536] border-[#f7b519]'
+                          : 'bg-[#1a1820] border-[#3a3e4d] hover:border-[#b8c0cc]'
+                      }`}
                     >
-                      <span
-                        className={`font-mono-num text-[9px] font-bold leading-none whitespace-nowrap ${
-                          isActive ? 'scale-110' : 'opacity-85'
-                        }`}
+                      <div className="flex items-center justify-between gap-1 font-mono-num text-[11px]">
+                        <span className="font-bold text-[#f4ecd8]">{getEventBadgeLabel(ev)}</span>
+                        <span className="text-[#94a3b8]">{ev.t.toFixed(2)}s</span>
+                      </div>
+                      <div
+                        className="text-[11px] font-bold mt-1 truncate"
                         style={{ color: ev.color }}
                       >
-                        {getEventBadgeLabel(ev)}
-                      </span>
-                      <span className="w-0.5 h-2 mt-0.5" style={{ backgroundColor: ev.color }} />
-                    </div>
+                        {ev.rating}
+                      </div>
+                      <div className="font-mono-num text-[10px] text-[#b8c0cc] mt-0.5 flex items-center justify-between gap-1">
+                        <span>{ev.rpm.toLocaleString()} RPM</span>
+                        <span>{ev.mph} MPH</span>
+                      </div>
+                    </button>
                   );
                 })}
               </div>
-
-              <input
-                type="range"
-                min={0}
-                max={totalSec}
-                step={0.01}
-                value={currentTime}
-                aria-label="Replay timeline"
-                onChange={(e) => {
-                  setPlaying(false);
-                  playingRef.current = false;
-                  handleSeek(parseFloat(e.target.value));
-                }}
-                className="w-full accent-[#f5b82e] cursor-pointer"
-              />
-            </div>
-
-            {/* Playback Controls */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleTogglePlay}
-                  className="pixel-btn rounded-full px-4 py-1.5 bg-gradient-to-b from-[#ff5a4a] to-[#e6392a] hover:from-[#ff6d5e] hover:to-[#f04435] border border-[#f5b82e] text-[#ffffff] text-xs font-bold flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-                >
-                  <PixelIcon name={playing ? 'pause' : 'play'} className="w-3.5 h-3.5" />
-                  <span>{playing ? 'Pause' : currentTime >= totalSec - 0.01 ? 'Replay' : 'Play'}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleRestart}
-                  className="pixel-btn rounded-full px-3.5 py-1.5 bg-[#222c45] hover:bg-[#2a3654] border border-[#526ba3]/70 text-[#f8fafc] text-xs font-bold flex items-center gap-1 whitespace-nowrap cursor-pointer"
-                >
-                  <PixelIcon name="restart" className="w-3.5 h-3.5" />
-                  <span>Restart</span>
-                </button>
-              </div>
-
-              <div className="flex items-center gap-1 font-mono-num">
-                <span className="text-[10px] text-[#94a3b8] mr-1 hidden sm:inline">SPEED</span>
-                {SPEED_OPTIONS.map((sp) => (
-                  <button
-                    key={sp}
-                    type="button"
-                    onClick={() => {
-                      soundEngine.playUiClick();
-                      setSpeed(sp);
-                    }}
-                    className={`pixel-btn rounded-full px-2.5 py-1 text-xs font-bold border whitespace-nowrap cursor-pointer ${
-                      speed === sp
-                        ? 'bg-[#f5b82e] border-[#fef08a] text-[#0e1320]'
-                        : 'bg-[#192033] border-[#425582]/70 text-[#cbd5e1] hover:bg-[#232d47]'
-                    }`}
-                  >
-                    {sp}x
-                  </button>
-                ))}
-              </div>
-
-              <div className="font-mono-num text-[11px] text-[#94a3b8] whitespace-nowrap">
-                {progressPct.toFixed(0)}% · RT {replay.reactionSec.toFixed(3)}s · 60ft {replay.sixtyFtSec.toFixed(2)}s
-              </div>
-            </div>
+            )}
           </div>
-        </div>
-
-        {/* Clickable Shift Timing Breakdown */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <h3 className="font-pixel text-[10px] text-[#f5b82e]">
-              SHIFT TIMING BREAKDOWN
-            </h3>
-            <span className="text-[11px] text-[#94a3b8]">Click any shift to inspect timing</span>
-          </div>
-
-          {replay.events.length === 0 ? (
-            <div className="pixel-inset p-3 text-xs text-[#94a3b8]">
-              No shift events recorded on this run.
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {replay.events.map((ev, idx) => {
-                const isActive = idx === activeEventIndex;
-                return (
-                  <button
-                    key={`${ev.kind}-${ev.t}-${idx}`}
-                    type="button"
-                    onClick={() => handleJumpToEvent(ev)}
-                    className={`pixel-btn rounded-xl text-left p-2.5 border cursor-pointer ${
-                      isActive
-                        ? 'bg-[#263457] border-[#f5b82e]'
-                        : 'bg-[#192033] border-[#425582]/65 hover:border-[#6884bf]'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-1 font-mono-num text-[11px]">
-                      <span className="font-bold text-[#f8fafc]">{getEventBadgeLabel(ev)}</span>
-                      <span className="text-[#94a3b8]">{ev.t.toFixed(2)}s</span>
-                    </div>
-                    <div
-                      className="text-[11px] font-bold mt-1 truncate"
-                      style={{ color: ev.color }}
-                    >
-                      {ev.rating}
-                    </div>
-                    <div className="font-mono-num text-[10px] text-[#94a3b8] mt-0.5 flex items-center justify-between gap-1">
-                      <span>{ev.rpm.toLocaleString()} RPM</span>
-                      <span>{ev.mph} MPH</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
     </div>

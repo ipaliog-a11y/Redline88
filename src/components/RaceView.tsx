@@ -72,7 +72,7 @@ const INITIAL_TELEMETRY: RaceTelemetry = {
   inShiftZone: false,
   calloutText: '',
   calloutTimer: 0,
-  calloutColor: '#22c55e',
+  calloutColor: '#2ee66b',
   foul: false,
 };
 
@@ -117,7 +117,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
     const sim = new RaceSimulation(
       container,
       save.activeCarId,
-      carConfig,
+      carConfigRef.current,
       tierId,
       timeOfDay,
       activeDistance,
@@ -244,12 +244,12 @@ export const RaceView: React.FC<RaceViewProps> = ({
 
   const burnoutZone =
     hud.burnoutTemp > 92
-      ? { label: 'OVERHEAT', color: '#ff4d3d' }
+      ? { label: 'OVERHEAT', color: '#e83b24' }
       : hud.burnoutTemp >= 75
-      ? { label: 'OPTIMAL', color: '#22c55e' }
+      ? { label: 'OPTIMAL', color: '#2ee66b' }
       : hud.burnoutTemp >= 35
-      ? { label: 'WARMING', color: '#f5b82e' }
-      : { label: 'COLD', color: '#38bdf8' };
+      ? { label: 'WARMING', color: '#f7b519' }
+      : { label: 'COLD', color: '#19d4e6' };
 
   const burnoutHint =
     hud.burnoutTemp > 92
@@ -261,62 +261,62 @@ export const RaceView: React.FC<RaceViewProps> = ({
       : 'HOLD BRAKE + GAS TO HEAT REAR SLICKS';
 
   return (
-    <div className="relative w-full h-[100dvh] overflow-hidden bg-[#111623] flex flex-col select-none">
+    <div className="relative w-full h-[100dvh] overflow-hidden bg-[#141218] flex flex-col select-none">
       {/* Full-Viewport Hi-Bit 16-Bit Pixel Art Drag Strip */}
       <div className="relative flex-1 min-h-0 w-full overflow-hidden">
         <div ref={viewportRef} className="w-full h-full" />
 
-        {/* TOP CLEAN MODERN HUD OVERLAY */}
+        {/* TOP NEO-GEO ARCADE HUD OVERLAY */}
         <div className="pointer-events-none absolute top-0 left-0 right-0 z-10 px-2.5 sm:px-4 pt-2.5 sm:pt-3 flex flex-col gap-1.5">
           <div className="flex items-start justify-between gap-2 sm:gap-4">
-            {/* Left: Event Card */}
-            <div className="pixel-panel rounded-2xl px-3 sm:px-4 py-1.5 sm:py-2 min-w-0 max-w-[54%] sm:max-w-none flex items-center gap-2.5 backdrop-blur-sm">
+            {/* Left: Steel Event Plate */}
+            <div className="ng-plate px-2.5 sm:px-3.5 py-1.5 min-w-0 max-w-[54%] sm:max-w-none flex items-center gap-2.5">
               {rival && (
-                <PixelRivalPortrait rival={rival} className="hidden sm:block w-9 h-9" />
+                <PixelRivalPortrait rival={rival} className="hidden sm:block w-10 h-10" />
               )}
               <div className="min-w-0">
-                <div className="font-pixel text-[8px] sm:text-[10px] text-[#f5b82e] pixel-text-shadow leading-tight truncate">
+                <div className="font-pixel text-[8px] sm:text-[9px] text-[#f7b519] pixel-text-shadow leading-tight truncate">
                   {tierSpec.className} · {distSpec.shortLabel}
                 </div>
-                <div className="text-[11px] sm:text-xs font-bold text-[#f8fafc] mt-0.5 truncate">
-                  {rival ? `VS ${rival.name.toUpperCase()}` : `${distSpec.label} SOLO TEST`}
+                <div className="text-[11px] sm:text-xs font-bold text-[#f4ecd8] mt-0.5 truncate uppercase">
+                  {rival ? `VS ${rival.name}` : `${distSpec.label} SOLO TEST`}
                 </div>
               </div>
             </div>
 
-            {/* Center: Strip Progress Rail & Live ET Timer (Desktop) */}
-            <div className="hidden md:flex flex-col items-center pixel-panel rounded-2xl px-4 py-2 min-w-[320px] backdrop-blur-sm">
-              <div className="w-full flex items-center justify-between text-[11px] font-mono-num text-[#cbd5e1] mb-1.5">
-                <span className="font-pixel text-[8px] text-[#94a3b8]">START</span>
-                <span className="font-pixel text-xs text-[#f5b82e]">
+            {/* Center: Strip Progress Rail & VFD Live ET Timer (Desktop) */}
+            <div className="hidden md:flex flex-col items-center ng-plate px-4 py-1.5 min-w-[320px]">
+              <div className="w-full flex items-center justify-between text-[11px] font-mono-num text-[#b8c0cc] mb-1">
+                <span className="font-pixel text-[8px] text-[#b8c0cc]">START</span>
+                <span className="ng-vfd px-2.5 py-0.5 font-pixel text-xs text-[#f7b519]">
                   {hud.elapsedSec.toFixed(3)}s
                 </span>
-                <span className="font-pixel text-[8px] text-[#38bdf8]">{distSpec.shortLabel}</span>
+                <span className="font-pixel text-[8px] text-[#19d4e6]">{distSpec.shortLabel}</span>
               </div>
-              <div className="relative w-full h-3.5 pixel-inset rounded-full overflow-hidden">
+              <div className="relative w-full h-3.5 ng-vfd overflow-hidden">
                 {rival && (
                   <div
-                    className="absolute top-0.5 h-1 w-3.5 rounded-full bg-[#94a3b8]"
+                    className="absolute top-0.5 h-1 w-3.5 bg-[#b8c0cc]"
                     style={{ left: `calc(${rivalPct}% - 7px)` }}
                   />
                 )}
                 <div
-                  className="absolute bottom-0.5 h-1.5 w-4 rounded-full bg-[#ff4d3d]"
+                  className="absolute bottom-0.5 h-1.5 w-4 bg-[#e83b24]"
                   style={{ left: `calc(${playerPct}% - 8px)` }}
                 />
               </div>
             </div>
 
-            {/* Right: Live ET (mobile) + Audio & Pause Switches */}
+            {/* Right: Live ET (mobile) + Arcade Keycap Audio & Pause */}
             <div className="pointer-events-auto flex items-center gap-1.5 shrink-0">
-              <div className="md:hidden pixel-panel rounded-full px-3 py-2 font-mono-num text-xs font-bold text-[#f5b82e]">
+              <div className="md:hidden ng-vfd border-2 border-[#525866] px-2.5 py-1.5 font-mono-num text-xs font-bold text-[#f7b519]">
                 {hud.elapsedSec.toFixed(2)}s
               </div>
               <button
                 type="button"
                 onClick={onToggleMute}
                 aria-label={muted ? 'Unmute audio' : 'Mute audio'}
-                className="pixel-btn rounded-full h-10 w-10 flex items-center justify-center bg-[#1a2338]/92 hover:bg-[#24304d] border border-[#5670a6]/60 cursor-pointer"
+                className="ng-keycap h-10 w-10 flex items-center justify-center bg-[#201e26] hover:bg-[#2d2a36] border-2 border-[#525866] cursor-pointer"
               >
                 <PixelIcon name={muted ? 'soundOff' : 'soundOn'} className="w-4 h-4" />
               </button>
@@ -324,7 +324,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
                 type="button"
                 onClick={togglePause}
                 aria-label="Pause race"
-                className="pixel-btn rounded-full h-10 w-10 flex items-center justify-center bg-[#1a2338]/92 hover:bg-[#24304d] border border-[#5670a6]/60 text-[#f8fafc] cursor-pointer"
+                className="ng-keycap h-10 w-10 flex items-center justify-center bg-[#201e26] hover:bg-[#2d2a36] border-2 border-[#525866] text-[#f4ecd8] cursor-pointer"
               >
                 <PixelIcon name="pause" className="w-4 h-4" />
               </button>
@@ -332,29 +332,29 @@ export const RaceView: React.FC<RaceViewProps> = ({
           </div>
 
           {/* Mobile Compact Strip Progress Rail */}
-          <div className="md:hidden flex items-center gap-2 pixel-panel rounded-full px-3 py-1 font-mono-num text-[10px] text-[#cbd5e1]">
-            <span className="shrink-0 font-pixel text-[8px] text-[#f5b82e]">GO</span>
-            <div className="relative flex-1 h-2.5 pixel-inset rounded-full overflow-hidden">
+          <div className="md:hidden flex items-center gap-2 ng-plate px-2.5 py-1 font-mono-num text-[10px] text-[#b8c0cc]">
+            <span className="shrink-0 font-pixel text-[8px] text-[#f7b519]">GO</span>
+            <div className="relative flex-1 h-2.5 ng-vfd overflow-hidden">
               {rival && (
                 <div
-                  className="absolute top-0.5 h-1 w-2.5 rounded-full bg-[#94a3b8]"
+                  className="absolute top-0.5 h-1 w-2.5 bg-[#b8c0cc]"
                   style={{ left: `calc(${rivalPct}% - 5px)` }}
                 />
               )}
               <div
-                className="absolute bottom-0.5 h-1 w-3 rounded-full bg-[#ff4d3d]"
+                className="absolute bottom-0.5 h-1 w-3 bg-[#e83b24]"
                 style={{ left: `calc(${playerPct}% - 6px)` }}
               />
             </div>
-            <span className="shrink-0 font-pixel text-[8px] text-[#38bdf8]">{distSpec.shortLabel}</span>
+            <span className="shrink-0 font-pixel text-[8px] text-[#19d4e6]">{distSpec.shortLabel}</span>
           </div>
         </div>
 
-        {/* Floating Shift / Launch Callout Banner */}
+        {/* Floating Skewed Arcade Shift / Launch Callout Banner */}
         {hud.calloutText && !result && (
           <div className="pointer-events-none absolute top-[24%] left-1/2 -translate-x-1/2 z-10 text-center">
             <div
-              className="font-pixel text-sm sm:text-lg tracking-wider px-5 py-2 bg-[#111623]/92 border border-[#5670a6]/65 rounded-full shadow-[0_8px_20px_rgba(5,8,18,0.5)] backdrop-blur-sm"
+              className="-skew-x-10 font-pixel text-sm sm:text-lg tracking-wider px-5 py-2 bg-[#141218]/95 border-2 border-[#f7b519] shadow-[4px_4px_0_#07060a]"
               style={{ color: hud.calloutColor }}
             >
               {hud.calloutText}
@@ -362,99 +362,99 @@ export const RaceView: React.FC<RaceViewProps> = ({
           </div>
         )}
 
-        {/* Pre-Race Burnout Mini-Game Panel */}
+        {/* Pre-Race Burnout Mini-Game Panel (Neo-Geo Style) */}
         {isBurnoutPhase && !paused && !result && (
-          <div className="absolute top-[86px] md:top-[76px] left-1/2 -translate-x-1/2 z-10 w-[min(94%,490px)] pixel-panel-accent rounded-2xl px-3.5 sm:px-4 py-2.5 sm:py-3 space-y-2 backdrop-blur-sm">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="font-pixel text-[9px] sm:text-[10px] text-[#f5b82e] whitespace-nowrap">
-                  BURNOUT BOX
-                </span>
-                <span className="font-mono-num text-xs font-bold text-[#f8fafc] bg-[#0e1422] border border-[#4d6599]/60 rounded-full px-2 py-0.5 whitespace-nowrap">
-                  {hud.burnoutTimeLeft.toFixed(1)}s
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => simRef.current?.skipBurnout()}
-                className="pixel-btn rounded-full px-3 py-1 bg-[#222d48] hover:bg-[#2c3b5e] border border-[#6884bf]/75 text-[11px] font-mono-num font-bold text-[#e2e8f0] whitespace-nowrap shrink-0 cursor-pointer"
-              >
-                Skip (20–80%) <span className="hidden sm:inline opacity-70">[TAB]</span>
-              </button>
-            </div>
-
-            {/* Tire Temperature Bar with Optimal 75–92% Sweet Spot Window */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-[11px] font-mono-num">
-                <span className="text-[#94a3b8]">
-                  TIRE TEMP:{' '}
-                  <span className="font-bold" style={{ color: burnoutZone.color }}>
-                    {hud.burnoutTemp}% · {burnoutZone.label}
+          <div className="absolute top-[86px] md:top-[76px] left-1/2 -translate-x-1/2 z-10 w-[min(94%,490px)] ng-plate-gold overflow-hidden">
+            <div className="ng-hazard-bar h-1.5 w-full" />
+            <div className="px-3.5 sm:px-4 py-2.5 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-pixel text-[9px] sm:text-[10px] text-[#f7b519] whitespace-nowrap">
+                    BURNOUT BOX
                   </span>
-                </span>
-                <span className="font-bold text-[#f8fafc] whitespace-nowrap">
-                  {hud.burnoutEfficiency}% EFF{' '}
-                  <span
-                    className={
-                      hud.burnoutGripBonusPct >= 0 ? 'text-[#22c55e]' : 'text-[#f97316]'
-                    }
-                  >
-                    ({hud.burnoutGripBonusPct >= 0 ? '+' : ''}
-                    {hud.burnoutGripBonusPct}% GRIP)
+                  <span className="ng-vfd px-2 py-0.5 font-mono-num text-xs font-bold text-[#f4ecd8] whitespace-nowrap">
+                    {hud.burnoutTimeLeft.toFixed(1)}s
                   </span>
-                </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => simRef.current?.skipBurnout()}
+                  className="ng-keycap px-2.5 py-1 bg-[#2c2935] hover:bg-[#3a3647] border-2 border-[#525866] text-[10px] font-mono-num font-bold text-[#f4ecd8] whitespace-nowrap shrink-0 cursor-pointer"
+                >
+                  SKIP (20–80%) <span className="hidden sm:inline opacity-70">[TAB]</span>
+                </button>
               </div>
 
-              <div className="relative w-full h-3.5 pixel-inset rounded-full overflow-hidden">
-                {/* Optimal 75%..92% Zone Band */}
-                <div
-                  className="absolute top-0 bottom-0 bg-[#22c55e]/28 border-x border-[#22c55e]"
-                  style={{ left: '75%', width: '17%' }}
-                />
-                {/* Overheat 92%..100% Danger Band */}
-                <div
-                  className="absolute top-0 bottom-0 bg-[#ff4d3d]/22"
-                  style={{ left: '92%', width: '8%' }}
-                />
-                {/* Live Temperature Fill */}
-                <div
-                  className="h-full rounded-full transition-[width] duration-75"
+              {/* Tire Temperature Bar with Optimal 75–92% Sweet Spot Window */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-[11px] font-mono-num">
+                  <span className="text-[#b8c0cc]">
+                    TIRE TEMP:{' '}
+                    <span className="font-bold" style={{ color: burnoutZone.color }}>
+                      {hud.burnoutTemp}% · {burnoutZone.label}
+                    </span>
+                  </span>
+                  <span className="font-bold text-[#f4ecd8] whitespace-nowrap">
+                    {hud.burnoutEfficiency}% EFF{' '}
+                    <span
+                      className={
+                        hud.burnoutGripBonusPct >= 0 ? 'text-[#2ee66b]' : 'text-[#f7b519]'
+                      }
+                    >
+                      ({hud.burnoutGripBonusPct >= 0 ? '+' : ''}
+                      {hud.burnoutGripBonusPct}% GRIP)
+                    </span>
+                  </span>
+                </div>
+
+                <div className="relative w-full h-3.5 ng-vfd overflow-hidden">
+                  <div
+                    className="absolute top-0 bottom-0 bg-[#2ee66b]/30 border-x border-[#2ee66b]"
+                    style={{ left: '75%', width: '17%' }}
+                  />
+                  <div
+                    className="absolute top-0 bottom-0 bg-[#e83b24]/25"
+                    style={{ left: '92%', width: '8%' }}
+                  />
+                  <div
+                    className="h-full transition-[width] duration-75"
+                    style={{
+                      width: `${hud.burnoutTemp}%`,
+                      backgroundColor: burnoutZone.color,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 text-[10px] sm:text-[11px] font-mono-num">
+                <span
+                  className="font-bold truncate"
                   style={{
-                    width: `${hud.burnoutTemp}%`,
-                    backgroundColor: burnoutZone.color,
+                    color:
+                      hud.throttle && !hud.brake
+                        ? '#f7b519'
+                        : hud.burnoutTemp > 92
+                        ? '#e83b24'
+                        : hud.burnoutTemp >= 75
+                        ? '#2ee66b'
+                        : '#ffd557',
                   }}
-                />
+                >
+                  {burnoutHint}
+                </span>
+                <span className="hidden sm:inline text-[#b8c0cc] whitespace-nowrap shrink-0">
+                  [S/SHIFT] + [W]
+                </span>
               </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-2 text-[10px] sm:text-[11px] font-mono-num">
-              <span
-                className="font-bold truncate"
-                style={{
-                  color:
-                    hud.throttle && !hud.brake
-                      ? '#f5b82e'
-                      : hud.burnoutTemp > 92
-                      ? '#ff4d3d'
-                      : hud.burnoutTemp >= 75
-                      ? '#4ade80'
-                      : '#fef08a',
-                }}
-              >
-                {burnoutHint}
-              </span>
-              <span className="hidden sm:inline text-[#94a3b8] whitespace-nowrap shrink-0">
-                [S/SHIFT] + [W]
-              </span>
             </div>
           </div>
         )}
 
         {/* Staging Instruction Banner */}
         {isStagingPhase && !hud.foul && (
-          <div className="pointer-events-none absolute top-[92px] md:top-[78px] left-1/2 -translate-x-1/2 z-10 max-w-[94%] pixel-panel-accent rounded-full px-4 sm:px-5 py-1.5 text-center backdrop-blur-sm">
-            <p className="font-mono-num text-[10px] sm:text-xs text-[#fef08a] font-bold tracking-wide">
-              <span className="text-[#38bdf8] mr-2">
+          <div className="pointer-events-none absolute top-[92px] md:top-[78px] left-1/2 -translate-x-1/2 z-10 max-w-[94%] ng-plate-gold px-4 sm:px-5 py-1.5 text-center">
+            <p className="font-mono-num text-[10px] sm:text-xs text-[#ffd557] font-bold tracking-wide">
+              <span className="text-[#19d4e6] mr-2">
                 TIRES {hud.burnoutEfficiency}% ({hud.burnoutGripBonusPct >= 0 ? '+' : ''}
                 {hud.burnoutGripBonusPct}% GRIP)
               </span>
@@ -473,8 +473,8 @@ export const RaceView: React.FC<RaceViewProps> = ({
         )}
       </div>
 
-      {/* BOTTOM SLEEK COCKPIT DECK */}
-      <div className="shrink-0 w-full bg-[#171f33] border-t border-[#4d6599]/45 px-2.5 sm:px-4 py-2.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] z-20">
+      {/* BOTTOM NEO-GEO ARCADE COCKPIT DECK */}
+      <div className="shrink-0 w-full bg-[#1c1a22] border-t-2 border-[#525866] px-2.5 sm:px-4 py-2.5 pb-[max(0.6rem,env(safe-area-inset-bottom))] z-20">
         <div className="max-w-6xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-2 sm:gap-3">
           {/* Pixel Font Tachometer + Shift Light + Gear/MPH */}
           <AnalogPixelTach
@@ -492,7 +492,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
             wheelspin={hud.wheelspin}
           />
 
-          {/* Tactile Multi-Touch Pedals */}
+          {/* Tactile Multi-Touch Arcade Switch Pedals */}
           <div
             className={`grid ${
               hud.nitrousMax > 0 ? 'grid-cols-4' : 'grid-cols-3'
@@ -513,18 +513,18 @@ export const RaceView: React.FC<RaceViewProps> = ({
                 simRef.current?.setClutch(false);
               }}
               onPointerCancel={() => simRef.current?.setClutch(false)}
-              className={`pixel-btn rounded-2xl touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-4 border-[1.5px] font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
+              className={`ng-keycap touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-4 border-2 font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
                 isBurnoutPhase
                   ? hud.brake
-                    ? 'bg-[#ff4d3d] border-[#fecaca] text-[#ffffff]'
-                    : 'bg-[#361b26] border-[#ff4d3d]/80 text-[#fecaca] hover:bg-[#472230]'
+                    ? 'bg-[#e83b24] border-[#141218] text-[#ffffff]'
+                    : 'bg-[#361b1d] border-[#e83b24] text-[#fecaca] hover:bg-[#472226]'
                   : hud.clutch
-                  ? 'bg-[#f5b82e] border-[#fef08a] text-[#0e1320]'
-                  : 'bg-[#222c45] border-[#526ba3]/75 text-[#f8fafc] hover:bg-[#2a3654]'
+                  ? 'bg-[#f7b519] border-[#141218] text-[#141218]'
+                  : 'bg-[#2c2935] border-[#525866] text-[#f4ecd8] hover:bg-[#3a3647]'
               }`}
             >
               {isBurnoutPhase ? 'BRAKE' : 'CLUTCH'}
-              <span className="hidden lg:block font-mono-num text-[10px] opacity-75 mt-1">
+              <span className="hidden lg:block font-mono-num text-[10px] opacity-80 mt-1">
                 {isBurnoutPhase ? '[S / SHIFT]' : '[SHIFT]'}
               </span>
             </button>
@@ -544,14 +544,14 @@ export const RaceView: React.FC<RaceViewProps> = ({
                 simRef.current?.setThrottle(false);
               }}
               onPointerCancel={() => simRef.current?.setThrottle(false)}
-              className={`pixel-btn rounded-2xl touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-5 border-[1.5px] font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
+              className={`ng-keycap touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-5 border-2 font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
                 hud.throttle
-                  ? 'bg-[#22c55e] border-[#bbf7d0] text-[#0e1320]'
-                  : 'bg-[#173329] border-[#22c55e]/80 text-[#bbf7d0] hover:bg-[#1e4235]'
+                  ? 'bg-[#2ee66b] border-[#141218] text-[#141218]'
+                  : 'bg-[#163022] border-[#2ee66b] text-[#bbf7d0] hover:bg-[#1e4230]'
               }`}
             >
               GAS
-              <span className="hidden lg:block font-mono-num text-[10px] opacity-75 mt-1">[W]</span>
+              <span className="hidden lg:block font-mono-num text-[10px] opacity-80 mt-1">[W]</span>
             </button>
 
             <button
@@ -562,16 +562,16 @@ export const RaceView: React.FC<RaceViewProps> = ({
                 e.preventDefault();
                 simRef.current?.triggerShiftUp();
               }}
-              className={`pixel-btn rounded-2xl touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-5 border-[1.5px] font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
+              className={`ng-keycap touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-5 border-2 font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
                 isBurnoutPhase
-                  ? 'bg-[#141a2b] border-[#2a3552] text-[#64748b] cursor-not-allowed'
+                  ? 'bg-[#141218] border-[#323642] text-[#64748b] cursor-not-allowed'
                   : hud.inShiftZone
-                  ? 'bg-[#f5b82e] border-[#fef08a] text-[#0e1320]'
-                  : 'bg-gradient-to-b from-[#ff5a4a] to-[#e6392a] border-[#fca5a5]/80 text-[#ffffff] hover:from-[#ff6d5e] hover:to-[#f04435]'
+                  ? 'bg-[#f7b519] border-[#141218] text-[#141218]'
+                  : 'bg-[#e83b24] border-[#141218] text-[#ffffff] hover:bg-[#ff563f]'
               }`}
             >
               SHIFT+
-              <span className="hidden lg:block font-mono-num text-[10px] opacity-80 mt-1">[SPACE]</span>
+              <span className="hidden lg:block font-mono-num text-[10px] opacity-85 mt-1">[SPACE]</span>
             </button>
 
             {hud.nitrousMax > 0 && (
@@ -583,271 +583,285 @@ export const RaceView: React.FC<RaceViewProps> = ({
                   e.preventDefault();
                   simRef.current?.triggerNitrous();
                 }}
-                className={`pixel-btn rounded-2xl touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-3.5 border-[1.5px] font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
+                className={`ng-keycap touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-3.5 border-2 font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
                   isBurnoutPhase
-                    ? 'bg-[#141a2b] border-[#2a3552] text-[#64748b] cursor-not-allowed'
+                    ? 'bg-[#141218] border-[#323642] text-[#64748b] cursor-not-allowed'
                     : hud.nitrousActive
-                    ? 'bg-[#38bdf8] border-[#bae6fd] text-[#0e1320]'
+                    ? 'bg-[#19d4e6] border-[#141218] text-[#141218]'
                     : hud.nitrousLeft > 0
-                    ? 'bg-[#0369a1] border-[#38bdf8]/80 text-[#e0f2fe] hover:bg-[#0284c7]'
-                    : 'bg-[#141a2b] border-[#2a3552] text-[#64748b] cursor-not-allowed'
+                    ? 'bg-[#0e4f63] border-[#19d4e6] text-[#e0f2fe] hover:bg-[#136a85]'
+                    : 'bg-[#141218] border-[#323642] text-[#64748b] cursor-not-allowed'
                 }`}
               >
                 NOS ({hud.nitrousLeft})
-                <span className="hidden lg:block font-mono-num text-[10px] opacity-75 mt-1">[N]</span>
+                <span className="hidden lg:block font-mono-num text-[10px] opacity-80 mt-1">[N]</span>
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* SLEEK PAUSE MODAL */}
+      {/* NEO-GEO PAUSE MODAL */}
       {paused && !result && (
-        <div className="absolute inset-0 z-30 bg-[#0b0f1a]/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="pixel-panel-accent rounded-3xl max-w-sm w-full p-6 text-center space-y-5">
-            <h2 className="font-pixel text-lg text-[#f5b82e] pixel-text-shadow">PAUSED</h2>
-            <p className="text-sm text-[#cbd5e1] font-semibold">
-              {car.name} · {tierSpec.venueName}
-            </p>
-            <div className="flex flex-col gap-2.5">
-              <button
-                type="button"
-                onClick={togglePause}
-                className="pixel-btn rounded-full w-full py-3 bg-[#22c55e] hover:bg-[#16a34a] text-[#0e1320] border border-[#bbf7d0] font-pixel text-[11px] flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
-              >
-                <PixelIcon name="play" className="w-4 h-4" /> Resume Race
-              </button>
-              <button
-                type="button"
-                onClick={handleRestart}
-                className="pixel-btn rounded-full w-full py-3 bg-[#222c45] hover:bg-[#2a3654] border border-[#526ba3]/70 text-[#f8fafc] font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
-              >
-                <PixelIcon name="restart" className="w-4 h-4" /> Restart Run
-              </button>
-              <button
-                type="button"
-                onClick={onExitToGarage}
-                className="pixel-btn rounded-full w-full py-3 bg-[#141b2d] hover:bg-[#1e2842] border border-[#3c4d73]/70 text-[#cbd5e1] font-bold text-sm whitespace-nowrap cursor-pointer"
-              >
-                Return to Garage
-              </button>
+        <div className="absolute inset-0 z-30 bg-[#07060a]/82 flex items-center justify-center p-4">
+          <div className="ng-plate-gold max-w-sm w-full overflow-hidden text-center">
+            <div className="ng-hazard-bar h-2.5 w-full" />
+            <div className="p-6 space-y-5">
+              <h2 className="font-pixel text-lg text-[#f7b519] pixel-text-shadow">PAUSED</h2>
+              <p className="text-sm font-mono-num text-[#f4ecd8] font-bold">
+                {car.name} · {tierSpec.venueName}
+              </p>
+              <div className="flex flex-col gap-2.5">
+                <button
+                  type="button"
+                  onClick={togglePause}
+                  className="ng-keycap w-full py-3 bg-[#2ee66b] hover:bg-[#4ff588] text-[#141218] border-2 border-[#141218] font-pixel text-[10px] flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
+                >
+                  <PixelIcon name="play" className="w-4 h-4" /> RESUME RACE
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRestart}
+                  className="ng-keycap w-full py-3 bg-[#2c2935] hover:bg-[#3a3647] border-2 border-[#525866] text-[#f4ecd8] font-mono-num font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer"
+                >
+                  <PixelIcon name="restart" className="w-4 h-4" /> RESTART RUN
+                </button>
+                <button
+                  type="button"
+                  onClick={onExitToGarage}
+                  className="ng-keycap w-full py-3 bg-[#18161e] hover:bg-[#24212c] border-2 border-[#3a3e4d] text-[#b8c0cc] font-mono-num font-bold text-sm whitespace-nowrap cursor-pointer"
+                >
+                  RETURN TO PADDOCK
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* REACTION-TIME & ET OFFICIAL TIME SLIP RESULTS MODAL */}
+      {/* CREAM CHECKERED OFFICIAL TIME SLIP RESULTS TICKET MODAL */}
       {result && (
-        <div className="absolute inset-0 z-30 bg-[#0b0f1a]/82 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-          <div className="pixel-panel-accent rounded-3xl max-w-xl w-full max-h-[92dvh] overflow-y-auto p-5 sm:p-6 space-y-4 sm:space-y-5">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-4 border-b border-[#3c4d73]/60 pb-4">
-              <div className="flex items-center gap-3 min-w-0">
-                {result.rival && (
-                  <PixelRivalPortrait rival={result.rival} className="w-12 h-12" />
-                )}
-                <div className="min-w-0">
-                  <div
-                    className={`font-pixel text-base sm:text-lg pixel-text-shadow ${
-                      result.foul
-                        ? 'text-[#ff4d3d]'
+        <div className="absolute inset-0 z-30 bg-[#07060a]/84 flex items-center justify-center p-3 sm:p-4">
+          <div className="ng-ticket max-w-xl w-full max-h-[92dvh] overflow-y-auto shadow-[6px_6px_0_#07060a]">
+            {/* Checkered Ticket Header */}
+            <div className="bg-[#e83b24] text-white border-b-2 border-[#141218]">
+              <div className="ng-checkered-bar h-2.5 w-full" />
+              <div className="px-4 sm:px-5 py-3 flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  {result.rival && (
+                    <PixelRivalPortrait rival={result.rival} className="w-12 h-12" />
+                  )}
+                  <div className="min-w-0">
+                    <div
+                      className={`font-pixel text-sm sm:text-lg pixel-text-shadow ${
+                        result.foul
+                          ? 'text-[#ffd557]'
+                          : result.won
+                          ? 'text-[#ffffff]'
+                          : 'text-[#ffd557]'
+                      }`}
+                    >
+                      {result.foul
+                        ? 'RED LIGHT FOUL'
+                        : result.isTimeTrial
+                        ? 'TIME SLIP LOGGED'
                         : result.won
-                        ? 'text-[#22c55e]'
-                        : 'text-[#f97316]'
-                    }`}
-                  >
-                    {result.foul
-                      ? 'RED LIGHT FOUL'
-                      : result.isTimeTrial
-                      ? 'TIME SLIP LOGGED'
-                      : result.won
-                      ? 'VICTORY!'
-                      : 'DEFEATED'}
+                        ? 'VICTORY!'
+                        : 'DEFEATED'}
+                    </div>
+                    <p className="text-[11px] font-mono-num text-[#f4ecd8] mt-1">
+                      {tierSpec.name} · {distSpec.label} · {tierSpec.venueName}
+                    </p>
                   </div>
-                  <p className="text-xs text-[#94a3b8] mt-1.5">
-                    {tierSpec.name} · {distSpec.label} · {tierSpec.venueName}
-                  </p>
                 </div>
+                {result.isNewPersonalBest && !result.foul && (
+                  <div className="bg-[#f7b519] text-[#141218] border-2 border-[#141218] px-2.5 py-1 text-right shrink-0">
+                    <div className="font-pixel text-[8px]">NEW RECORD</div>
+                    <div className="font-mono-num text-[10px] font-bold">PERSONAL BEST</div>
+                  </div>
+                )}
               </div>
-              {result.isNewPersonalBest && !result.foul && (
-                <div className="text-right shrink-0">
-                  <div className="font-pixel text-[10px] text-[#f5b82e]">
-                    NEW RECORD
-                  </div>
-                  <div className="text-xs text-[#cbd5e1] mt-0.5">Personal Best</div>
-                </div>
-              )}
             </div>
 
-            {/* Reaction-Time & ET Comparison Table */}
-            <div className="pixel-inset p-4 font-mono-num text-sm space-y-2">
-              <div className="grid grid-cols-3 text-xs text-[#94a3b8] pb-1.5 border-b border-[#2c3a59]">
-                <span>METRIC</span>
-                <span className="text-right text-[#f8fafc]">YOU ({car.name})</span>
-                <span className="text-right">
-                  {result.rival ? result.rival.name.split(' ')[0].toUpperCase() : 'TARGET'}
-                </span>
-              </div>
-              <div className="grid grid-cols-3 items-center">
-                <span className="text-xs text-[#94a3b8]">{distSpec.shortLabel} ET</span>
-                <span className="text-right font-bold text-[#f5b82e]">
-                  {result.foul ? 'FOUL' : formatEt(result.playerEtMs)}
-                </span>
-                <span className="text-right text-[#cbd5e1]">
-                  {result.rival ? formatEt(result.rivalEtMs) : '—'}
-                </span>
-              </div>
-              <div className="grid grid-cols-3 items-center">
-                <span className="text-xs text-[#94a3b8]">TRAP SPEED</span>
-                <span className="text-right font-semibold text-[#f8fafc]">
-                  {result.foul ? '—' : `${result.playerTrapMph.toFixed(1)} MPH`}
-                </span>
-                <span className="text-right text-[#cbd5e1]">
-                  {result.rival ? `${result.rivalTrapMph.toFixed(1)} MPH` : '—'}
-                </span>
-              </div>
-              <div className="grid grid-cols-3 items-center">
-                <span className="text-xs text-[#94a3b8]">REACTION</span>
-                <span className="text-right text-[#cbd5e1]">
-                  {result.foul ? 'EARLY' : `${(result.reactionMs / 1000).toFixed(3)}s`}
-                </span>
-                <span className="text-right text-[#94a3b8]">
-                  {result.rival ? `${result.rival.reactionSec.toFixed(3)}s` : '—'}
-                </span>
-              </div>
-              <div className="grid grid-cols-3 items-center">
-                <span className="text-xs text-[#94a3b8]">60-FT / SHIFTS</span>
-                <span className="text-right text-[#cbd5e1]">
-                  {result.foul ? '—' : `${result.sixtyFtSec.toFixed(2)}s`}
-                </span>
-                <span className="text-right text-[#22c55e]">
-                  {result.perfectShifts} Perfect ({result.perfectClutchShifts} Clutch)
-                </span>
-              </div>
-              {typeof result.burnoutEfficiency === 'number' && (
+            <div className="p-4 sm:p-5 space-y-3.5">
+              {/* Official VFD Time-Slip Comparison Table */}
+              <div className="ng-vfd p-4 font-mono-num text-sm space-y-2 text-[#f4ecd8]">
+                <div className="grid grid-cols-3 text-xs text-[#94a3b8] pb-1.5 border-b border-[#323642]">
+                  <span>METRIC</span>
+                  <span className="text-right text-[#f4ecd8]">YOU ({car.name})</span>
+                  <span className="text-right">
+                    {result.rival ? result.rival.name.split(' ')[0].toUpperCase() : 'TARGET'}
+                  </span>
+                </div>
                 <div className="grid grid-cols-3 items-center">
-                  <span className="text-xs text-[#94a3b8]">BURNOUT</span>
-                  <span
-                    className={`text-right font-semibold ${
-                      result.burnoutEfficiency >= 85
-                        ? 'text-[#22c55e]'
-                        : result.burnoutEfficiency >= 55
-                        ? 'text-[#38bdf8]'
-                        : 'text-[#f5b82e]'
-                    }`}
-                  >
-                    {result.burnoutEfficiency}% Efficiency
+                  <span className="text-xs text-[#94a3b8]">{distSpec.shortLabel} ET</span>
+                  <span className="text-right font-bold text-[#f7b519]">
+                    {result.foul ? 'FOUL' : formatEt(result.playerEtMs)}
+                  </span>
+                  <span className="text-right text-[#b8c0cc]">
+                    {result.rival ? formatEt(result.rivalEtMs) : '—'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 items-center">
+                  <span className="text-xs text-[#94a3b8]">TRAP SPEED</span>
+                  <span className="text-right font-semibold text-[#f4ecd8]">
+                    {result.foul ? '—' : `${result.playerTrapMph.toFixed(1)} MPH`}
+                  </span>
+                  <span className="text-right text-[#b8c0cc]">
+                    {result.rival ? `${result.rivalTrapMph.toFixed(1)} MPH` : '—'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 items-center">
+                  <span className="text-xs text-[#94a3b8]">REACTION</span>
+                  <span className="text-right text-[#b8c0cc]">
+                    {result.foul ? 'EARLY' : `${(result.reactionMs / 1000).toFixed(3)}s`}
                   </span>
                   <span className="text-right text-[#94a3b8]">
-                    {result.burnoutSkipped ? 'Skipped Roll' : 'Manual Heat'}
+                    {result.rival ? `${result.rival.reactionSec.toFixed(3)}s` : '—'}
                   </span>
                 </div>
-              )}
-              {!result.foul && (result.quarterSplitSec || result.halfSplitSec) && (
-                <div className="grid grid-cols-3 items-center pt-1 border-t border-[#2c3a59] text-xs">
-                  <span className="text-[#94a3b8]">SPLITS</span>
-                  <span className="text-right text-[#cbd5e1]">
-                    {result.quarterSplitSec ? `1/4: ${result.quarterSplitSec.toFixed(2)}s` : '—'}
+                <div className="grid grid-cols-3 items-center">
+                  <span className="text-xs text-[#94a3b8]">60-FT / SHIFTS</span>
+                  <span className="text-right text-[#b8c0cc]">
+                    {result.foul ? '—' : `${result.sixtyFtSec.toFixed(2)}s`}
                   </span>
-                  <span className="text-right text-[#38bdf8]">
-                    {result.halfSplitSec ? `1/2: ${result.halfSplitSec.toFixed(2)}s` : ''}
+                  <span className="text-right text-[#2ee66b]">
+                    {result.perfectShifts} Perfect ({result.perfectClutchShifts} Clutch)
                   </span>
                 </div>
-              )}
-            </div>
-
-            {/* Payout Breakdown */}
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono-num pixel-inset px-4 py-3">
-              {result.isTimeTrial ? (
-                <>
-                  <div className="text-[#94a3b8]">
-                    Solo Test Session · No Cash Payout ·{' '}
-                    <span className="text-[#cbd5e1]">
-                      {result.foul ? 'Foul Run' : 'Time & Replay Saved to Local Records'}
+                {typeof result.burnoutEfficiency === 'number' && (
+                  <div className="grid grid-cols-3 items-center">
+                    <span className="text-xs text-[#94a3b8]">BURNOUT</span>
+                    <span
+                      className={`text-right font-semibold ${
+                        result.burnoutEfficiency >= 85
+                          ? 'text-[#2ee66b]'
+                          : result.burnoutEfficiency >= 55
+                          ? 'text-[#19d4e6]'
+                          : 'text-[#f7b519]'
+                      }`}
+                    >
+                      {result.burnoutEfficiency}% Efficiency
+                    </span>
+                    <span className="text-right text-[#94a3b8]">
+                      {result.burnoutSkipped ? 'Skipped Roll' : 'Manual Heat'}
                     </span>
                   </div>
-                  <div className="text-base font-bold text-[#94a3b8]">$0</div>
-                </>
-              ) : (
-                <>
-                  <div className="text-[#cbd5e1] space-x-3">
-                    <span>
-                      Purse {formatCash(result.basePurse)}
-                      {result.isRematch ? ' (Rematch)' : ''}
+                )}
+                {!result.foul && (result.quarterSplitSec || result.halfSplitSec) && (
+                  <div className="grid grid-cols-3 items-center pt-1 border-t border-[#323642] text-xs">
+                    <span className="text-[#94a3b8]">SPLITS</span>
+                    <span className="text-right text-[#b8c0cc]">
+                      {result.quarterSplitSec ? `1/4: ${result.quarterSplitSec.toFixed(2)}s` : '—'}
                     </span>
-                    {result.launchBonusCash > 0 && (
-                      <span className="text-[#22c55e]">· Launch +{formatCash(result.launchBonusCash)}</span>
-                    )}
-                    {result.shiftBonusCash > 0 && (
-                      <span className="text-[#f5b82e]">· Shifts +{formatCash(result.shiftBonusCash)}</span>
-                    )}
-                    {result.recordBonusCash > 0 && (
-                      <span className="text-[#38bdf8]">· Record +{formatCash(result.recordBonusCash)}</span>
-                    )}
-                  </div>
-                  <div className="text-base font-bold text-[#22c55e] flex items-center gap-1.5">
-                    <PixelIcon name="coin" className="w-4 h-4" />
-                    <span>+{formatCash(result.totalCashEarned)}</span>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Engine Health Post-Run Status */}
-            {typeof result.engineHealthAfter === 'number' && (() => {
-              const postStatus = getEngineHealthStatus(result.engineHealthAfter);
-              return (
-                <div className="pixel-inset px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono-num">
-                  <div className="flex items-center gap-2">
-                    <PixelIcon name="wrench" className="w-3.5 h-3.5 shrink-0" />
-                    <span className="text-[#94a3b8]">ENGINE HEALTH</span>
-                    <span className="font-bold" style={{ color: postStatus.color }}>
-                      {result.engineHealthAfter}% · {postStatus.label}
+                    <span className="text-right text-[#19d4e6]">
+                      {result.halfSplitSec ? `1/2: ${result.halfSplitSec.toFixed(2)}s` : ''}
                     </span>
-                    {typeof result.engineWearApplied === 'number' && result.engineWearApplied > 0 && (
-                      <span className="text-[#94a3b8]">(-{result.engineWearApplied}% run wear)</span>
-                    )}
                   </div>
-                  {result.engineHealthAfter < 80 && (
-                    <span className="font-bold" style={{ color: postStatus.color }}>
-                      Power reduced — repair in Garage
-                    </span>
-                  )}
-                </div>
-              );
-            })()}
-
-            {result.unlockedNextTier && (
-              <div className="bg-[#152e22] border border-[#22c55e]/75 rounded-xl px-4 py-2.5 text-xs font-bold text-[#bbf7d0]">
-                Tier Boss defeated! Next racing class &amp; new dealership chassis unlocked.
+                )}
               </div>
-            )}
 
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center justify-end gap-2.5 pt-1">
-              <button
-                type="button"
-                onClick={onExitToGarage}
-                className="pixel-btn rounded-full px-5 py-2.5 bg-[#1b243b] hover:bg-[#253152] border border-[#495f8f]/70 text-[#f8fafc] font-bold text-sm whitespace-nowrap cursor-pointer"
-              >
-                Garage &amp; Shop
-              </button>
-              <button
-                type="button"
-                onClick={handleRestart}
-                className="pixel-btn rounded-full px-5 py-2.5 bg-[#263457] hover:bg-[#314370] border border-[#627db8]/75 text-[#f8fafc] font-bold text-sm whitespace-nowrap cursor-pointer"
-              >
-                Race Again
-              </button>
-              {result.won && nextRival && onNextRival && (
+              {/* Payout Breakdown */}
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono-num bg-[#e6dcc2] border-2 border-[#141218] px-3.5 py-2.5 text-[#141218]">
+                {result.isTimeTrial ? (
+                  <>
+                    <div className="font-semibold">
+                      Solo Test Session · No Cash Payout ·{' '}
+                      <span className="font-bold">
+                        {result.foul ? 'Foul Run' : 'Time & Replay Saved'}
+                      </span>
+                    </div>
+                    <div className="text-base font-bold">$0</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="font-semibold space-x-2.5">
+                      <span>
+                        Purse {formatCash(result.basePurse)}
+                        {result.isRematch ? ' (Rematch)' : ''}
+                      </span>
+                      {result.launchBonusCash > 0 && (
+                        <span className="text-[#15803d] font-bold">
+                          · Launch +{formatCash(result.launchBonusCash)}
+                        </span>
+                      )}
+                      {result.shiftBonusCash > 0 && (
+                        <span className="text-[#996908] font-bold">
+                          · Shifts +{formatCash(result.shiftBonusCash)}
+                        </span>
+                      )}
+                      {result.recordBonusCash > 0 && (
+                        <span className="text-[#0e7490] font-bold">
+                          · Record +{formatCash(result.recordBonusCash)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="bg-[#141218] text-[#2ee66b] px-2.5 py-1 text-base font-bold flex items-center gap-1.5">
+                      <PixelIcon name="coin" className="w-4 h-4" />
+                      <span>+{formatCash(result.totalCashEarned)}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Engine Health Post-Run Status */}
+              {typeof result.engineHealthAfter === 'number' && (() => {
+                const postStatus = getEngineHealthStatus(result.engineHealthAfter);
+                return (
+                  <div className="ng-vfd px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 text-xs font-mono-num text-[#f4ecd8]">
+                    <div className="flex items-center gap-2">
+                      <PixelIcon name="wrench" className="w-3.5 h-3.5 shrink-0" />
+                      <span className="text-[#94a3b8]">ENGINE HEALTH</span>
+                      <span className="font-bold" style={{ color: postStatus.color }}>
+                        {result.engineHealthAfter}% · {postStatus.label}
+                      </span>
+                      {typeof result.engineWearApplied === 'number' && result.engineWearApplied > 0 && (
+                        <span className="text-[#94a3b8]">(-{result.engineWearApplied}% wear)</span>
+                      )}
+                    </div>
+                    {result.engineHealthAfter < 80 && (
+                      <span className="font-bold" style={{ color: postStatus.color }}>
+                        Power reduced — repair in Paddock
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {result.unlockedNextTier && (
+                <div className="bg-[#141218] border-2 border-[#2ee66b] px-4 py-2.5 text-xs font-mono-num font-bold text-[#2ee66b]">
+                  ★ TIER BOSS DEFEATED! NEXT RACING CLASS &amp; NEW DEALERSHIP CHASSIS UNLOCKED.
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center justify-end gap-2.5 pt-1 pr-2">
                 <button
                   type="button"
-                  onClick={() => onNextRival(nextRival)}
-                  className="pixel-btn rounded-full px-6 py-2.5 bg-gradient-to-b from-[#ff5a4a] to-[#e6392a] hover:from-[#ff6d5e] hover:to-[#f04435] border-2 border-[#f5b82e] text-[#ffffff] font-pixel text-[10px] whitespace-nowrap cursor-pointer"
+                  onClick={onExitToGarage}
+                  className="ng-keycap px-4 py-2.5 bg-[#201e26] hover:bg-[#2d2a36] border-2 border-[#141218] text-[#f4ecd8] font-mono-num font-bold text-xs uppercase whitespace-nowrap cursor-pointer"
                 >
-                  NEXT RIVAL
+                  PADDOCK &amp; SHOP
                 </button>
-              )}
+                <button
+                  type="button"
+                  onClick={handleRestart}
+                  className="ng-keycap px-4 py-2.5 bg-[#f7b519] hover:bg-[#ffd557] border-2 border-[#141218] text-[#141218] font-mono-num font-bold text-xs uppercase whitespace-nowrap cursor-pointer"
+                >
+                  RACE AGAIN
+                </button>
+                {result.won && nextRival && onNextRival && (
+                  <button
+                    type="button"
+                    onClick={() => onNextRival(nextRival)}
+                    className="ng-chevron-cta cursor-pointer"
+                  >
+                    <span className="ng-chevron-inner font-pixel text-[10px] whitespace-nowrap">
+                      NEXT RIVAL
+                    </span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

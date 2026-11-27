@@ -129,88 +129,90 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
   return (
     <div className="space-y-3 sm:space-y-4">
       {/* Track Strategy Presets Bar */}
-      <div className="arcade-panel p-3 sm:p-4 space-y-2.5 sm:space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5">
-            <PixelIcon name="gears" className="w-6 h-6" />
-            <div>
-              <h3 className="font-pixel text-[11px] sm:text-xs text-[#facc15] arcade-shadow-text">
-                DRIVETRAIN TUNING
-              </h3>
-              <p className="hidden sm:block text-xs text-[#cbd5e1] mt-0.5">
-                Tune final drive, gear ratios, and shift targets for 1/4, 1/2, or 1 Mile strips.
-              </p>
+      <div className="ng-plate overflow-hidden">
+        <div className="ng-checkered-bar h-2 w-full" />
+        <div className="p-3 sm:p-4 space-y-2.5 sm:space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <PixelIcon name="gears" className="w-6 h-6" />
+              <div>
+                <h3 className="font-pixel text-[10px] sm:text-xs text-[#f7b519] pixel-text-shadow">
+                  DRIVETRAIN DYNO TUNING
+                </h3>
+                <p className="hidden sm:block text-xs font-mono-num text-[#b8c0cc] mt-0.5">
+                  Tune final drive, gear ratios, and shift targets for 1/4, 1/2, or 1 Mile strips.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 sm:flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => applyPreset('quarter')}
+                className="ng-keycap px-2.5 sm:px-3 py-1.5 bg-[#e83b24] hover:bg-[#ff563f] border-2 border-[#141218] text-[11px] font-mono-num font-bold text-white whitespace-nowrap cursor-pointer"
+              >
+                1/4 MI
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('half')}
+                className="ng-keycap px-2.5 sm:px-3 py-1.5 bg-[#f7b519] hover:bg-[#ffd557] border-2 border-[#141218] text-[11px] font-mono-num font-bold text-[#141218] whitespace-nowrap cursor-pointer"
+              >
+                1/2 MI
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('mile')}
+                className="ng-keycap px-2.5 sm:px-3 py-1.5 bg-[#19d4e6] hover:bg-[#4ee6f5] border-2 border-[#141218] text-[11px] font-mono-num font-bold text-[#141218] whitespace-nowrap cursor-pointer"
+              >
+                1 MILE
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('stock')}
+                className="ng-keycap px-2.5 sm:px-3 py-1.5 bg-[#2c2935] hover:bg-[#3a3647] border-2 border-[#525866] text-[11px] font-mono-num font-bold text-[#f4ecd8] flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer"
+              >
+                <PixelIcon name="restart" className="w-3.5 h-3.5" />
+                <span>STOCK</span>
+              </button>
             </div>
           </div>
-          <div className="grid grid-cols-4 sm:flex items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => applyPreset('quarter')}
-              className="arcade-btn rounded-full px-2.5 sm:px-3.5 py-2 sm:py-1.5 bg-[#ef3b2d] hover:bg-[#ff5245] border border-[#fca5a5]/55 text-[11px] sm:text-xs font-bold text-[#f7f3e3] whitespace-nowrap cursor-pointer"
-            >
-              1/4 Mi
-            </button>
-            <button
-              type="button"
-              onClick={() => applyPreset('half')}
-              className="arcade-btn rounded-full px-2.5 sm:px-3.5 py-2 sm:py-1.5 bg-[#b45309] hover:bg-[#d97706] border border-[#fde047]/45 text-[11px] sm:text-xs font-bold text-[#fef08a] whitespace-nowrap cursor-pointer"
-            >
-              1/2 Mi
-            </button>
-            <button
-              type="button"
-              onClick={() => applyPreset('mile')}
-              className="arcade-btn rounded-full px-2.5 sm:px-3.5 py-2 sm:py-1.5 bg-[#0369a1] hover:bg-[#0284c7] border border-[#7dd3fc]/50 text-[11px] sm:text-xs font-bold text-[#e0f2fe] whitespace-nowrap cursor-pointer"
-            >
-              1 Mile
-            </button>
-            <button
-              type="button"
-              onClick={() => applyPreset('stock')}
-              className="arcade-btn rounded-full px-2.5 sm:px-3 py-2 sm:py-1.5 bg-[#223052] hover:bg-[#2c3f6b] border border-[#5670a6]/65 text-[11px] sm:text-xs font-bold text-[#cbd5e1] flex items-center justify-center gap-1 whitespace-nowrap cursor-pointer"
-            >
-              <PixelIcon name="restart" className="w-3.5 h-3.5" />
-              <span>Stock</span>
-            </button>
-          </div>
-        </div>
 
-        {/* Live Projected Performance across all 3 strip distances */}
-        <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5 font-mono-num text-xs">
-          <div className="led-readout p-2 sm:p-2.5">
-            <div className="text-[9px] sm:text-[10px] text-[#94a3b8]">1/4 MI</div>
-            <div className="text-xs sm:text-base font-bold text-[#facc15] mt-0.5">
-              {perf.estimatedEtSec.toFixed(2)}s
+          {/* Live Projected Performance across all 3 strip distances */}
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-2.5 font-mono-num text-xs">
+            <div className="ng-vfd p-2 sm:p-2.5">
+              <div className="text-[9px] sm:text-[10px] text-[#94a3b8]">1/4 MI</div>
+              <div className="text-xs sm:text-base font-bold text-[#f7b519] mt-0.5">
+                {perf.estimatedEtSec.toFixed(2)}s
+              </div>
+            </div>
+            <div className="ng-vfd p-2 sm:p-2.5">
+              <div className="text-[9px] sm:text-[10px] text-[#94a3b8]">1/2 MI</div>
+              <div className="text-xs sm:text-base font-bold text-[#2ee66b] mt-0.5">
+                {perf.estimatedHalfEtSec.toFixed(2)}s
+              </div>
+            </div>
+            <div className="ng-vfd p-2 sm:p-2.5">
+              <div className="text-[9px] sm:text-[10px] text-[#94a3b8]">1 MILE</div>
+              <div className="text-xs sm:text-base font-bold text-[#19d4e6] mt-0.5">
+                {perf.estimatedMileEtSec.toFixed(2)}s
+              </div>
+            </div>
+            <div className="ng-vfd p-2 sm:p-2.5">
+              <div className="text-[9px] sm:text-[10px] text-[#94a3b8]">TOP SPD</div>
+              <div className="text-xs sm:text-base font-bold text-[#f4ecd8] mt-0.5">
+                {topGearMaxMph} <span className="hidden sm:inline">MPH</span>
+              </div>
             </div>
           </div>
-          <div className="led-readout p-2 sm:p-2.5">
-            <div className="text-[9px] sm:text-[10px] text-[#94a3b8]">1/2 MI</div>
-            <div className="text-xs sm:text-base font-bold text-[#22c55e] mt-0.5">
-              {perf.estimatedHalfEtSec.toFixed(2)}s
-            </div>
-          </div>
-          <div className="led-readout p-2 sm:p-2.5">
-            <div className="text-[9px] sm:text-[10px] text-[#94a3b8]">1 MILE</div>
-            <div className="text-xs sm:text-base font-bold text-[#38bdf8] mt-0.5">
-              {perf.estimatedMileEtSec.toFixed(2)}s
-            </div>
-          </div>
-          <div className="led-readout p-2 sm:p-2.5">
-            <div className="text-[9px] sm:text-[10px] text-[#94a3b8]">TOP SPD</div>
-            <div className="text-xs sm:text-base font-bold text-[#f7f3e3] mt-0.5">
-              {topGearMaxMph} <span className="hidden sm:inline">MPH</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Interactive Gear Speed-vs-RPM Oscilloscope Chart */}
-        <div className="arcade-inset p-2.5 sm:p-3">
-          <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] sm:text-[11px] font-mono-num text-[#94a3b8] mb-1.5">
-            <span>RPM vs MPH TELEMETRY</span>
-            <span className={isTopGearShortForMile ? 'text-[#f97316] font-bold' : 'text-[#22c55e] font-bold'}>
-              {isTopGearShortForMile ? 'Short Top · 1/4 Mi' : 'Tall Top · 1/2 & 1 Mi'}
-            </span>
-          </div>
+          {/* Interactive Gear Speed-vs-RPM Oscilloscope Chart */}
+          <div className="ng-vfd p-2.5 sm:p-3">
+            <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] sm:text-[11px] font-mono-num text-[#94a3b8] mb-1.5">
+              <span>RPM vs MPH TELEMETRY</span>
+              <span className={isTopGearShortForMile ? 'text-[#f7b519] font-bold' : 'text-[#2ee66b] font-bold'}>
+                {isTopGearShortForMile ? 'SHORT TOP · 1/4 MI' : 'TALL TOP · 1/2 & 1 MI'}
+              </span>
+            </div>
           <svg
             viewBox={`0 0 ${svgW} ${svgH}`}
             className="w-full h-auto block"
@@ -310,16 +312,17 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
               );
             })}
           </svg>
+          </div>
         </div>
       </div>
 
       {/* Split Tuning Controls: Gear Ratios Left · Shift & Launch Points Right */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-3 sm:gap-4">
-        <div className="xl:col-span-7 arcade-panel p-3 sm:p-4 space-y-3 sm:space-y-4">
-          <div className="space-y-2 pb-3 border-b-2 border-[#253459]">
+        <div className="xl:col-span-7 ng-plate p-3 sm:p-4 space-y-3 sm:space-y-4">
+          <div className="space-y-2 pb-3 border-b-2 border-[#323642]">
             <div className="flex items-center justify-between text-xs font-mono-num">
-              <span className="font-bold text-[#f7f3e3]">FINAL DRIVE RATIO</span>
-              <span className="text-sm font-bold text-[#facc15]">
+              <span className="font-bold text-[#f4ecd8]">FINAL DRIVE RATIO</span>
+              <span className="text-sm font-bold text-[#f7b519]">
                 {tuning.finalDrive.toFixed(2)} : 1
               </span>
             </div>
@@ -330,7 +333,7 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
               step={0.05}
               value={tuning.finalDrive}
               onChange={(e) => handleFinalDrive(parseFloat(e.target.value))}
-              className="w-full h-6 accent-[#ef3b2d] cursor-pointer"
+              className="w-full h-6 accent-[#e83b24] cursor-pointer"
             />
             <div className="flex justify-between text-[10px] sm:text-[11px] font-mono-num text-[#94a3b8]">
               <span>2.20 · Tall</span>
@@ -340,7 +343,7 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
           </div>
 
           <div className="space-y-2">
-            <div className="font-pixel text-[9px] text-[#94a3b8]">INDIVIDUAL GEAR RATIOS</div>
+            <div className="font-pixel text-[9px] text-[#f7b519]">INDIVIDUAL GEAR RATIOS</div>
             {gearMetrics.map((gm, idx) => {
               const minR = Math.max(0.45, Number((gm.stockRatio * 0.65).toFixed(2)));
               const maxR = Math.min(4.6, Number((gm.stockRatio * 1.4).toFixed(2)));
@@ -351,9 +354,9 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
                     <span className="font-bold" style={{ color }}>
                       GEAR {gm.gear}
                     </span>
-                    <span className="text-[#cbd5e1]">
-                      <span className="font-bold text-[#f7f3e3]">{gm.ratio.toFixed(2)}</span>
-                      <span className="text-[#64748b] mx-1.5">·</span>
+                    <span className="text-[#b8c0cc]">
+                      <span className="font-bold text-[#f4ecd8]">{gm.ratio.toFixed(2)}</span>
+                      <span className="text-[#525866] mx-1.5">·</span>
                       <span>{gm.maxMph} MPH</span>
                     </span>
                   </div>
@@ -364,7 +367,7 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
                     step={0.02}
                     value={gm.ratio}
                     onChange={(e) => handleGearRatio(idx, parseFloat(e.target.value))}
-                    className="w-full h-6 accent-[#facc15] cursor-pointer"
+                    className="w-full h-6 accent-[#f7b519] cursor-pointer"
                   />
                 </div>
               );
@@ -372,38 +375,38 @@ export const DrivetrainTuningPanel: React.FC<DrivetrainTuningPanelProps> = ({
           </div>
         </div>
 
-        <div className="xl:col-span-5 arcade-panel p-3 sm:p-4 flex flex-col justify-between gap-3 sm:gap-4">
+        <div className="xl:col-span-5 ng-plate p-3 sm:p-4 flex flex-col justify-between gap-3 sm:gap-4">
           <div className="space-y-3 sm:space-y-4">
             <div>
-              <h4 className="font-pixel text-[10px] text-[#facc15] arcade-shadow-text">
+              <h4 className="font-pixel text-[10px] text-[#f7b519] pixel-text-shadow">
                 SHIFT &amp; LAUNCH TARGETS
               </h4>
-              <p className="text-xs text-[#cbd5e1] mt-1">
+              <p className="text-xs font-mono-num text-[#b8c0cc] mt-1">
                 Dial in tachometer sweet-spot arcs for grip and peak horsepower.
               </p>
             </div>
 
-            <div className="arcade-inset p-3 space-y-2">
+            <div className="ng-vfd p-3 space-y-2">
               <div className="flex justify-between font-mono-num text-[11px] text-[#94a3b8]">
                 <span>TACH ARCS</span>
                 <span>REDLINE {perf.redlineRpm.toLocaleString()}</span>
               </div>
-              <div className="relative h-6 bg-[#131b30] border border-[#3c4d73]/60 rounded-full overflow-hidden">
+              <div className="relative h-6 bg-[#141218] border-2 border-[#525866] overflow-hidden">
                 <div
-                  className="absolute top-0 bottom-0 bg-[#22c55e]/45 border-x border-[#22c55e]"
+                  className="absolute top-0 bottom-0 bg-[#2ee66b]/45 border-x border-[#2ee66b]"
                   style={{ left: `${launchStartPct}%`, width: `${launchWidthPct}%` }}
                 />
                 <div
-                  className="absolute top-0 bottom-0 bg-[#facc15]/45 border-x border-[#facc15]"
+                  className="absolute top-0 bottom-0 bg-[#f7b519]/45 border-x border-[#f7b519]"
                   style={{ left: `${shiftStartPct}%`, width: `${shiftWidthPct}%` }}
                 />
-                <div className="absolute top-0 bottom-0 right-0 w-[6%] bg-[#ef3b2d]/45 border-l border-[#ef3b2d]" />
+                <div className="absolute top-0 bottom-0 right-0 w-[6%] bg-[#e83b24]/45 border-l border-[#e83b24]" />
               </div>
               <div className="flex justify-between font-mono-num text-[11px]">
-                <span className="text-[#22c55e] font-bold">
+                <span className="text-[#2ee66b] font-bold">
                   Launch: {Math.round(launchMin)}–{Math.round(launchMax)}
                 </span>
-                <span className="text-[#facc15] font-bold">
+                <span className="text-[#f7b519] font-bold">
                   Shift: {Math.round(shiftMin)}–{Math.round(shiftMax)}
                 </span>
               </div>

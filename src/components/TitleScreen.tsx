@@ -139,49 +139,59 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
   }, [save]);
 
   return (
-    <div className="relative w-full h-[100dvh] overflow-hidden bg-[#111623]">
+    <div className="relative w-full h-[100dvh] overflow-hidden bg-[#141218]">
       {/* Live Hi-Bit 16-Bit Pixel Art Golden-Hour Drag Strip */}
       <div ref={mountRef} className="w-full h-full" />
 
-      {/* Top-Right Sleek Audio Toggle */}
+      {/* Top-Right Arcade Keycap Audio Toggle */}
       <div className="absolute top-4 right-4 sm:top-5 sm:right-6 z-20 flex items-center gap-2">
         <button
           type="button"
           onClick={onToggleMute}
           aria-label={muted ? 'Unmute audio' : 'Mute audio'}
-          className="pixel-btn h-11 w-11 rounded-full flex items-center justify-center bg-[#192136]/90 hover:bg-[#24304d] border border-[#5670a6]/60 backdrop-blur-sm cursor-pointer"
+          className="ng-keycap h-11 w-11 flex items-center justify-center bg-[#201e26]/95 hover:bg-[#2d2a36] border-2 border-[#b8c0cc] cursor-pointer"
         >
           <PixelIcon name={muted ? 'soundOff' : 'soundOn'} className="w-5 h-5" />
         </button>
       </div>
 
-      {/* Centered Clean Modern Marquee & Start CTA */}
+      {/* Centered Neo-Geo Arcade Marquee & Hazard-Chevron Start CTA */}
       <div className="absolute inset-0 z-10 flex flex-col items-center justify-between py-7 sm:py-10 px-4 sm:px-6 pointer-events-none">
         <div className="flex flex-col items-center text-center mt-2 w-full">
-          <div className="pixel-panel-accent rounded-3xl px-6 sm:px-10 py-4 sm:py-5 inline-flex flex-col items-center backdrop-blur-sm">
-            <h1 className="font-pixel text-xl sm:text-4xl md:text-[42px] text-[#f5b82e] pixel-text-shadow-lg tracking-wider leading-none">
-              REDLINE &apos;88
-            </h1>
-            <div className="mt-2.5 font-mono-num text-[11px] sm:text-xs font-bold tracking-[0.26em] text-[#e2e8f0] uppercase">
-              HI-BIT DRAG RACING
+          <div className="ng-plate-gold -skew-x-6 overflow-hidden shadow-[6px_6px_0_#07060a]">
+            <div className="ng-checkered-bar h-2.5 w-full" />
+            <div className="px-7 sm:px-12 py-4 sm:py-5 flex flex-col items-center">
+              <h1 className="font-pixel text-xl sm:text-4xl md:text-[44px] text-[#e83b24] pixel-text-shadow-lg tracking-wider leading-none">
+                REDLINE <span className="text-[#f7b519]">&apos;88</span>
+              </h1>
+              <div className="mt-2.5 bg-[#0b0a0f] border border-[#525866] px-3 py-1 font-mono-num text-[10px] sm:text-xs font-bold tracking-[0.26em] text-[#19d4e6] uppercase">
+                90s HI-BIT DRAG RACING
+              </div>
             </div>
+            <div className="ng-checkered-bar h-2.5 w-full" />
           </div>
         </div>
 
-        {/* Bottom Primary Start CTA & Controls */}
+        {/* Bottom Primary Hazard-Chevron Start CTA & Controls */}
         <div className="flex flex-col items-center gap-3 mb-2 pointer-events-auto">
           <button
             type="button"
             onClick={onStart}
-            className="pixel-btn rounded-full px-9 sm:px-12 py-4 bg-gradient-to-b from-[#ff5e4d] to-[#e6392a] hover:from-[#ff7061] hover:to-[#f04435] text-[#ffffff] font-pixel text-xs sm:text-sm tracking-wider border-2 border-[#f5b82e] pixel-text-shadow focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f5b82e] whitespace-nowrap cursor-pointer"
+            className="ng-chevron-cta focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#f7b519] cursor-pointer"
           >
-            PRESS START · ENTER GARAGE
+            <span className="ng-chevron-inner px-8 sm:px-11 py-3.5 font-pixel text-xs sm:text-sm tracking-wider pixel-text-shadow whitespace-nowrap">
+              PRESS START · ENTER PADDOCK
+            </span>
           </button>
 
-          <div className="pixel-panel rounded-full px-5 py-2 font-mono-num text-[11px] sm:text-xs text-[#cbd5e1] tracking-wide text-center backdrop-blur-sm">
-            <span className="sm:hidden">Touch Pedals or Keyboard · Manual Clutch &amp; Shift</span>
+          <div className="ng-vfd border-2 border-[#525866] px-4 py-1.5 font-mono-num text-[11px] sm:text-xs text-[#f4ecd8] tracking-wide text-center">
+            <span className="sm:hidden">TOUCH PEDALS OR KEYBOARD · MANUAL CLUTCH &amp; SHIFT</span>
             <span className="hidden sm:inline">
-              W Gas · Shift Clutch · Space Shift Up · N Nitrous · Esc Pause
+              <span className="text-[#2ee66b] font-bold">W</span> GAS ·{' '}
+              <span className="text-[#f7b519] font-bold">SHIFT</span> CLUTCH ·{' '}
+              <span className="text-[#e83b24] font-bold">SPACE</span> SHIFT+ ·{' '}
+              <span className="text-[#19d4e6] font-bold">N</span> NITROUS ·{' '}
+              <span className="text-[#b8c0cc] font-bold">ESC</span> PAUSE
             </span>
           </div>
         </div>

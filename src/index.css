@@ -6,19 +6,27 @@
     --font-ui: 'Chakra Petch', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 
-    /* Modern Hi-Bit Indie Racing Palette — Sculpted & Non-Boxy */
-    --ui-bg: #101522;
-    --ui-surface: #192136;
-    --ui-surface-hi: #222d48;
-    --ui-inset: #0e1422;
-    --ui-border: rgba(108, 136, 196, 0.34);
-    --ui-border-bright: rgba(140, 170, 232, 0.55);
-    --ui-shadow: #060912;
-    --ui-coral: #ff4d3d;
-    --ui-amber: #f5b82e;
-    --ui-emerald: #22c55e;
-    --ui-sky: #38bdf8;
-    --ui-cream: #f8f5ea;
+    /* NEO-GEO PADDOCK — 1994 SNK / Sega Super-Scaler Arcade Palette */
+    --ng-bg: #141218;
+    --ng-surface: #201e26;
+    --ng-surface-hi: #2d2a36;
+    --ng-inset: #0b0a0f;
+    --ng-chrome: #b8c0cc;
+    --ng-chrome-hi: #e8eef7;
+    --ng-steel: #525866;
+    --ng-steel-dark: #323642;
+    --ng-shadow: #07060a;
+    --ng-red: #e83b24;
+    --ng-red-hi: #ff563f;
+    --ng-red-dark: #9c1f12;
+    --ng-gold: #f7b519;
+    --ng-gold-hi: #ffd557;
+    --ng-gold-dark: #996908;
+    --ng-cyan: #19d4e6;
+    --ng-vfd: #2ee66b;
+    --ng-cream: #f4ecd8;
+    --ng-cream-dark: #d8ccb0;
+    --ng-ink: #141218;
   }
 
   html,
@@ -30,8 +38,8 @@
     margin: 0;
     padding: 0;
     font-family: var(--font-ui);
-    background-color: var(--ui-bg);
-    color: var(--ui-cream);
+    background-color: var(--ng-bg);
+    color: var(--ng-cream);
     user-select: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -72,103 +80,305 @@
   image-rendering: crisp-edges;
 }
 
-/* Sculpted Modern Indie Panels: smooth rounded radii, refined borders & soft layered depth */
+/* =========================================================================
+   NEO-GEO PADDOCK — BESPOKE 90s HI-RES PIXEL GEOMETRY & HARDWARE PRIMITIVES
+   ========================================================================= */
+
+/* Brushed Steel & Riveted Arcade Chassis Panel (0px sharp bevels, zero soft SaaS glow) */
+.ng-plate,
 .pixel-panel,
 .arcade-panel {
-  background: linear-gradient(180deg, #1d263e 0%, #161d31 100%);
-  border: 1.5px solid var(--ui-border);
-  border-radius: 16px;
+  background-color: var(--ng-surface);
+  border: 2px solid var(--ng-steel);
+  border-radius: 0;
   box-shadow:
-    0 10px 24px rgba(5, 8, 18, 0.38),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    inset 2px 2px 0 rgba(232, 238, 247, 0.14),
+    inset -2px -2px 0 rgba(7, 6, 10, 0.72),
+    0 4px 0 var(--ng-shadow);
 }
 
+.ng-plate-gold,
 .pixel-panel-accent,
 .arcade-panel-gold {
-  background: linear-gradient(180deg, #222c49 0%, #182037 100%);
-  border: 2px solid rgba(245, 184, 46, 0.78);
-  border-radius: 18px;
+  background-color: #25202b;
+  border: 2px solid var(--ng-gold);
+  border-radius: 0;
   box-shadow:
-    0 14px 32px rgba(5, 8, 18, 0.48),
-    inset 0 1px 0 rgba(254, 240, 138, 0.16);
+    inset 2px 2px 0 rgba(255, 213, 87, 0.25),
+    inset -2px -2px 0 rgba(7, 6, 10, 0.75),
+    0 4px 0 var(--ng-shadow);
 }
 
+/* Deep VFD / CRT Telemetry Readout Well with Subtle Scanlines */
+.ng-vfd,
 .pixel-inset,
 .arcade-inset,
 .led-readout {
-  background-color: var(--ui-inset);
-  border: 1px solid rgba(92, 118, 174, 0.28);
-  border-radius: 12px;
-  box-shadow: inset 0 2px 6px rgba(4, 7, 15, 0.45);
+  background-color: var(--ng-inset);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.025) 0px,
+    rgba(255, 255, 255, 0.025) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  border: 2px solid var(--ng-steel-dark);
+  border-radius: 0;
+  box-shadow:
+    inset 2px 2px 0 rgba(0, 0, 0, 0.85),
+    inset -1px -1px 0 rgba(184, 192, 204, 0.16);
 }
 
-/* Tactile Sculpted Buttons: smooth rounded corners, subtle top sheen & snappy press */
+/* 90s Checkered Racing Flag Trim Strip */
+.ng-checkered-bar {
+  background-color: var(--ng-cream);
+  background-image:
+    linear-gradient(45deg, var(--ng-ink) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--ng-ink) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--ng-ink) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--ng-ink) 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+}
+
+/* 90s Diagonal Hazard Stripe Pattern */
+.ng-hazard-bar {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--ng-gold) 0px,
+    var(--ng-gold) 8px,
+    var(--ng-ink) 8px,
+    var(--ng-ink) 16px
+  );
+}
+
+/* Skewed Riveted Brushed-Steel Arcade Speed-Ribbon (-10deg parallelogram) */
+.ng-ribbon {
+  position: relative;
+  transform: skewX(-11deg);
+  border: 2px solid var(--ng-ink);
+  background: linear-gradient(180deg, #cfd6e0 0%, #8f98a8 52%, #6d7585 100%);
+  padding: 4px;
+  box-shadow:
+    inset 2px 2px 0 #f4f7fc,
+    inset -2px -2px 0 #3f4552,
+    3px 4px 0 var(--ng-shadow);
+  transition: transform 80ms steps(2), box-shadow 80ms steps(2), filter 80ms ease;
+}
+
+.ng-ribbon::before,
+.ng-ribbon::after {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--ng-ink);
+  box-shadow: 1px 1px 0 rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+}
+.ng-ribbon::before {
+  top: 2px;
+  left: 4px;
+}
+.ng-ribbon::after {
+  bottom: 2px;
+  right: 4px;
+}
+
+.ng-ribbon:hover:not(:disabled) {
+  transform: skewX(-11deg) translateY(-2px);
+  box-shadow:
+    inset 2px 2px 0 #ffffff,
+    inset -2px -2px 0 #3f4552,
+    4px 6px 0 var(--ng-shadow);
+}
+
+.ng-ribbon:active:not(:disabled) {
+  transform: skewX(-11deg) translateY(2px);
+  box-shadow:
+    inset 2px 2px 0 #cfd6e0,
+    inset -2px -2px 0 #3f4552,
+    1px 2px 0 var(--ng-shadow);
+}
+
+.ng-ribbon-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border: 2px solid var(--ng-ink);
+  padding: 0.42rem 0.75rem;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.28);
+}
+
+.ng-unskew {
+  transform: skewX(11deg);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+/* Oversized Hazard-Striped Right-Pointing Arrow Primary CTA */
+.ng-chevron-cta {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--ng-gold) 0px,
+    var(--ng-gold) 9px,
+    var(--ng-ink) 9px,
+    var(--ng-ink) 18px
+  );
+  padding: 5px 22px 5px 5px;
+  filter: drop-shadow(0 4px 0 var(--ng-shadow));
+  transition: transform 80ms steps(2), filter 80ms steps(2);
+}
+
+.ng-chevron-cta:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: drop-shadow(0 6px 0 var(--ng-shadow)) brightness(1.06);
+}
+
+.ng-chevron-cta:active:not(:disabled) {
+  transform: translateY(2px);
+  filter: drop-shadow(0 2px 0 var(--ng-shadow));
+}
+
+.ng-chevron-cta:disabled {
+  filter: grayscale(0.75) opacity(0.65);
+  cursor: not-allowed;
+}
+
+.ng-chevron-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background: linear-gradient(180deg, #ff533b 0%, #d92d18 100%);
+  border: 2px solid var(--ng-ink);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 224, 178, 0.45),
+    inset 0 -2px 0 rgba(110, 18, 10, 0.8);
+  padding: 0.48rem 1.05rem;
+  color: #ffffff;
+}
+
+/* Cream Checkered-Header Neo-Geo Race Ticket (with dog-eared bottom-right corner) */
+.ng-ticket {
+  position: relative;
+  background-color: var(--ng-cream);
+  color: var(--ng-ink);
+  border: 2px solid var(--ng-ink);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
+  box-shadow: inset 2px 2px 0 #fffdf5;
+}
+
+.ng-ticket-boss {
+  background-color: #fff3c4;
+  border-color: var(--ng-gold-dark);
+}
+
+/* Tactile 3D-Beveled Arcade Push-Keycap (for utility / secondary actions) */
+.ng-keycap,
 .pixel-btn,
 .arcade-btn {
-  border-radius: 12px;
-  transition:
-    transform 100ms cubic-bezier(0.16, 1, 0.3, 1),
-    background-color 140ms ease,
-    border-color 140ms ease,
-    box-shadow 120ms ease;
+  border-radius: 0;
+  transition: transform 70ms steps(2), background-color 100ms ease, border-color 100ms ease, box-shadow 70ms steps(2);
   box-shadow:
-    0 3px 0 rgba(6, 9, 18, 0.72),
-    0 6px 14px rgba(5, 8, 18, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    inset 2px 2px 0 rgba(255, 255, 255, 0.2),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.42),
+    0 3px 0 var(--ng-shadow);
 }
 
+.ng-keycap:hover:not(:disabled),
 .pixel-btn:hover:not(:disabled),
 .arcade-btn:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow:
-    0 4px 0 rgba(6, 9, 18, 0.72),
-    0 8px 18px rgba(5, 8, 18, 0.32),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    inset 2px 2px 0 rgba(255, 255, 255, 0.28),
+    inset -2px -2px 0 rgba(0, 0, 0, 0.42),
+    0 4px 0 var(--ng-shadow);
 }
 
+.ng-keycap:active:not(:disabled),
 .pixel-btn:active:not(:disabled),
 .arcade-btn:active:not(:disabled) {
   transform: translateY(2px);
   box-shadow:
-    0 1px 0 rgba(6, 9, 18, 0.72),
-    inset 0 1px 2px rgba(0, 0, 0, 0.25);
+    inset 2px 2px 0 rgba(0, 0, 0, 0.35),
+    0 1px 0 var(--ng-shadow);
 }
 
+.ng-keycap:disabled,
 .pixel-btn:disabled,
 .arcade-btn:disabled {
   box-shadow: none;
-  opacity: 0.72;
+  opacity: 0.6;
 }
 
+/* Physical Dip-Switch Toggle Track (Tier T1-T5 & Distance Switches) */
+.ng-dip-switch {
+  display: inline-flex;
+  align-items: center;
+  background-color: #0d0c11;
+  border: 2px solid var(--ng-steel);
+  box-shadow: inset 2px 2px 0 #050508;
+  padding: 2px;
+  transition: border-color 80ms ease;
+}
+
+.ng-dip-cap {
+  background: linear-gradient(180deg, #cfd6e0 0%, #8690a0 100%);
+  border: 1px solid #141218;
+  box-shadow: inset 1px 1px 0 #ffffff;
+}
+
+/* Stamped Metal License-Plate Car Badge */
+.ng-plate-tag {
+  background-color: var(--ng-cream);
+  color: var(--ng-ink);
+  border: 2px solid var(--ng-ink);
+  box-shadow:
+    inset 0 0 0 2px var(--ng-cream-dark),
+    0 3px 0 var(--ng-shadow);
+}
+
+/* Hard Pixel Drop-Shadows on Arcade Typography */
 .pixel-shadow-text,
 .pixel-text-shadow,
 .arcade-shadow-text {
-  text-shadow: 0 2px 0 rgba(6, 9, 18, 0.85);
+  text-shadow: 2px 2px 0 var(--ng-shadow);
 }
 
 .pixel-shadow-text-lg,
 .pixel-text-shadow-lg,
 .arcade-shadow-text-lg {
-  text-shadow: 0 3px 0 rgba(6, 9, 18, 0.9);
+  text-shadow: 3px 3px 0 var(--ng-shadow);
 }
 
-/* Smooth dark rounded scrollbar */
+/* Crisp Arcade Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #0d0c11;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(82, 107, 162, 0.5);
-  border-radius: 9999px;
+  background: #525866;
+  border: 1px solid #141218;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(112, 144, 212, 0.75);
+  background: var(--ng-gold);
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .ng-ribbon,
+  .ng-chevron-cta,
+  .ng-keycap,
   .pixel-btn,
   .arcade-btn {
     transition: none;

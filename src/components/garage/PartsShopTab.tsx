@@ -28,12 +28,13 @@ export const PartsShopTab: React.FC<PartsShopTabProps> = ({
 }) => {
   return (
     <div className="space-y-3">
-      <div className="arcade-inset px-3 py-2 text-xs text-[#cbd5e1] flex items-center gap-2">
+      <div className="ng-vfd px-3 py-2 text-xs font-mono-num text-[#f4ecd8] flex items-center gap-2 border-l-4 border-l-[#f7b519]">
         <PixelIcon name="bolt" className="w-4 h-4 shrink-0" />
         <span>
-          Hover or select any part upgrade to preview bolt-on pixel hardware and dyno deltas live.
+          HOVER OR SELECT ANY PERFORMANCE MODULE TO PREVIEW BOLT-ON HARDWARE &amp; DYNO DELTAS LIVE.
         </span>
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {UPGRADE_CATEGORIES.map((cat) => {
           const lvl = config.upgrades[cat.key];
@@ -52,91 +53,96 @@ export const PartsShopTab: React.FC<PartsShopTabProps> = ({
               }}
               onFocus={() => !isMax && onHoverUpgrade(cat.key)}
               className={`${
-                isPreviewing ? 'arcade-panel-gold' : 'arcade-panel'
-              } p-3.5 flex flex-col justify-between gap-3`}
+                isPreviewing ? 'ng-plate-gold' : 'ng-plate'
+              } flex flex-col justify-between overflow-hidden`}
             >
-              <div>
-                <div className="flex items-start gap-3">
-                  <div className="arcade-inset p-1.5 shrink-0">
-                    <PixelPartSprite partKey={cat.key} className="w-11 h-11" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 className="font-bold text-base text-[#f7f3e3] truncate arcade-shadow-text">
-                        {cat.name}
-                      </h4>
-                      <span className="font-mono-num text-xs text-[#facc15] font-bold shrink-0">
-                        LV {lvl}/5
-                      </span>
+              {/* Steel Module Header Bar */}
+              <div className="bg-[#18161e] border-b-2 border-[#323642] px-3 py-1.5 flex items-center justify-between gap-2">
+                <h4 className="font-pixel text-[9px] sm:text-[10px] text-[#f4ecd8] truncate">
+                  {cat.name.toUpperCase()}
+                </h4>
+                <span className="bg-[#0b0a0f] border border-[#525866] px-2 py-0.5 font-mono-num text-[11px] text-[#f7b519] font-bold shrink-0">
+                  LV {lvl}/5
+                </span>
+              </div>
+
+              <div className="p-3 flex-1 flex flex-col justify-between gap-2.5">
+                <div>
+                  <div className="flex items-start gap-3">
+                    <div className="ng-vfd p-1.5 shrink-0 border-2 border-[#525866]">
+                      <PixelPartSprite partKey={cat.key} className="w-11 h-11" />
                     </div>
-                    <p className="text-xs text-[#94a3b8] mt-0.5">{cat.shortDesc}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-[#b8c0cc] leading-snug">{cat.shortDesc}</p>
+                      <div className="text-xs font-mono-num text-[#f4ecd8] mt-1.5">
+                        <span className="text-[#94a3b8]">PART:</span>{' '}
+                        <span className="font-bold">{cat.tierNames[lvl]}</span>
+                        {!isMax && (
+                          <span className="text-[#f7b519] font-bold"> → {cat.tierNames[lvl + 1]}</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                {/* 5-segment rounded progress bar */}
-                <div className="grid grid-cols-5 gap-1.5 mt-3">
-                  {[1, 2, 3, 4, 5].map((step) => (
-                    <div
-                      key={step}
-                      className={`h-2 rounded-full transition-colors ${
-                        step <= lvl
-                          ? 'bg-[#22c55e]'
-                          : isPreviewing && step === lvl + 1
-                          ? 'bg-[#facc15]'
-                          : 'bg-[#0c1221]'
-                      }`}
-                    />
-                  ))}
-                </div>
+                  {/* 5-Bar Segmented VFD LED Level Meter */}
+                  <div className="grid grid-cols-5 gap-1.5 mt-3 bg-[#0b0a0f] p-1.5 border border-[#323642]">
+                    {[1, 2, 3, 4, 5].map((step) => (
+                      <div
+                        key={step}
+                        className={`h-2.5 border border-[#141218] ${
+                          step <= lvl
+                            ? 'bg-[#2ee66b]'
+                            : isPreviewing && step === lvl + 1
+                            ? 'bg-[#f7b519]'
+                            : 'bg-[#1c1a22]'
+                        }`}
+                      />
+                    ))}
+                  </div>
 
-                <div className="text-xs font-mono-num text-[#cbd5e1] mt-2">
-                  Part: <span className="text-[#f7f3e3] font-semibold">{cat.tierNames[lvl]}</span>
-                  {!isMax && (
-                    <span className="text-[#facc15]"> → {cat.tierNames[lvl + 1]}</span>
+                  {/* Exact Stat Impact & Characteristic Changes */}
+                  {impact && (
+                    <div className="mt-2.5 ng-vfd p-2 space-y-1">
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 font-mono-num text-xs">
+                        {impact.statChanges.map((sc, i) => (
+                          <span key={sc.label} className="text-[#2ee66b] font-bold">
+                            {i > 0 && <span className="text-[#525866] mr-2">·</span>}
+                            {sc.label} {sc.delta}
+                          </span>
+                        ))}
+                      </div>
+                      {impact.characteristics.map((trait) => (
+                        <div key={trait} className="text-[11px] font-mono-num text-[#f7b519]">
+                          ► {trait}
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
 
-                {/* Exact Stat Impact & Characteristic Changes */}
-                {impact && (
-                  <div className="mt-2.5 pt-2 border-t border-[#2b3859]/70 space-y-1">
-                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 font-mono-num text-xs">
-                      {impact.statChanges.map((sc, i) => (
-                        <span key={sc.label} className="text-[#22c55e] font-bold">
-                          {i > 0 && <span className="text-[#475569] mr-2.5">·</span>}
-                          {sc.label} {sc.delta}
-                        </span>
-                      ))}
-                    </div>
-                    {impact.characteristics.map((trait) => (
-                      <div key={trait} className="text-xs text-[#cbd5e1]">
-                        Effect: <span className="text-[#fef08a]">{trait}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between pt-2.5 border-t border-[#2b3859]/70">
-                <span className="font-mono-num text-sm font-bold text-[#22c55e]">
-                  {isMax ? 'MAXED' : formatCash(nextCost)}
-                </span>
-                <button
-                  type="button"
-                  disabled={isMax || !canAfford}
-                  onClick={() => {
-                    soundEngine.playShopBuy();
-                    onBuyUpgrade(car.id, cat.key);
-                  }}
-                  className={`arcade-btn rounded-full px-4 py-2 text-xs font-bold uppercase whitespace-nowrap border ${
-                    isMax
-                      ? 'bg-[#12182b] text-[#64748b] border-[#1f2947] cursor-default'
-                      : canAfford
-                      ? 'bg-[#22c55e] hover:bg-[#16a34a] text-[#090d1a] border-[#bbf7d0] cursor-pointer'
-                      : 'bg-[#12182b] text-[#64748b] border-[#1f2947] cursor-not-allowed'
-                  }`}
-                >
-                  {isMax ? 'Max Level' : canAfford ? 'Install Part' : 'Need Cash'}
-                </button>
+                {/* Action Footer */}
+                <div className="flex items-center justify-between pt-2 border-t-2 border-[#323642]">
+                  <span className="font-mono-num text-sm font-bold text-[#2ee66b]">
+                    {isMax ? 'MAXED OUT' : formatCash(nextCost)}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={isMax || !canAfford}
+                    onClick={() => {
+                      soundEngine.playShopBuy();
+                      onBuyUpgrade(car.id, cat.key);
+                    }}
+                    className={`ng-keycap px-4 py-1.5 font-pixel text-[9px] uppercase whitespace-nowrap border-2 ${
+                      isMax
+                        ? 'bg-[#18161e] text-[#64748b] border-[#323642] cursor-default'
+                        : canAfford
+                        ? 'bg-[#2ee66b] hover:bg-[#4ff588] text-[#141218] border-[#141218] cursor-pointer'
+                        : 'bg-[#18161e] text-[#64748b] border-[#323642] cursor-not-allowed'
+                    }`}
+                  >
+                    {isMax ? 'MAXED' : canAfford ? 'INSTALL' : 'NEED CASH'}
+                  </button>
+                </div>
               </div>
             </div>
           );

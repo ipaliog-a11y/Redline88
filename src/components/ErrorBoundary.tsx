@@ -29,32 +29,35 @@ export class ErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen w-full bg-[#0d0b14] text-[#f4f1e6] flex items-center justify-center p-6">
-          <div className="arcade-panel max-w-lg w-full p-6 space-y-4">
-            <h1 className="font-pixel text-base text-[#ff4d2e]">
-              SYSTEM FAULT
-            </h1>
-            <p className="text-sm text-[#cbd5e1] leading-relaxed break-words">
-              {this.state.message}
-            </p>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <button
-                type="button"
-                onClick={() => window.location.reload()}
-                className="arcade-btn px-5 py-2.5 bg-[#ff4d2e] hover:bg-[#ff6247] text-white font-semibold text-sm whitespace-nowrap cursor-pointer"
-              >
-                Reload Game
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  clearLocalSave();
-                  window.location.reload();
-                }}
-                className="arcade-btn px-4 py-2.5 bg-[#1b243b] hover:bg-[#253152] border border-[#495f8f]/70 text-[#cbd5e1] font-semibold text-sm whitespace-nowrap cursor-pointer"
-              >
-                Reset Local Cache &amp; Reload
-              </button>
+        <div className="min-h-screen w-full bg-[#141218] text-[#f4ecd8] flex items-center justify-center p-6">
+          <div className="ng-plate-gold max-w-lg w-full overflow-hidden">
+            <div className="ng-hazard-bar h-2.5 w-full" />
+            <div className="p-6 space-y-4">
+              <h1 className="font-pixel text-base text-[#e83b24] pixel-text-shadow">
+                SYSTEM FAULT
+              </h1>
+              <p className="text-sm font-mono-num text-[#b8c0cc] leading-relaxed break-words ng-vfd p-3">
+                {this.state.message}
+              </p>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="ng-keycap px-5 py-2.5 bg-[#e83b24] hover:bg-[#ff563f] border-2 border-[#141218] text-white font-pixel text-[10px] whitespace-nowrap cursor-pointer"
+                >
+                  RELOAD GAME
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearLocalSave();
+                    window.location.reload();
+                  }}
+                  className="ng-keycap px-4 py-2.5 bg-[#2c2935] hover:bg-[#3a3647] border-2 border-[#525866] text-[#f4ecd8] font-mono-num font-bold text-xs whitespace-nowrap cursor-pointer"
+                >
+                  RESET LOCAL CACHE &amp; RELOAD
+                </button>
+              </div>
             </div>
           </div>
         </div>
