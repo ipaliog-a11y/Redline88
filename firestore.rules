@@ -102,7 +102,7 @@ service cloud.firestore {
         && isValidShortId(data.activeCarId)
         && data.highestUnlockedTier is int && data.highestUnlockedTier >= 1 && data.highestUnlockedTier <= 5
         && isValidBoundedStringList(data.ownedCars, 30)
-        && isValidBoundedStringList(data.defeatedRivals, 80)
+        && isValidBoundedStringList(data.defeatedRivals, 160)
         && data.carConfigs is map && data.carConfigs.size() <= 30
         && data.totalWins is int && data.totalWins >= 0 && data.totalWins <= 1000000
         && data.totalRaces is int && data.totalRaces >= 0 && data.totalRaces <= 1000000

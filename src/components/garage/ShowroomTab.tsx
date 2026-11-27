@@ -289,8 +289,16 @@ export const ShowroomTab: React.FC<ShowroomTabProps> = ({
             <div className="flex items-center justify-between gap-2 border-b-2 border-[#323642] pb-2">
               <div>
                 <h4 className="font-pixel text-[9px] text-[#f7b519]">SPECIFICATIONS</h4>
-                <div className="font-mono-num text-xs text-[#f4ecd8] mt-1">
-                  PI {showroomPerf.pi} · EST {showroomPerf.estimatedEtSec.toFixed(2)}s
+                <div className="font-mono-num text-xs text-[#f4ecd8] mt-1 flex items-center gap-1.5 flex-wrap">
+                  <span
+                    className="px-1.5 py-0.5 text-[10px] font-bold text-[#141218]"
+                    style={{ backgroundColor: showroomPerf.bracket.color }}
+                  >
+                    {showroomPerf.bracket.code} · {showroomPerf.bracket.name}
+                  </span>
+                  <span>
+                    PI {showroomPerf.pi} · EST {showroomPerf.estimatedEtSec.toFixed(2)}s
+                  </span>
                 </div>
               </div>
 

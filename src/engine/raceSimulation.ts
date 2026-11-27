@@ -1,10 +1,12 @@
 import { soundEngine } from '../audio/soundEngine';
 import {
+  computeAeroDragAccel,
   computeCarPerformance,
   getCarById,
   getEffectiveTuning,
   getStripDistanceSpec,
   getTierById,
+  getTierDriveScale,
   getTierSpeedScale,
   HALF_MILE_FT,
   QUARTER_MILE_FT,
@@ -109,6 +111,9 @@ export class RaceSimulation {
   private perfectClutchShifts = 0;
   private overRevCount = 0;
   private nitrousUsedCount = 0;
+  private topGearOverRevTimer = 0;
+  private revProtectionActive = false;
+  private topGearRevProtectionUsed = false;
 
   // Rival physics
   private rivalDistFt = 0;
@@ -246,6 +251,9 @@ export class RaceSimulation {
     this.perfectClutchShifts = 0;
     this.overRevCount = 0;
     this.nitrousUsedCount = 0;
+    this.topGearOverRevTimer = 0;
+    this.revProtectionActive = false;
+    this.topGearRevProtectionUsed = false;
 
     this.rivalDistFt = 0;
     this.rivalVelFps = 0;
@@ -503,16 +511,16 @@ export class RaceSimulation {
       launchRating = 'PERFECT LAUNCH!';
       launchColor = '#22c55e';
       const launchAggression = Math.max(-0.04, Math.min(0.06, this.tuning.launchRpmOffset / 10000));
-      this.boostTimer = 0.85 + Math.max(0, burnoutBonus * 0.9);
-      this.boostStrength = 1.2 + launchAggression + Math.max(0, burnoutBonus * 0.35);
+      this.boostTimer = 0.75 + Math.max(0, burnoutBonus * 0.8);
+      this.boostStrength = 1.12 + launchAggression + Math.max(0, burnoutBonus * 0.3);
       this.pitchDeg = -Math.min(8.5, 4.2 + this.car.tier * 0.9);
       this.squatPx = 1.2;
       this.shakeAmp = 2.4; // Slight pixel screen shake on launch only
       this.hitstopTimer = 0.03;
       this.exhaustFlame = 1.0;
       this.playerVelFps = Math.max(
-        10,
-        18 + this.car.tier * 6 + Math.max(0, this.tuning.launchRpmOffset * 0.008) + burnoutBonus * 26
+        8,
+        10 + this.car.tier * 3.5 + Math.max(0, this.tuning.launchRpmOffset * 0.006) + burnoutBonus * 18
       );
       this.showCallout(launchRating, launchColor);
       soundEngine.playLaunchHook(true);
@@ -526,7 +534,7 @@ export class RaceSimulation {
         0.08,
         Math.min(1, (0.55 + (this.playerRpm - launchMax) / 2600) * spinDamping)
       );
-      this.playerVelFps = Math.max(8, 10 + this.car.tier * 3 + burnoutBonus * 18);
+      this.playerVelFps = Math.max(6, 7 + this.car.tier * 2 + burnoutBonus * 12);
       this.pitchDeg = -2.5;
       this.shakeAmp = 1.8; // Slight pixel screen shake on launch only
       this.showCallout(launchRating, launchColor);
@@ -535,7 +543,7 @@ export class RaceSimulation {
     } else {
       launchRating = 'BOG LAUNCH';
       launchColor = '#94a3b8';
-      this.playerVelFps = Math.max(6, 7 + this.car.tier * 2 + burnoutBonus * 12);
+      this.playerVelFps = Math.max(5, 6 + this.car.tier * 1.5 + burnoutBonus * 9);
       this.playerRpm = Math.max(this.car.idleRpm + 300, this.playerRpm * 0.65);
       this.shakeAmp = 1.0;
       this.showCallout(launchRating, launchColor);
@@ -582,8 +590,8 @@ export class RaceSimulation {
         this.perfectClutchShifts += 1;
         shiftRating = 'PERFECT CLUTCH!';
         shiftColor = '#f5b82e';
-        this.boostTimer = 0.95;
-        this.boostStrength = this.perf.shiftBoostMult + 0.08;
+        this.boostTimer = 0.8;
+        this.boostStrength = this.perf.shiftBoostMult + 0.06;
         this.hitstopTimer = 0.032;
         this.pitchDeg = -(4.5 + this.car.tier * 1.1);
         this.showCallout(shiftRating, shiftColor);
@@ -591,14 +599,14 @@ export class RaceSimulation {
       } else {
         shiftRating = 'PERFECT SHIFT!';
         shiftColor = '#22c55e';
-        this.boostTimer = 0.78;
+        this.boostTimer = 0.65;
         this.boostStrength = this.perf.shiftBoostMult;
         this.hitstopTimer = 0.025;
         this.pitchDeg = -(3.2 + this.car.tier * 0.8);
         this.showCallout(shiftRating, shiftColor);
         soundEngine.playShift('perfect');
       }
-      this.playerVelFps *= this.clutchHeld ? 1.065 : 1.045;
+      this.playerVelFps *= this.clutchHeld ? 1.04 : 1.025;
     } else if (rpmBefore > maxSweet) {
       this.overRevCount += 1;
       shiftRating = 'OVER-REV!';
@@ -611,7 +619,7 @@ export class RaceSimulation {
       shiftRating = 'GOOD SHIFT';
       shiftColor = '#38bdf8';
       this.boostTimer = 0.35;
-      this.boostStrength = 1.06;
+      this.boostStrength = 1.05;
       this.showCallout(shiftRating, shiftColor);
       soundEngine.playShift('good');
     } else {
@@ -652,7 +660,7 @@ export class RaceSimulation {
     if (this.nitrousLeft <= 0 || this.nitrousTimer > 0) return;
     this.nitrousLeft -= 1;
     this.nitrousUsedCount += 1;
-    this.nitrousTimer = 1.65;
+    this.nitrousTimer = 1.5;
     this.pitchDeg = Math.min(this.pitchDeg, -(3.0 + this.car.tier * 0.6));
     this.showCallout('NITROUS BOOST!', '#38bdf8');
     soundEngine.playNitrous();
@@ -942,36 +950,66 @@ export class RaceSimulation {
     const burnoutGripMult = this.getBurnoutGripMultiplier();
     const launchZoneWeight = Math.max(0, 1 - this.playerDistFt / 330);
     const effectiveGrip = this.perf.grip * (1 + (burnoutGripMult - 1) * launchZoneWeight);
-    const launchHookBoost = 1 + (burnoutGripMult - 1) * 0.45 * Math.max(0, 1 - this.playerDistFt / 180);
+    const launchHookBoost = 1 + (burnoutGripMult - 1) * 0.35 * Math.max(0, 1 - this.playerDistFt / 180);
 
     this.wheelspin = Math.max(0, this.wheelspin - dt * (0.9 + effectiveGrip * 0.45));
 
-    const gearIdx = Math.min(this.playerGear - 1, this.tuning.gearRatios.length - 1);
+    const maxGears = this.tuning.gearRatios.length;
+    const gearIdx = Math.min(this.playerGear - 1, maxGears - 1);
     const gearRatio = this.tuning.gearRatios[gearIdx];
     const totalRatio = gearRatio * this.tuning.finalDrive;
     const stockTotalRatio = this.car.gearRatios[gearIdx] * this.car.finalDrive;
-    const gearingTorqueFactor = Math.max(0.72, Math.min(1.32, Math.pow(totalRatio / stockTotalRatio, 0.42)));
+    const gearingTorqueFactor = Math.max(
+      0.75,
+      Math.min(1.25, Math.pow(totalRatio / stockTotalRatio, 0.36))
+    );
 
+    const inTopGear = this.playerGear === maxGears;
+    const softCutRpm = this.perf.redlineRpm - 90;
     const rpmNorm = Math.max(0.15, Math.min(1.08, this.playerRpm / this.perf.redlineRpm));
-    let torqueShape = 0.62 + Math.sin(Math.min(1, rpmNorm) * Math.PI * 0.78) * 0.55;
-    if (this.playerRpm >= this.perf.redlineRpm) {
+    let torqueShape = 0.65 + Math.sin(Math.min(1, rpmNorm) * Math.PI * 0.78) * 0.5;
+
+    this.revProtectionActive = false;
+    if (
+      inTopGear &&
+      this.tuning.topGearRevProtection &&
+      this.throttleHeld &&
+      !this.clutchHeld &&
+      this.playerRpm >= softCutRpm
+    ) {
+      // Electronic top-gear over-rev protection: smooth soft-cut limiter prevents engine damage
+      torqueShape *= 0.22;
+      this.revProtectionActive = true;
+      this.topGearRevProtectionUsed = true;
+      this.topGearOverRevTimer = 0;
+    } else if (this.playerRpm >= this.perf.redlineRpm) {
       torqueShape *= 0.08;
+      if (inTopGear && this.throttleHeld && !this.clutchHeld) {
+        this.topGearOverRevTimer += dt;
+        if (this.topGearOverRevTimer >= 0.65) {
+          this.topGearOverRevTimer = 0;
+          this.overRevCount += 1;
+          this.showCallout('TOP-GEAR OVER-REV!', '#ff4d3d');
+        }
+      }
+    } else {
+      this.topGearOverRevTimer = Math.max(0, this.topGearOverRevTimer - dt * 1.5);
     }
 
     const boostMult = this.boostTimer > 0 ? this.boostStrength : 1;
     const nosMult = this.nitrousTimer > 0 ? this.perf.nitrousPowerMult : 1;
     const clutchFactor = this.clutchHeld ? 0.15 : 1;
-    const shiftCut = this.shiftLockTimer > 0 ? 0.22 : 1;
+    const shiftCut = this.shiftLockTimer > 0 ? 0.25 : 1;
     const spinLoss = 1 - this.wheelspin * 0.38;
 
     const hpPerTon = this.perf.hp / (this.perf.weightLbs / 2000);
-    const tierDriveScale = [0.22, 0.235, 0.245, 0.275, 0.335][this.car.tier - 1];
+    const tierDriveScale = getTierDriveScale(this.car.tier);
     let driveAccel =
       (this.throttleHeld ? 1 : 0) *
       hpPerTon *
       tierDriveScale *
       torqueShape *
-      (0.55 + gearRatio * 0.26) *
+      (0.58 + gearRatio * 0.24) *
       gearingTorqueFactor *
       boostMult *
       nosMult *
@@ -980,13 +1018,13 @@ export class RaceSimulation {
       shiftCut *
       spinLoss;
 
-    const maxTractionAccel = (26 + effectiveGrip * 32) * (1 + (this.car.tier - 1) * 0.42);
+    const maxTractionAccel = (24 + effectiveGrip * 30) * (1 + (this.car.tier - 1) * 0.45);
     if (driveAccel > maxTractionAccel) {
       driveAccel = maxTractionAccel + (driveAccel - maxTractionAccel) * 0.35;
     }
 
-    const effectiveDrag = Math.max(0.18, this.car.dragCoeff * (1 - this.config.upgrades.chassis * 0.025));
-    const dragAccel = 0.00022 * effectiveDrag * this.playerVelFps * this.playerVelFps;
+    const effectiveDrag = Math.max(0.18, this.car.dragCoeff * (1 - this.config.upgrades.chassis * 0.02));
+    const dragAccel = computeAeroDragAccel(effectiveDrag, this.playerVelFps);
     const engineBrake = !this.throttleHeld ? 9.5 : 0;
 
     const netAccel = driveAccel - dragAccel - engineBrake;
@@ -1002,7 +1040,8 @@ export class RaceSimulation {
       this.playerRpm += (target - this.playerRpm) * Math.min(1, dt * 10);
     } else {
       const slipOffset = this.wheelspin * 1500;
-      const target = Math.min(this.perf.redlineRpm + 240, Math.max(this.car.idleRpm + 400, wheelLinkedRpm + slipOffset));
+      const rpmCap = inTopGear && this.tuning.topGearRevProtection ? softCutRpm : this.perf.redlineRpm + 240;
+      const target = Math.min(rpmCap, Math.max(this.car.idleRpm + 400, wheelLinkedRpm + slipOffset));
       this.playerRpm += (target - this.playerRpm) * Math.min(1, dt * 18);
     }
 
@@ -1170,6 +1209,7 @@ export class RaceSimulation {
       isNewPersonalBest: false,
       overRevCount: this.overRevCount,
       nitrousUsedCount: this.nitrousUsedCount,
+      topGearRevProtectionUsed: this.topGearRevProtectionUsed,
       burnoutEfficiency: this.burnoutEfficiency,
       burnoutSkipped: this.burnoutSkipped,
       replay,
@@ -1247,6 +1287,7 @@ export class RaceSimulation {
       calloutTimer: this.calloutTimer,
       calloutColor: this.calloutColor,
       foul: this.foul,
+      revProtectionActive: this.revProtectionActive,
     });
   }
 }

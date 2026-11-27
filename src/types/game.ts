@@ -72,6 +72,29 @@ export interface DrivetrainTuning {
   gearRatios: number[];    // length matches car.gearRatios.length
   launchRpmOffset: number; // -600..+600 RPM
   shiftRpmOffset: number;  // -600..+350 RPM
+  topGearRevProtection?: boolean; // Electronic soft-cut rev limiter in top gear to prevent engine over-rev damage
+}
+
+export type OutputBracketId = 1 | 2 | 3 | 4 | 5;
+
+export interface OutputBracketSpec {
+  id: OutputBracketId;
+  code: string;
+  name: string;
+  etRangeLabel: string;
+  hpRangeLabel: string;
+  minEtSec: number;
+  maxEtSec: number;
+  color: string;
+}
+
+export interface RaceEligibilityResult {
+  eligible: boolean;
+  reason?: 'OVER_BRACKET' | 'UNDER_BRACKET';
+  message?: string;
+  carBracket: OutputBracketSpec;
+  eventBracket: OutputBracketSpec;
+  isStepUp?: boolean;
 }
 
 export interface CarConfig {
@@ -121,6 +144,7 @@ export interface ComputedPerformance {
   nitrousShots: number;
   nitrousPowerMult: number;
   pi: number;
+  bracket: OutputBracketSpec;
   estimatedEtSec: number;
   estimatedHalfEtSec: number;
   estimatedMileEtSec: number;
@@ -329,6 +353,7 @@ export interface RaceTelemetry {
   calloutTimer: number;
   calloutColor: string;
   foul: boolean;
+  revProtectionActive?: boolean;
 }
 
 export interface RaceResult {
@@ -362,6 +387,7 @@ export interface RaceResult {
   isNewPersonalBest: boolean;
   overRevCount?: number;
   nitrousUsedCount?: number;
+  topGearRevProtectionUsed?: boolean;
   engineWearApplied?: number;
   engineHealthAfter?: number;
   burnoutEfficiency?: number;

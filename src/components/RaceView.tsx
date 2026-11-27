@@ -809,7 +809,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
                 const postStatus = getEngineHealthStatus(result.engineHealthAfter);
                 return (
                   <div className="ng-vfd px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 text-xs font-mono-num text-[#f4ecd8]">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <PixelIcon name="wrench" className="w-3.5 h-3.5 shrink-0" />
                       <span className="text-[#94a3b8]">ENGINE HEALTH</span>
                       <span className="font-bold" style={{ color: postStatus.color }}>
@@ -817,6 +817,11 @@ export const RaceView: React.FC<RaceViewProps> = ({
                       </span>
                       {typeof result.engineWearApplied === 'number' && result.engineWearApplied > 0 && (
                         <span className="text-[#94a3b8]">(-{result.engineWearApplied}% wear)</span>
+                      )}
+                      {result.topGearRevProtectionUsed && (
+                        <span className="bg-[#162b22] border border-[#2ee66b] text-[#2ee66b] px-1.5 py-0.5 text-[10px] font-bold">
+                          REV GUARD PROTECTED
+                        </span>
                       )}
                     </div>
                     {result.engineHealthAfter < 80 && (

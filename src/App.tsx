@@ -6,6 +6,7 @@ import { GarageHub } from './components/GarageHub';
 import { RaceView } from './components/RaceView';
 import { TitleScreen } from './components/TitleScreen';
 import {
+  checkRaceEligibility,
   computeRaceEngineWear,
   createDefaultCarConfig,
   getCarById,
@@ -320,8 +321,13 @@ function GameApp() {
 
   const handleStartRace = useCallback(
     (tierId: TierId, distanceId: StripDistanceId, rival: RivalSpec | null) => {
+      const currentSave = saveRef.current;
+      const activeCfg = getCarConfig(currentSave, currentSave.activeCarId);
+      const effectiveTier = rival ? rival.tier : tierId;
+      const eligibility = checkRaceEligibility(currentSave.activeCarId, activeCfg, effectiveTier);
+      if (!eligibility.eligible) return;
       soundEngine.playUiClick();
-      setRaceTier(tierId);
+      setRaceTier(effectiveTier);
       setRaceDistance(rival ? rival.distance : distanceId);
       setRaceRival(rival);
       setScreen('RACE');
@@ -419,6 +425,7 @@ function GameApp() {
         foul: rawResult.foul,
         overRevCount: rawResult.overRevCount ?? 0,
         nitrousUsedCount: rawResult.nitrousUsedCount ?? 0,
+        topGearRevProtectionUsed: rawResult.topGearRevProtectionUsed,
       });
       const activeCfg = getCarConfig(currentSave, rawResult.carId);
       const nextEngineHealth = Math.max(15, getEngineHealth(activeCfg) - wearApplied);
@@ -456,7 +463,7 @@ function GameApp() {
     [refreshGlobal, user]
   );
 
-  // Determine Next Rival in same strip distance ladder
+  // Determine Next Rival in same strip distance ladder (only if active car is bracket-eligible)
   const nextRival = useMemo(() => {
     if (!raceRival) return null;
     const sameDistanceRivals = RIVALS.filter((r) => r.distance === raceRival.distance);
@@ -464,10 +471,13 @@ function GameApp() {
     if (idx < 0 || idx >= sameDistanceRivals.length - 1) return null;
     const candidate = sameDistanceRivals[idx + 1];
     if (candidate.tier <= save.highestUnlockedTier) {
-      return candidate;
+      const activeCfg = getCarConfig(save, save.activeCarId);
+      if (checkRaceEligibility(save.activeCarId, activeCfg, candidate.tier).eligible) {
+        return candidate;
+      }
     }
     return null;
-  }, [raceRival, save.highestUnlockedTier]);
+  }, [raceRival, save]);
 
   const activeRaceTimeOfDay = useMemo(() => resolveTimeOfDay(raceTier, 'auto'), [raceTier]);
 
