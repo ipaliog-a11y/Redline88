@@ -515,7 +515,7 @@ export class RaceSimulation {
         18 + this.car.tier * 6 + Math.max(0, this.tuning.launchRpmOffset * 0.008) + burnoutBonus * 26
       );
       this.showCallout(launchRating, launchColor);
-      soundEngine.playLaunchHook(true);
+      soundEngine.playLaunchHook(true, this.car.tier);
       this.spawnTireSmoke(10, 18);
       this.spawnLaunchSparks(8);
     } else if (this.playerRpm > launchMax) {
@@ -530,7 +530,7 @@ export class RaceSimulation {
       this.pitchDeg = -2.5;
       this.shakeAmp = 1.8; // Slight pixel screen shake on launch only
       this.showCallout(launchRating, launchColor);
-      soundEngine.playLaunchHook(false);
+      soundEngine.playLaunchHook(false, this.car.tier);
       this.spawnTireSmoke(14, 15);
     } else {
       launchRating = 'BOG LAUNCH';
@@ -539,7 +539,7 @@ export class RaceSimulation {
       this.playerRpm = Math.max(this.car.idleRpm + 300, this.playerRpm * 0.65);
       this.shakeAmp = 1.0;
       this.showCallout(launchRating, launchColor);
-      soundEngine.playLaunchHook(false);
+      soundEngine.playLaunchHook(false, this.car.tier);
     }
 
     this.replayEvents.push({
@@ -587,7 +587,7 @@ export class RaceSimulation {
         this.hitstopTimer = 0.032;
         this.pitchDeg = -(4.5 + this.car.tier * 1.1);
         this.showCallout(shiftRating, shiftColor);
-        soundEngine.playShift('perfect_clutch');
+        soundEngine.playShift('perfect_clutch', this.car.tier);
       } else {
         shiftRating = 'PERFECT SHIFT!';
         shiftColor = '#22c55e';
@@ -596,7 +596,7 @@ export class RaceSimulation {
         this.hitstopTimer = 0.025;
         this.pitchDeg = -(3.2 + this.car.tier * 0.8);
         this.showCallout(shiftRating, shiftColor);
-        soundEngine.playShift('perfect');
+        soundEngine.playShift('perfect', this.car.tier);
       }
       this.playerVelFps *= this.clutchHeld ? 1.065 : 1.045;
     } else if (rpmBefore > maxSweet) {
@@ -606,20 +606,20 @@ export class RaceSimulation {
       this.boostTimer = 0.25;
       this.boostStrength = 1.02;
       this.showCallout(shiftRating, shiftColor);
-      soundEngine.playShift('miss');
+      soundEngine.playShift('miss', this.car.tier);
     } else if (rpmBefore >= minSweet - 900) {
       shiftRating = 'GOOD SHIFT';
       shiftColor = '#38bdf8';
       this.boostTimer = 0.35;
       this.boostStrength = 1.06;
       this.showCallout(shiftRating, shiftColor);
-      soundEngine.playShift('good');
+      soundEngine.playShift('good', this.car.tier);
     } else {
       shiftRating = 'EARLY SHIFT';
       shiftColor = '#94a3b8';
       this.shiftLockTimer += 0.12;
       this.showCallout(shiftRating, shiftColor);
-      soundEngine.playShift('miss');
+      soundEngine.playShift('miss', this.car.tier);
     }
 
     this.replayEvents.push({
@@ -644,7 +644,7 @@ export class RaceSimulation {
     const newRatio = this.tuning.gearRatios[this.playerGear - 1];
     this.playerRpm = Math.min(this.perf.redlineRpm + 250, this.playerRpm * (newRatio / oldRatio));
     this.shiftLockTimer = 0.1;
-    soundEngine.playShift('good');
+    soundEngine.playShift('good', this.car.tier);
   }
 
   private handleNitrous(): void {
@@ -655,7 +655,7 @@ export class RaceSimulation {
     this.nitrousTimer = 1.65;
     this.pitchDeg = Math.min(this.pitchDeg, -(3.0 + this.car.tier * 0.6));
     this.showCallout('NITROUS BOOST!', '#38bdf8');
-    soundEngine.playNitrous();
+    soundEngine.playNitrous(this.car.tier);
     this.replayEvents.push({
       t: Number(this.playerRunElapsed.toFixed(3)),
       distFt: Number(this.playerDistFt.toFixed(1)),
@@ -845,6 +845,10 @@ export class RaceSimulation {
       tier: this.car.tier,
       boost: this.boostTimer > 0 || this.nitrousTimer > 0,
       inductionLevel: this.config.upgrades.induction,
+      overRev: this.playerRpm >= this.perf.redlineRpm * 0.985 && this.throttleHeld,
+      wheelspin: this.wheelspin,
+      nitrousActive: this.nitrousTimer > 0,
+      burnout: this.phase === 'BURNOUT' && this.brakeHeld && this.throttleHeld,
     });
 
     this.emitTelemetry(false);
