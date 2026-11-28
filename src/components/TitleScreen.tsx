@@ -164,9 +164,6 @@ export const TitleScreen: React.FC<TitleScreenProps> = ({
               <h1 className="font-pixel text-xl sm:text-4xl md:text-[44px] text-[#e83b24] pixel-text-shadow-lg tracking-wider leading-none">
                 REDLINE <span className="text-[#f7b519]">&apos;88</span>
               </h1>
-              <div className="mt-2.5 bg-[#0b0a0f] border border-[#525866] px-3 py-1 font-mono-num text-[10px] sm:text-xs font-bold tracking-[0.26em] text-[#19d4e6] uppercase">
-                90s HI-BIT DRAG RACING
-              </div>
             </div>
             <div className="ng-checkered-bar h-2.5 w-full" />
           </div>

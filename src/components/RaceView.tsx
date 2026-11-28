@@ -701,6 +701,7 @@ export const RaceView: React.FC<RaceViewProps> = ({
               hud.nitrousMax > 0 ? 'grid-cols-4' : 'grid-cols-3'
             } lg:flex items-center gap-1.5 sm:gap-2 shrink-0 touch-none`}
           >
+            {/* LEFT: BRAKE (Burnout) -> CLUTCH (Staging/Launch) */}
             <button
               type="button"
               disabled={isLaunchedRacing}
@@ -742,6 +743,53 @@ export const RaceView: React.FC<RaceViewProps> = ({
               </span>
             </button>
 
+            {/* MIDDLE: SHIFT+ */}
+            <button
+              type="button"
+              disabled={isBurnoutPhase}
+              onContextMenu={(e) => e.preventDefault()}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                simRef.current?.triggerShiftUp();
+              }}
+              className={`ng-keycap touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-5 border-2 font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
+                isBurnoutPhase
+                  ? 'bg-[#141218] border-[#323642] text-[#64748b] cursor-not-allowed'
+                  : hud.inShiftZone
+                  ? 'bg-[#f7b519] border-[#141218] text-[#141218]'
+                  : 'bg-[#e83b24] border-[#141218] text-[#ffffff] hover:bg-[#ff563f]'
+              }`}
+            >
+              SHIFT+
+              <span className="hidden lg:block font-mono-num text-[10px] opacity-85 mt-1">[SPACE]</span>
+            </button>
+
+            {/* MIDDLE: NOS (when equipped) */}
+            {hud.nitrousMax > 0 && (
+              <button
+                type="button"
+                disabled={isBurnoutPhase || hud.nitrousLeft <= 0 || hud.nitrousActive}
+                onContextMenu={(e) => e.preventDefault()}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  simRef.current?.triggerNitrous();
+                }}
+                className={`ng-keycap touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-3.5 border-2 font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
+                  isBurnoutPhase
+                    ? 'bg-[#141218] border-[#323642] text-[#64748b] cursor-not-allowed'
+                    : hud.nitrousActive
+                    ? 'bg-[#19d4e6] border-[#141218] text-[#141218]'
+                    : hud.nitrousLeft > 0
+                    ? 'bg-[#0e4f63] border-[#19d4e6] text-[#e0f2fe] hover:bg-[#136a85]'
+                    : 'bg-[#141218] border-[#323642] text-[#64748b] cursor-not-allowed'
+                }`}
+              >
+                NOS ({hud.nitrousLeft})
+                <span className="hidden lg:block font-mono-num text-[10px] opacity-80 mt-1">[N]</span>
+              </button>
+            )}
+
+            {/* RIGHT: GAS PEDAL */}
             <button
               type="button"
               onContextMenu={(e) => e.preventDefault()}
@@ -766,50 +814,6 @@ export const RaceView: React.FC<RaceViewProps> = ({
               GAS
               <span className="hidden lg:block font-mono-num text-[10px] opacity-80 mt-1">[W]</span>
             </button>
-
-            <button
-              type="button"
-              disabled={isBurnoutPhase}
-              onContextMenu={(e) => e.preventDefault()}
-              onPointerDown={(e) => {
-                e.preventDefault();
-                simRef.current?.triggerShiftUp();
-              }}
-              className={`ng-keycap touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-5 border-2 font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
-                isBurnoutPhase
-                  ? 'bg-[#141218] border-[#323642] text-[#64748b] cursor-not-allowed'
-                  : hud.inShiftZone
-                  ? 'bg-[#f7b519] border-[#141218] text-[#141218]'
-                  : 'bg-[#e83b24] border-[#141218] text-[#ffffff] hover:bg-[#ff563f]'
-              }`}
-            >
-              SHIFT+
-              <span className="hidden lg:block font-mono-num text-[10px] opacity-85 mt-1">[SPACE]</span>
-            </button>
-
-            {hud.nitrousMax > 0 && (
-              <button
-                type="button"
-                disabled={isBurnoutPhase || hud.nitrousLeft <= 0 || hud.nitrousActive}
-                onContextMenu={(e) => e.preventDefault()}
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  simRef.current?.triggerNitrous();
-                }}
-                className={`ng-keycap touch-none select-none min-h-[50px] lg:h-14 px-2.5 sm:px-3.5 border-2 font-pixel text-[9px] sm:text-[10px] whitespace-nowrap cursor-pointer ${
-                  isBurnoutPhase
-                    ? 'bg-[#141218] border-[#323642] text-[#64748b] cursor-not-allowed'
-                    : hud.nitrousActive
-                    ? 'bg-[#19d4e6] border-[#141218] text-[#141218]'
-                    : hud.nitrousLeft > 0
-                    ? 'bg-[#0e4f63] border-[#19d4e6] text-[#e0f2fe] hover:bg-[#136a85]'
-                    : 'bg-[#141218] border-[#323642] text-[#64748b] cursor-not-allowed'
-                }`}
-              >
-                NOS ({hud.nitrousLeft})
-                <span className="hidden lg:block font-mono-num text-[10px] opacity-80 mt-1">[N]</span>
-              </button>
-            )}
           </div>
         </div>
       </div>
